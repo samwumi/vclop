@@ -41,11 +41,31 @@ async function bootstrap(): Promise<void> {
   app.useLogger(logger);
 
   // ── Serve uploaded files as static assets ────────────────────────────────
-  // Files are stored at ./uploads/{key} and served at /uploads/{key}
   const uploadDir = path.resolve(
     configService.get<string>('app.uploadDir') ?? './uploads',
   );
   app.useStaticAssets(uploadDir, { prefix: '/uploads' });
+
+  // ── Serve React frontend from same process (production only) ─────────────
+  // The frontend is built into ../vclop-frontend/dist before deployment.
+  // NestJS serves index.html for all non-API routes so React Router works.
+  if (isProduction) {
+    const frontendDist = path.resolve(__dirname, '../../vclop-frontend/dist');
+    if (require('fs').existsSync(frontendDist)) {
+      app.useStaticAssets(frontendDist, { prefix: '/' });
+      // SPA fallback — serve index.html for any unmatched route
+      const { join } = require('path');
+      app.use((req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => {
+        if (req.url.startsWith('/api') || req.url.startsWith('/uploads')) return next();
+        const indexFile = join(frontendDist, 'index.html');
+        if (require('fs').existsSync(indexFile)) {
+          res.sendFile(indexFile);
+        } else {
+          next();
+        }
+      });
+    }
+  }
 
   // ── Graceful shutdown ────────────────────────────────────────────────────
   // Enables NestJS lifecycle hooks (OnApplicationShutdown) and listens for
