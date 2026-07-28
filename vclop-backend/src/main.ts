@@ -47,22 +47,18 @@ async function bootstrap(): Promise<void> {
   app.useStaticAssets(uploadDir, { prefix: '/uploads' });
 
   // ── Serve React frontend from same process (production only) ─────────────
-  // The frontend is built into ../vclop-frontend/dist before deployment.
-  // NestJS serves index.html for all non-API routes so React Router works.
+  // Frontend is built into vclop-backend/public by the build process.
   if (isProduction) {
-    const frontendDist = path.resolve(__dirname, '../../vclop-frontend/dist');
-    if (require('fs').existsSync(frontendDist)) {
+    const frontendDist = path.resolve(__dirname, '../../public');
+    const fs = require('fs') as typeof import('fs');
+    if (fs.existsSync(frontendDist)) {
       app.useStaticAssets(frontendDist, { prefix: '/' });
-      // SPA fallback — serve index.html for any unmatched route
-      const { join } = require('path');
+      // SPA fallback — serve index.html for any unmatched non-API route
       app.use((req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => {
         if (req.url.startsWith('/api') || req.url.startsWith('/uploads')) return next();
-        const indexFile = join(frontendDist, 'index.html');
-        if (require('fs').existsSync(indexFile)) {
-          res.sendFile(indexFile);
-        } else {
-          next();
-        }
+        const indexFile = path.join(frontendDist, 'index.html');
+        if (fs.existsSync(indexFile)) res.sendFile(indexFile);
+        else next();
       });
     }
   }
