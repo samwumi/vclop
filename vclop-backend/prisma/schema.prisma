@@ -1,0 +1,1488 @@
+// =============================================================================
+// VCLOP — Prisma Schema
+// Database: MariaDB
+// ORM: Prisma
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  LOCKED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  PASSWORD_RESET
+  PASSWORD_CHANGE
+  PERMISSION_GRANT
+  PERMISSION_REVOKE
+  ROLE_ASSIGN
+  ROLE_REVOKE
+  EXPORT
+  IMPORT
+  APPROVE
+  REJECT
+  SUBMIT
+  CANCEL
+  RESTORE
+  LOCK
+  UNLOCK
+  SYSTEM
+}
+
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+  DATE
+  EMAIL
+  URL
+  PHONE
+  COLOR
+  TEXTAREA
+}
+
+enum SettingScope {
+  SYSTEM
+  BRANCH
+  USER
+}
+
+enum WidgetType {
+  STAT_CARD
+  LINE_CHART
+  BAR_CHART
+  PIE_CHART
+  DONUT_CHART
+  TABLE
+  LIST
+  CALENDAR
+  MAP
+  CUSTOM
+}
+
+enum WidgetSize {
+  SMALL   // 1x1
+  MEDIUM  // 2x1
+  LARGE   // 2x2
+  WIDE    // 3x1
+  FULL    // 4x1
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  IN_APP
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+enum TokenType {
+  REFRESH
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+  PHONE_VERIFICATION
+}
+
+enum PermissionCategory {
+  USER_MANAGEMENT
+  ROLE_MANAGEMENT
+  PERMISSION_MANAGEMENT
+  BRANCH_MANAGEMENT
+  DEPARTMENT_MANAGEMENT
+  SETTINGS_MANAGEMENT
+  AUDIT_MANAGEMENT
+  DASHBOARD_MANAGEMENT
+  REPORT_MANAGEMENT
+  NOTIFICATION_MANAGEMENT
+  SYSTEM_ADMINISTRATION
+  FORMS_MANAGEMENT
+  CUSTOMER_MANAGEMENT
+  DOCUMENT_MANAGEMENT
+  LOAN_MANAGEMENT
+  VIRTUAL_ACCOUNT_MANAGEMENT
+}
+
+// =============================================================================
+// BRANCHES
+// =============================================================================
+
+model Branch {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  code        String   @unique @db.VarChar(20)
+  name        String   @db.VarChar(100)
+  address     String?  @db.VarChar(500)
+  city        String?  @db.VarChar(100)
+  state       String?  @db.VarChar(100)
+  country     String   @default("Philippines") @db.VarChar(100)
+  postalCode  String?  @db.VarChar(20)
+  latitude    Decimal? @db.Decimal(10, 8)
+  longitude   Decimal? @db.Decimal(11, 8)
+  phone       String?  @db.VarChar(30)
+  email       String?  @db.VarChar(150)
+  managerName String?  @db.VarChar(150)
+  isHeadOffice Boolean @default(false)
+  isActive    Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  users         User[]
+  managedByUsers UserBranch[]
+  settings      Setting[]
+  auditLogs     AuditLog[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("branches")
+}
+
+// =============================================================================
+// DEPARTMENTS
+// =============================================================================
+
+model Department {
+  id          String    @id @default(uuid()) @db.VarChar(36)
+  code        String    @unique @db.VarChar(20)
+  name        String    @db.VarChar(100)
+  description String?   @db.VarChar(500)
+  parentId    String?   @db.VarChar(36)
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Self-referencing for hierarchy
+  parent      Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children    Department[] @relation("DepartmentHierarchy")
+
+  // Relations
+  users       User[]
+
+  @@index([parentId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("departments")
+}
+
+// =============================================================================
+// PERMISSIONS
+// =============================================================================
+
+model Permission {
+  id          String             @id @default(uuid()) @db.VarChar(36)
+  code        String             @unique @db.VarChar(100)
+  name        String             @db.VarChar(150)
+  description String?            @db.VarChar(500)
+  category    PermissionCategory
+  module      String             @db.VarChar(50)
+  action      String             @db.VarChar(50)
+  isSystem    Boolean            @default(false)
+  isActive    Boolean            @default(true)
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  // Relations
+  rolePermissions     RolePermission[]
+  userPermissions     UserPermission[]
+
+  @@index([code])
+  @@index([category])
+  @@index([module])
+  @@index([isActive])
+  @@map("permissions")
+}
+
+// =============================================================================
+// ROLES  (templates for permissions — not used for access checks directly)
+// =============================================================================
+
+model Role {
+  id          String    @id @default(uuid()) @db.VarChar(36)
+  code        String    @unique @db.VarChar(50)
+  name        String    @db.VarChar(100)
+  description String?   @db.VarChar(500)
+  isSystem    Boolean   @default(false)
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("roles")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid()) @db.VarChar(36)
+  roleId       String     @db.VarChar(36)
+  permissionId String     @db.VarChar(36)
+  createdAt    DateTime   @default(now())
+  createdById  String?    @db.VarChar(36)
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// =============================================================================
+// USERS
+// =============================================================================
+
+model User {
+  id               String     @id @default(uuid()) @db.VarChar(36)
+  employeeId       String?    @unique @db.VarChar(30)
+  email            String     @unique @db.VarChar(150)
+  phone            String?    @unique @db.VarChar(30)
+  username         String     @unique @db.VarChar(50)
+  passwordHash     String     @db.VarChar(255)
+  firstName        String     @db.VarChar(80)
+  middleName       String?    @db.VarChar(80)
+  lastName         String     @db.VarChar(80)
+  suffix           String?    @db.VarChar(20)
+  gender           Gender?
+  dateOfBirth      DateTime?  @db.Date
+  avatarPath       String?    @db.VarChar(500)
+  status           UserStatus @default(PENDING_VERIFICATION)
+  departmentId     String?    @db.VarChar(36)
+  branchId         String?    @db.VarChar(36)
+  supervisorId     String?    @db.VarChar(36)
+  jobTitle         String?    @db.VarChar(100)
+  emailVerifiedAt  DateTime?
+  phoneVerifiedAt  DateTime?
+  lastLoginAt      DateTime?
+  lastLoginIp      String?    @db.VarChar(45)
+  failedLoginCount Int        @default(0)
+  lockedUntil      DateTime?
+  mustChangePassword Boolean  @default(false)
+  twoFactorEnabled Boolean    @default(false)
+  twoFactorSecret  String?    @db.VarChar(255)
+  timezone         String     @default("Asia/Manila") @db.VarChar(50)
+  locale           String     @default("en-PH") @db.VarChar(10)
+  metadata         Json?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+  createdById      String?    @db.VarChar(36)
+  updatedById      String?    @db.VarChar(36)
+
+  // Relations
+  department   Department? @relation(fields: [departmentId], references: [id])
+  branch       Branch?     @relation(fields: [branchId], references: [id])
+  supervisor   User?       @relation("UserHierarchy", fields: [supervisorId], references: [id])
+  subordinates User[]      @relation("UserHierarchy")
+
+  userRoles        UserRole[]
+  userPermissions  UserPermission[]
+  tokens           Token[]
+  auditLogs        AuditLog[]
+  dashboardLayouts DashboardLayout[]
+  notificationPreferences NotificationPreference[]
+  managedBranches  UserBranch[]
+
+  @@index([email])
+  @@index([username])
+  @@index([employeeId])
+  @@index([status])
+  @@index([departmentId])
+  @@index([branchId])
+  @@index([supervisorId])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+// User ↔ Branch: compliance/accounting officers can oversee multiple branches
+// Loan officers use the single branchId on User; this table is for multi-branch staff.
+model UserBranch {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  branchId  String   @db.VarChar(36)
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, branchId])
+  @@index([userId])
+  @@index([branchId])
+  @@map("user_branches")
+}
+
+// User ↔ Role assignment
+model UserRole {  id          String    @id @default(uuid()) @db.VarChar(36)
+  userId      String    @db.VarChar(36)
+  roleId      String    @db.VarChar(36)
+  assignedAt  DateTime  @default(now())
+  assignedById String?  @db.VarChar(36)
+  expiresAt   DateTime?
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+// Direct permission grants / overrides on a user
+// grant=true means explicitly granted; grant=false means explicitly denied (override)
+model UserPermission {
+  id           String     @id @default(uuid()) @db.VarChar(36)
+  userId       String     @db.VarChar(36)
+  permissionId String     @db.VarChar(36)
+  granted      Boolean    @default(true)
+  reason       String?    @db.VarChar(500)
+  assignedAt   DateTime   @default(now())
+  assignedById String?    @db.VarChar(36)
+  expiresAt    DateTime?
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
+  @@map("user_permissions")
+}
+
+// =============================================================================
+// TOKENS  (refresh, password reset, email verification)
+// =============================================================================
+
+model Token {
+  id          String    @id @default(uuid()) @db.VarChar(36)
+  userId      String    @db.VarChar(36)
+  type        TokenType
+  token       String    @unique @db.VarChar(512)
+  hashedToken String    @db.VarChar(255)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  revokedAt   DateTime?
+  ipAddress   String?   @db.VarChar(45)
+  userAgent   String?   @db.VarChar(500)
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([hashedToken])
+  @@index([expiresAt])
+  @@map("tokens")
+}
+
+// =============================================================================
+// SETTINGS  (key-value configuration store)
+// =============================================================================
+
+model Setting {
+  id           String       @id @default(uuid()) @db.VarChar(36)
+  key          String       @db.VarChar(100)
+  value        String?      @db.Text
+  defaultValue String?      @db.Text
+  type         SettingType  @default(STRING)
+  scope        SettingScope @default(SYSTEM)
+  branchId     String?      @db.VarChar(36)
+  label        String       @db.VarChar(150)
+  description  String?      @db.VarChar(500)
+  group        String       @db.VarChar(50)
+  isPublic     Boolean      @default(false)
+  isReadonly   Boolean      @default(false)
+  isEncrypted  Boolean      @default(false)
+  sortOrder    Int          @default(0)
+  validationRules Json?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  updatedById  String?      @db.VarChar(36)
+
+  branch       Branch?      @relation(fields: [branchId], references: [id])
+
+  @@unique([key, scope, branchId])
+  @@index([key])
+  @@index([scope])
+  @@index([group])
+  @@index([branchId])
+  @@map("settings")
+}
+
+// =============================================================================
+// AUDIT TRAIL
+// =============================================================================
+
+model AuditLog {
+  id           String      @id @default(uuid()) @db.VarChar(36)
+  userId       String?     @db.VarChar(36)
+  userEmail    String?     @db.VarChar(150)
+  userFullName String?     @db.VarChar(200)
+  action       AuditAction
+  module       String      @db.VarChar(50)
+  subModule    String?     @db.VarChar(50)
+  entityId     String?     @db.VarChar(36)
+  entityType   String?     @db.VarChar(100)
+  description  String?     @db.VarChar(1000)
+  oldValues    Json?
+  newValues    Json?
+  changedFields Json?
+  ipAddress    String?     @db.VarChar(45)
+  userAgent    String?     @db.VarChar(500)
+  browser      String?     @db.VarChar(100)
+  os           String?     @db.VarChar(100)
+  device       String?     @db.VarChar(100)
+  branchId     String?     @db.VarChar(36)
+  requestId    String?     @db.VarChar(36)
+  duration     Int?        // ms
+  statusCode   Int?
+  isSuccess    Boolean     @default(true)
+  errorMessage String?     @db.VarChar(1000)
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+
+  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  branch       Branch?     @relation(fields: [branchId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([module])
+  @@index([entityId])
+  @@index([entityType])
+  @@index([branchId])
+  @@index([createdAt])
+  @@index([isSuccess])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// DASHBOARD & WIDGETS
+// =============================================================================
+
+model Widget {
+  id             String     @id @default(uuid()) @db.VarChar(36)
+  code           String     @unique @db.VarChar(50)
+  name           String     @db.VarChar(100)
+  description    String?    @db.VarChar(500)
+  type           WidgetType
+  size           WidgetSize @default(MEDIUM)
+  component      String     @db.VarChar(100)  // frontend component name
+  dataEndpoint   String?    @db.VarChar(255)  // API endpoint for data
+  refreshInterval Int?                         // seconds; null = no auto refresh
+  requiredPermission String? @db.VarChar(100) // permission code to see widget
+  defaultConfig  Json?
+  isSystem       Boolean    @default(false)
+  isActive       Boolean    @default(true)
+  sortOrder      Int        @default(0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relations
+  layoutItems    DashboardLayoutItem[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("widgets")
+}
+
+// Per-user saved dashboard layouts
+model DashboardLayout {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  name      String   @db.VarChar(100)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     DashboardLayoutItem[]
+
+  @@index([userId])
+  @@map("dashboard_layouts")
+}
+
+model DashboardLayoutItem {
+  id         String          @id @default(uuid()) @db.VarChar(36)
+  layoutId   String          @db.VarChar(36)
+  widgetId   String          @db.VarChar(36)
+  posX       Int             @default(0)
+  posY       Int             @default(0)
+  width      Int             @default(2)
+  height     Int             @default(1)
+  config     Json?           // user-specific widget config overrides
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  layout     DashboardLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  widget     Widget          @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+
+  @@unique([layoutId, widgetId])
+  @@index([layoutId])
+  @@index([widgetId])
+  @@map("dashboard_layout_items")
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+model NotificationTemplate {
+  id          String              @id @default(uuid()) @db.VarChar(36)
+  code        String              @unique @db.VarChar(100)
+  name        String              @db.VarChar(150)
+  event       String              @db.VarChar(100)
+  channel     NotificationChannel
+  subject     String?             @db.VarChar(255)
+  bodyHtml    String?             @db.LongText
+  bodyText    String?             @db.Text
+  variables   Json?               // list of available template variables
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([event])
+  @@index([channel])
+  @@map("notification_templates")
+}
+
+model NotificationLog {
+  id           String              @id @default(uuid()) @db.VarChar(36)
+  recipientId  String?             @db.VarChar(36)
+  recipientRef String?             @db.VarChar(200)  // email or phone
+  channel      NotificationChannel
+  templateCode String?             @db.VarChar(100)
+  event        String?             @db.VarChar(100)
+  subject      String?             @db.VarChar(255)
+  body         String?             @db.Text
+  status       NotificationStatus  @default(PENDING)
+  attempts     Int                 @default(0)
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  readAt       DateTime?
+  failureReason String?            @db.VarChar(500)
+  metadata     Json?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([recipientId])
+  @@index([channel])
+  @@index([status])
+  @@index([event])
+  @@map("notification_logs")
+}
+
+model NotificationPreference {
+  id          String              @id @default(uuid()) @db.VarChar(36)
+  userId      String              @db.VarChar(36)
+  event       String              @db.VarChar(100)
+  channel     NotificationChannel
+  enabled     Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, event, channel])
+  @@index([userId])
+  @@index([event])
+  @@map("notification_preferences")
+}
+
+// =============================================================================
+// DYNAMIC FORM ENGINE (VCLOP Phase 3)
+// -----------------------------------------------------------------------------
+// Admin-configurable forms for Customer, Loan, Business, Guarantor and
+// Collateral data capture. A FormTemplate belongs to one entityType and holds
+// ordered Sections, each holding ordered Fields. Actual captured data lives in
+// FormSubmission -> FormFieldValue, decoupled from whatever business entity
+// (customer id, loan application id, etc.) it is attached to, so the engine
+// has zero knowledge of downstream domain modules.
+// =============================================================================
+
+enum FormEntityType {
+  CUSTOMER
+  LOAN
+  BUSINESS
+  GUARANTOR
+  COLLATERAL
+}
+
+enum FormFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  MONEY
+  DATE
+  PHONE
+  EMAIL
+  BVN
+  NIN
+  FILE_UPLOAD
+  PHOTO_UPLOAD
+  CHECKBOX
+  RADIO
+  DROPDOWN
+  MULTI_SELECT
+  SWITCH
+  ADDRESS
+  GPS
+  HIDDEN
+  FORMULA
+}
+
+model FormTemplate {
+  id          String         @id @default(uuid()) @db.VarChar(36)
+  entityType  FormEntityType
+  code        String         @unique @db.VarChar(50)
+  name        String         @db.VarChar(150)
+  description String?        @db.VarChar(500)
+  version     Int            @default(1)
+  isActive    Boolean        @default(true)
+  isDefault   Boolean        @default(false)
+  metadata    Json?
+  createdById String?        @db.VarChar(36)
+  updatedById String?        @db.VarChar(36)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
+
+  sections    FormSection[]
+  submissions FormSubmission[]
+
+  @@index([entityType])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("form_templates")
+}
+
+model FormSection {
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  formTemplateId String       @db.VarChar(36)
+  title          String       @db.VarChar(150)
+  description    String?      @db.VarChar(500)
+  sortOrder      Int          @default(0)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  formTemplate   FormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+  fields         FormField[]
+
+  @@index([formTemplateId])
+  @@index([sortOrder])
+  @@map("form_sections")
+}
+
+model FormField {
+  id             String        @id @default(uuid()) @db.VarChar(36)
+  sectionId      String        @db.VarChar(36)
+  code           String        @db.VarChar(100)
+  label          String        @db.VarChar(150)
+  type           FormFieldType
+  placeholder    String?       @db.VarChar(200)
+  helpText       String?       @db.VarChar(500)
+  isRequired     Boolean       @default(false)
+  defaultValue   Json?
+  options        Json?
+  validation     Json?
+  visibilityRule Json?
+  sortOrder      Int           @default(0)
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  section        FormSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  values         FormFieldValue[]
+
+  @@unique([sectionId, code])
+  @@index([sectionId])
+  @@index([sortOrder])
+  @@map("form_fields")
+}
+
+model FormSubmission {
+  id             String         @id @default(uuid()) @db.VarChar(36)
+  formTemplateId String         @db.VarChar(36)
+  entityType     FormEntityType
+  entityId       String         @db.VarChar(36)
+  submittedById  String?        @db.VarChar(36)
+  submittedAt    DateTime       @default(now())
+  isComplete     Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  formTemplate   FormTemplate      @relation(fields: [formTemplateId], references: [id])
+  values         FormFieldValue[]
+
+  @@index([formTemplateId])
+  @@index([entityType, entityId])
+  @@map("form_submissions")
+}
+
+model FormFieldValue {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  submissionId String   @db.VarChar(36)
+  fieldId      String   @db.VarChar(36)
+  value        Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submission   FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  field        FormField      @relation(fields: [fieldId], references: [id])
+
+  @@unique([submissionId, fieldId])
+  @@index([submissionId])
+  @@index([fieldId])
+  @@map("form_field_values")
+}
+
+// =============================================================================
+// CUSTOMER MANAGEMENT (VCLOP Phase 3)
+// -----------------------------------------------------------------------------
+// Customer holds only the core identity/status/uniqueness fields the system
+// must be able to index and enforce duplicate-checks on (BVN, NIN, phone,
+// email). Everything else — employment, business detail, next of kin, bank
+// account, GPS, utility bill data, etc. — is captured through the Form Engine
+// as a FormSubmission(entityType: CUSTOMER, entityId: customer.id), so admins
+// can add/remove/reorder those fields without a schema change.
+// =============================================================================
+
+enum CustomerType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+enum CustomerStatus {
+  PROSPECT
+  REGISTERED
+  KYC_PENDING
+  KYC_VERIFIED
+  ELIGIBLE
+  INELIGIBLE
+  BLACKLISTED
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+// Admin-configurable document checklist (e.g. Passport Photo, Selfie, NIN
+// Slip, Utility Bill, CAC Certificate). Loan products reference these by id
+// to build their own required-document checklist later.
+model DocumentType {
+  id                String    @id @default(uuid()) @db.VarChar(36)
+  code              String    @unique @db.VarChar(50)
+  name              String    @db.VarChar(150)
+  description       String?   @db.VarChar(500)
+  appliesTo         CustomerType?
+  isRequiredDefault Boolean   @default(false)
+  expiryApplicable  Boolean   @default(false)
+  allowedMimeTypes  Json?
+  sortOrder         Int       @default(0)
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  documents         CustomerDocument[]
+  loanProductRequirements LoanProductDocumentRequirement[]
+
+  @@index([isActive])
+  @@map("document_types")
+}
+
+model Customer {
+  id                 String         @id @default(uuid()) @db.VarChar(36)
+  customerNumber     String         @unique @db.VarChar(20)
+  type               CustomerType   @default(INDIVIDUAL)
+  status             CustomerStatus @default(PROSPECT)
+
+  firstName          String         @db.VarChar(100)
+  lastName           String         @db.VarChar(100)
+  middleName         String?        @db.VarChar(100)
+  businessName        String?       @db.VarChar(200)
+  gender             Gender?
+  dateOfBirth        DateTime?
+
+  phone              String         @unique @db.VarChar(20)
+  alternatePhone      String?       @db.VarChar(20)
+  email              String?        @unique @db.VarChar(150)
+
+  bvn                String?        @unique @db.VarChar(11)
+  nin                String?        @unique @db.VarChar(11)
+
+  residentialAddress String?        @db.VarChar(500)
+  businessAddress    String?        @db.VarChar(500)
+  gpsLat             Float?
+  gpsLng             Float?
+
+  branchId           String?        @db.VarChar(36)
+  assignedOfficerId  String?        @db.VarChar(36)
+
+  profileCompletion  Int            @default(0)
+
+  createdById        String?        @db.VarChar(36)
+  updatedById        String?        @db.VarChar(36)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  deletedAt          DateTime?
+
+  documents          CustomerDocument[]
+  loanApplications   LoanApplication[]
+
+  @@index([status])
+  @@index([branchId])
+  @@index([assignedOfficerId])
+  @@index([deletedAt])
+  @@map("customers")
+}
+
+model CustomerDocument {
+  id             String         @id @default(uuid()) @db.VarChar(36)
+  customerId     String         @db.VarChar(36)
+  documentTypeId String         @db.VarChar(36)
+
+  fileKey        String         @db.VarChar(500)
+  fileUrl        String         @db.VarChar(1000)
+  originalName   String         @db.VarChar(255)
+  mimeType       String         @db.VarChar(100)
+  size           Int
+
+  status         DocumentStatus @default(PENDING)
+  rejectionReason String?       @db.VarChar(500)
+  expiryDate     DateTime?
+
+  uploadedById   String?        @db.VarChar(36)
+  verifiedById   String?        @db.VarChar(36)
+  verifiedAt     DateTime?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  customer       Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  documentType   DocumentType @relation(fields: [documentTypeId], references: [id])
+
+  @@index([customerId])
+  @@index([documentTypeId])
+  @@index([status])
+  @@map("customer_documents")
+}
+
+// =============================================================================
+// LOAN LIFECYCLE (VCLOP Phase 4)
+// -----------------------------------------------------------------------------
+// Deliberately simplified vs. the full business process blueprint: one
+// approval step (not Compliance -> Operations -> CEO), no auto-assignment,
+// no virtual-account/webhook automation. Enough to run a real loan end to
+// end — apply, approve, disburse, repay — while keeping the door open to
+// insert the fuller multi-stage workflow later without reshaping this core.
+// =============================================================================
+
+enum InterestType {
+  FLAT
+  REDUCING_BALANCE
+}
+
+enum RepaymentFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum LoanApplicationStatus {
+  DRAFT
+  SUBMITTED
+  COMPLIANCE_REVIEW
+  AWAITING_INFORMATION
+  INTERNAL_CONTROL_REVIEW
+  ACCOUNTING_REVIEW
+  APPROVED
+  REJECTED
+  RETURNED
+  ESCALATED
+  DISBURSED
+  CANCELLED
+}
+
+enum LoanStatus {
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  WRITTEN_OFF
+}
+
+enum InstallmentStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+model LoanProduct {
+  id                  String   @id @default(uuid()) @db.VarChar(36)
+  code                String   @unique @db.VarChar(50)
+  name                String   @db.VarChar(150)
+  description         String?  @db.VarChar(500)
+
+  minAmount           Decimal  @db.Decimal(14, 2)
+  maxAmount           Decimal  @db.Decimal(14, 2)
+  minTenureDays        Int
+  maxTenureDays        Int
+
+  interestType        InterestType
+  interestRate        Decimal  @db.Decimal(6, 3) // percentage for the full tenure
+  repaymentFrequency  RepaymentFrequency
+
+  gracePeriodDays     Int      @default(0)
+  lateFeeAmount       Decimal  @default(0) @db.Decimal(14, 2)
+  penaltyRate         Decimal  @default(0) @db.Decimal(6, 3)
+  processingFeeRate   Decimal  @default(0) @db.Decimal(6, 3)
+  insuranceRate       Decimal  @default(0) @db.Decimal(6, 3)
+
+  requiresGuarantor   Boolean  @default(false)
+  requiresCollateral  Boolean  @default(false)
+
+  isActive            Boolean  @default(true)
+  createdById         String?  @db.VarChar(36)
+  updatedById         String?  @db.VarChar(36)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  deletedAt           DateTime?
+
+  documentRequirements LoanProductDocumentRequirement[]
+  applications         LoanApplication[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("loan_products")
+}
+
+model LoanProductDocumentRequirement {
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  loanProductId  String       @db.VarChar(36)
+  documentTypeId String       @db.VarChar(36)
+  isRequired     Boolean      @default(true)
+
+  loanProduct    LoanProduct  @relation(fields: [loanProductId], references: [id], onDelete: Cascade)
+  documentType   DocumentType @relation(fields: [documentTypeId], references: [id])
+
+  @@unique([loanProductId, documentTypeId])
+  @@map("loan_product_document_requirements")
+}
+
+model LoanApplication {
+  id                String                @id @default(uuid()) @db.VarChar(36)
+  applicationNumber String                @unique @db.VarChar(20)
+  customerId        String                @db.VarChar(36)
+  loanProductId     String                @db.VarChar(36)
+
+  amount            Decimal               @db.Decimal(14, 2)
+  tenureDays        Int
+  purpose           String?               @db.VarChar(500)
+  status            LoanApplicationStatus @default(DRAFT)
+
+  submittedById     String?               @db.VarChar(36)
+  submittedAt       DateTime?
+  reviewedById      String?               @db.VarChar(36)
+  reviewedAt        DateTime?
+  reviewNotes       String?               @db.VarChar(500)
+  rejectionReason   String?               @db.VarChar(500)
+
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  deletedAt         DateTime?
+
+  customer          Customer              @relation(fields: [customerId], references: [id])
+  loanProduct       LoanProduct           @relation(fields: [loanProductId], references: [id])
+  guarantors        Guarantor[]
+  collaterals       Collateral[]
+  loan              Loan?
+
+  @@index([customerId])
+  @@index([loanProductId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("loan_applications")
+}
+
+model Guarantor {
+  id                String          @id @default(uuid()) @db.VarChar(36)
+  loanApplicationId String          @db.VarChar(36)
+  firstName         String          @db.VarChar(100)
+  lastName          String          @db.VarChar(100)
+  phone             String          @db.VarChar(20)
+  relationship      String?         @db.VarChar(100)
+  createdAt         DateTime        @default(now())
+
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([loanApplicationId])
+  @@map("guarantors")
+}
+
+model Collateral {
+  id                String          @id @default(uuid()) @db.VarChar(36)
+  loanApplicationId String          @db.VarChar(36)
+  description       String          @db.VarChar(500)
+  estimatedValue    Decimal?        @db.Decimal(14, 2)
+  createdAt         DateTime        @default(now())
+
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([loanApplicationId])
+  @@map("collaterals")
+}
+
+model Loan {
+  id                String       @id @default(uuid()) @db.VarChar(36)
+  loanNumber        String       @unique @db.VarChar(20)
+  loanApplicationId String       @unique @db.VarChar(36)
+  customerId        String       @db.VarChar(36)
+  loanProductId     String       @db.VarChar(36)
+
+  principal         Decimal      @db.Decimal(14, 2)
+  interestRate      Decimal      @db.Decimal(6, 3)
+  interestType      InterestType
+  tenureDays        Int
+  totalRepayable     Decimal      @db.Decimal(14, 2)
+  status            LoanStatus   @default(ACTIVE)
+
+  disbursedById     String?      @db.VarChar(36)
+  disbursedAt       DateTime     @default(now())
+  completedAt       DateTime?
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id])
+  installments      RepaymentInstallment[]
+  transactions      RepaymentTransaction[]
+  virtualAccount    VirtualAccount?
+
+  @@index([customerId])
+  @@index([status])
+  @@map("loans")
+}
+
+model RepaymentInstallment {
+  id                String            @id @default(uuid()) @db.VarChar(36)
+  loanId            String            @db.VarChar(36)
+  installmentNumber Int
+  dueDate           DateTime
+  principalDue      Decimal           @db.Decimal(14, 2)
+  interestDue       Decimal           @db.Decimal(14, 2)
+  totalDue          Decimal           @db.Decimal(14, 2)
+  amountPaid        Decimal           @default(0) @db.Decimal(14, 2)
+  status            InstallmentStatus @default(PENDING)
+  paidAt            DateTime?
+
+  loan              Loan              @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, installmentNumber])
+  @@index([loanId])
+  @@index([status])
+  @@map("repayment_installments")
+}
+
+model RepaymentTransaction {
+  id            String   @id @default(uuid()) @db.VarChar(36)
+  loanId        String   @db.VarChar(36)
+  receiptNumber String?  @unique @db.VarChar(20)
+  amount        Decimal  @db.Decimal(14, 2)
+  method        String   @default("MANUAL") @db.VarChar(30)
+  reference     String?  @db.VarChar(100)
+  notes         String?  @db.VarChar(500)
+  recordedById  String?  @db.VarChar(36)
+  createdAt     DateTime @default(now())
+
+  loan          Loan     @relation(fields: [loanId], references: [id])
+
+  @@index([loanId])
+  @@map("repayment_transactions")
+}
+
+// =============================================================================
+// VIRTUAL ACCOUNTS (VCLOP Phase 5)
+// -----------------------------------------------------------------------------
+// Provider-agnostic by design: no Paystack/Providus/Monnify-specific columns
+// anywhere here. Every provider-specific detail lives behind the
+// VirtualAccountProvider interface (src/modules/virtual-accounts/providers) —
+// this schema only stores the generic result of whichever provider is
+// configured active. One VirtualAccount per disbursed Loan.
+// =============================================================================
+
+enum VirtualAccountProviderType {
+  LOCAL
+  PAYSTACK
+  PROVIDUS
+  MONNIFY
+  FLUTTERWAVE
+  WEMA
+}
+
+enum VirtualAccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum VirtualAccountTransactionStatus {
+  MATCHED
+  UNMATCHED
+  RECONCILED
+}
+
+model VirtualAccount {
+  id                   String               @id @default(uuid()) @db.VarChar(36)
+  loanId               String               @unique @db.VarChar(36)
+  customerId           String               @db.VarChar(36)
+
+  provider             VirtualAccountProviderType
+  providerCustomerId   String?              @db.VarChar(100)
+  providerAccountId    String?              @db.VarChar(100)
+
+  accountNumber        String               @unique @db.VarChar(20)
+  accountName          String               @db.VarChar(150)
+  bankName             String               @db.VarChar(100)
+  status               VirtualAccountStatus @default(ACTIVE)
+
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  loan                 Loan                 @relation(fields: [loanId], references: [id])
+  transactions         VirtualAccountTransaction[]
+
+  @@index([customerId])
+  @@index([accountNumber])
+  @@map("virtual_accounts")
+}
+
+model VirtualAccountTransaction {
+  id                  String                          @id @default(uuid()) @db.VarChar(36)
+  virtualAccountId    String?                         @db.VarChar(36)
+  targetAccountNumber String                          @db.VarChar(20)
+
+  provider            VirtualAccountProviderType
+  providerReference   String                          @unique @db.VarChar(150)
+  amount              Decimal                         @db.Decimal(14, 2)
+  currency            String                          @default("NGN") @db.VarChar(10)
+  payerName           String?                         @db.VarChar(150)
+  payerAccountNumber  String?                         @db.VarChar(20)
+  narration           String?                         @db.VarChar(500)
+
+  status              VirtualAccountTransactionStatus @default(UNMATCHED)
+  repaymentTransactionId String?                       @db.VarChar(36)
+
+  receivedAt          DateTime
+  createdAt           DateTime                        @default(now())
+
+  virtualAccount       VirtualAccount?                @relation(fields: [virtualAccountId], references: [id])
+
+  @@index([virtualAccountId])
+  @@index([status])
+  @@map("virtual_account_transactions")
+}
+
+// =============================================================================
+// CONFIGURABLE WORKFLOW & OPERATIONS (VCLOP Phase 7)
+// =============================================================================
+
+enum WorkflowTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum WorkflowAction {
+  APPROVE
+  REJECT
+  RETURN
+  REQUEST_INFORMATION
+  ESCALATE
+  COMPLETE
+}
+
+enum TransportRequestStatus {
+  PENDING
+  OPERATIONS_REVIEW
+  APPROVED
+  REJECTED
+  PAID
+  COMPLETED
+  CANCELLED
+}
+
+enum CollectionCaseStatus {
+  OPEN
+  PROMISE_TO_PAY
+  BROKEN_PROMISE
+  LEGAL
+  RESOLVED
+  WRITTEN_OFF
+}
+
+model WorkflowDefinition {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  code        String   @unique @db.VarChar(100)
+  name        String   @db.VarChar(150)
+  entityType  String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  isActive    Boolean  @default(true)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stages      WorkflowStage[]
+  instances   WorkflowInstance[]
+
+  @@index([entityType, isActive])
+  @@map("workflow_definitions")
+}
+
+model WorkflowStage {
+  id                   String             @id @default(uuid()) @db.VarChar(36)
+  workflowDefinitionId String             @db.VarChar(36)
+  code                 String             @db.VarChar(100)
+  name                 String             @db.VarChar(150)
+  description          String?            @db.VarChar(500)
+  sortOrder            Int
+  requiredPermission   String?            @db.VarChar(100)
+  departmentCode       String?            @db.VarChar(50)
+  slaHours             Int?
+  isInitial            Boolean            @default(false)
+  isTerminal           Boolean            @default(false)
+  allowedActions       Json?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  workflowDefinition   WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id], onDelete: Cascade)
+  fromTransitions      WorkflowTransition[] @relation("TransitionFrom")
+  toTransitions        WorkflowTransition[] @relation("TransitionTo")
+  tasks                WorkflowTask[]
+
+  @@unique([workflowDefinitionId, code])
+  @@index([workflowDefinitionId, sortOrder])
+  @@map("workflow_stages")
+}
+
+model WorkflowTransition {
+  id          String        @id @default(uuid()) @db.VarChar(36)
+  fromStageId String        @db.VarChar(36)
+  toStageId   String        @db.VarChar(36)
+  action      WorkflowAction
+  name        String?       @db.VarChar(150)
+  requiresReason Boolean    @default(false)
+  conditions  Json?
+  createdAt   DateTime      @default(now())
+
+  fromStage   WorkflowStage @relation("TransitionFrom", fields: [fromStageId], references: [id], onDelete: Cascade)
+  toStage     WorkflowStage @relation("TransitionTo", fields: [toStageId], references: [id], onDelete: Cascade)
+
+  @@unique([fromStageId, toStageId, action])
+  @@index([fromStageId, action])
+  @@map("workflow_transitions")
+}
+
+model WorkflowInstance {
+  id                   String             @id @default(uuid()) @db.VarChar(36)
+  workflowDefinitionId String             @db.VarChar(36)
+  entityType           String             @db.VarChar(100)
+  entityId             String             @db.VarChar(36)
+  currentStageCode     String             @db.VarChar(100)
+  status               WorkflowTaskStatus @default(PENDING)
+  startedById          String?            @db.VarChar(36)
+  startedAt            DateTime           @default(now())
+  completedAt          DateTime?
+  metadata             Json?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  workflowDefinition   WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id])
+  tasks                WorkflowTask[]
+
+  @@unique([workflowDefinitionId, entityId])
+  @@index([entityType, entityId])
+  @@index([currentStageCode, status])
+  @@map("workflow_instances")
+}
+
+model WorkflowTask {
+  id                 String             @id @default(uuid()) @db.VarChar(36)
+  workflowInstanceId String             @db.VarChar(36)
+  stageId            String             @db.VarChar(36)
+  status             WorkflowTaskStatus @default(PENDING)
+  assignedToId       String?            @db.VarChar(36)
+  assignedAt         DateTime?
+  dueAt              DateTime?
+  completedById      String?            @db.VarChar(36)
+  completedAt        DateTime?
+  action             WorkflowAction?
+  reason             String?            @db.VarChar(1000)
+  notes              String?            @db.Text
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  workflowInstance   WorkflowInstance   @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  stage              WorkflowStage      @relation(fields: [stageId], references: [id])
+
+  @@index([workflowInstanceId, status])
+  @@index([assignedToId, status])
+  @@map("workflow_tasks")
+}
+
+model ComplianceAssessment {
+  id                  String   @id @default(uuid()) @db.VarChar(36)
+  loanApplicationId   String   @unique @db.VarChar(36)
+  assignedToId        String?  @db.VarChar(36)
+  bankStatementNotes  String?  @db.Text
+  incomeAssessment    String?  @db.Text
+  affordabilityScore  Decimal? @db.Decimal(7, 2)
+  cashFlowAssessment  String?  @db.Text
+  creditBureauResult  Json?
+  bvnVerifiedAt       DateTime?
+  ninVerifiedAt       DateTime?
+  phoneVerifiedAt     DateTime?
+  employerVerifiedAt  DateTime?
+  businessVerifiedAt  DateTime?
+  residenceVerifiedAt DateTime?
+  riskScore           Decimal? @db.Decimal(7, 2)
+  recommendation      WorkflowAction?
+  recommendationNotes String?  @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("compliance_assessments")
+}
+
+model FieldVisit {
+  id                String   @id @default(uuid()) @db.VarChar(36)
+  loanApplicationId String   @db.VarChar(36)
+  visitType         String   @db.VarChar(50)
+  conductedById     String?  @db.VarChar(36)
+  latitude          Decimal? @db.Decimal(10, 8)
+  longitude         Decimal? @db.Decimal(11, 8)
+  arrivedAt         DateTime?
+  completedAt       DateTime?
+  findings          String?  @db.Text
+  photos            Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([loanApplicationId])
+  @@map("field_visits")
+}
+
+model TransportRequest {
+  id                String                 @id @default(uuid()) @db.VarChar(36)
+  loanApplicationId String                 @db.VarChar(36)
+  requestedById     String                 @db.VarChar(36)
+  purpose           String                 @db.VarChar(500)
+  location          String                 @db.VarChar(500)
+  customerCount     Int                    @default(1)
+  distanceKm        Decimal?               @db.Decimal(10, 2)
+  estimatedCost     Decimal?               @db.Decimal(14, 2)
+  suggestedAmount   Decimal?               @db.Decimal(14, 2)
+  approvedAmount    Decimal?               @db.Decimal(14, 2)
+  status            TransportRequestStatus @default(PENDING)
+  reviewedById      String?                @db.VarChar(36)
+  reviewedAt        DateTime?
+  paidById          String?                @db.VarChar(36)
+  paidAt            DateTime?
+  reason            String?                @db.VarChar(1000)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([loanApplicationId, status])
+  @@map("transport_requests")
+}
+
+model CollectionCase {
+  id              String               @id @default(uuid()) @db.VarChar(36)
+  loanId          String               @unique @db.VarChar(36)
+  assignedToId    String?              @db.VarChar(36)
+  status          CollectionCaseStatus @default(OPEN)
+  nextActionAt    DateTime?
+  promiseAmount   Decimal?             @db.Decimal(14, 2)
+  promiseDate     DateTime?
+  openedAt        DateTime             @default(now())
+  resolvedAt      DateTime?
+  writeOffReason  String?              @db.VarChar(1000)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  activities      CollectionActivity[]
+
+  @@index([assignedToId, status])
+  @@map("collection_cases")
+}
+
+model CollectionActivity {
+  id               String         @id @default(uuid()) @db.VarChar(36)
+  collectionCaseId String         @db.VarChar(36)
+  activityType     String         @db.VarChar(50)
+  note             String         @db.Text
+  performedById    String?        @db.VarChar(36)
+  occurredAt       DateTime       @default(now())
+  nextActionAt     DateTime?
+  metadata         Json?
+
+  collectionCase   CollectionCase @relation(fields: [collectionCaseId], references: [id], onDelete: Cascade)
+
+  @@index([collectionCaseId, occurredAt])
+  @@map("collection_activities")
+}
