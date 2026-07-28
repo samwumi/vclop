@@ -4,6 +4,9 @@
   "entryFile": "src/main",
   "compilerOptions": {
     "deleteOutDir": true,
+    "assets": [
+      { "include": "../prisma/schema.prisma", "outDir": "./dist/prisma", "watchAssets": true }
+    ],
     "plugins": [
       {
         "name": "@nestjs/swagger",
