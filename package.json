@@ -1,0 +1,15 @@
+{
+  "name": "vclop",
+  "version": "1.0.0",
+  "description": "Vertical Capital Lending & Operations Platform",
+  "private": true,
+  "scripts": {
+    "build": "npm install --prefix vclop-backend --legacy-peer-deps && npm run build --prefix vclop-backend && npm install --prefix vclop-frontend --legacy-peer-deps && npm run build --prefix vclop-frontend",
+    "start": "cd vclop-backend && npx prisma migrate deploy && node dist/src/main.js",
+    "seed": "npm run prisma:seed --prefix vclop-backend"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  }
+}
