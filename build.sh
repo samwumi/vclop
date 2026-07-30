@@ -1,6 +1,4 @@
 #!/bin/bash
-# VCLOP full build script — run from repo root
-# Hostinger build command: bash build.sh
 set -e
 
 echo "=== Installing backend dependencies ==="
@@ -16,5 +14,10 @@ npm install --legacy-peer-deps
 
 echo "=== Building frontend ==="
 VITE_API_URL=/api/v1 npm run build
+
+echo "=== Copying frontend into backend ==="
+cd ../vclop-backend
+rm -rf public
+cp -r ../vclop-frontend/dist public
 
 echo "=== Build complete ==="
