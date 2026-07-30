@@ -75,7 +75,8 @@ export function NewCustomerPage() {
     onSuccess: (customer) => {
       toast.success(`Customer ${customer.customerNumber} registered successfully`);
       qc.invalidateQueries({ queryKey: ['customers'] });
-      navigate(`/customers/${customer.id}`);
+      // Go directly to Additional Details tab so officer can fill employment/NOK info
+      navigate(`/customers/${customer.id}?tab=details`);
     },
     onError: (err: unknown) => {
       const response = (err as { response?: { data?: { message?: string; errors?: { field: string; message: string }[] } } })?.response;

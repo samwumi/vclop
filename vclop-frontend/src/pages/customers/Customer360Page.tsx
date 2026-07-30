@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   User, Phone, MapPin, CreditCard, ShieldCheck,
@@ -44,7 +44,11 @@ const TABS = [
 export function Customer360Page() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams] = useSearchParams();
+  // Honour ?tab=<id> so NewCustomerPage can land directly on Additional Details
+  const initialTab = searchParams.get('tab') ?? 'overview';
+  const validTabs = TABS.map(t => t.id);
+  const [activeTab, setActiveTab] = useState(validTabs.includes(initialTab) ? initialTab : 'overview');
   const { hasPermission } = useAuthStore();
   const qc = useQueryClient();
 
