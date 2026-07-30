@@ -20,7 +20,7 @@ import {
 } from '../../common/exceptions/app.exceptions';
 import { hashPassword } from '../../common/utils/hash.util';
 import { validatePassword, getDefaultPasswordPolicy } from '../../common/utils/password-validator.util';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 const USER_SELECT = {
   id: true, employeeId: true, email: true, phone: true, username: true,

@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TokenType } from '@prisma/client';
 import { generateSecureToken, sha256 } from '../../common/utils/hash.util';
 import { TokenExpiredException, TokenInvalidException } from '../../common/exceptions/app.exceptions';
-import * as dayjs from 'dayjs';
+import  dayjs from 'dayjs';
 
 export interface JwtPayload {
   sub: string;       // user id

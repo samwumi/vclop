@@ -18,7 +18,7 @@ import {
 } from '../../common/utils/password-validator.util';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { AuditAction } from '@prisma/client';
-import * as dayjs from 'dayjs';
+import  dayjs from 'dayjs';
 
 @Injectable()
 export class AuthService {

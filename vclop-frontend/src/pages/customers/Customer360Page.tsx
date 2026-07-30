@@ -17,7 +17,7 @@ import { CustomerDocumentsTab } from './tabs/CustomerDocumentsTab';
 import { CustomerTimelineTab } from './tabs/CustomerTimelineTab';
 import { CustomerLoansTab } from './tabs/CustomerLoansTab';
 import { CustomerAdditionalDetailsTab } from './tabs/CustomerAdditionalDetailsTab';
-import type { Customer, CustomerStatus } from '@/types/domain.types';
+import type { Customer, Customer360, CustomerStatus } from '@/types/domain.types';
 
 const STATUS_BADGE: Record<string, { label: string; variant: 'green' | 'red' | 'yellow' | 'blue' | 'gray' }> = {
   PROSPECT:      { label: 'Prospect',      variant: 'gray' },
@@ -158,7 +158,7 @@ export function Customer360Page() {
           onStatusChange={(status) => statusMutation.mutate(status)}
         />
       )}      {activeTab === 'documents' && <CustomerDocumentsTab customerId={id!} />}
-      {activeTab === 'details'   && <CustomerAdditionalDetailsTab customerId={id!} existingValues={data.formData?.values ?? null} />}
+      {activeTab === 'details'   && <CustomerAdditionalDetailsTab customerId={id!} existingValues={data.formData?.values ?? null} profile={data.profile as Customer360['profile']} />}
       {activeTab === 'loans'     && <CustomerLoansTab customerId={id!} />}
       {activeTab === 'timeline'  && <CustomerTimelineTab entries={data.timeline} />}
     </div>
