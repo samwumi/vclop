@@ -8,12 +8,28 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
+import { execSync } from 'child_process';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap(): Promise<void> {
+  // ── Run DB migrations before starting (production only) ───────────────────
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      console.log('[bootstrap] Running Prisma migrations...');
+      execSync('npx prisma migrate deploy', {
+        stdio: 'inherit',
+        cwd: path.resolve(__dirname, '../../'),
+      });
+      console.log('[bootstrap] Migrations complete.');
+    } catch (err) {
+      console.error('[bootstrap] Migration failed:', err);
+      process.exit(1);
+    }
+  }
+
   // ── Process-level safety nets ─────────────────────────────────────────────
   // These catch errors that escape NestJS's own exception handling
   // (e.g. from a background timer, event emitter, or third-party callback).
