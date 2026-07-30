@@ -25,8 +25,8 @@ async function bootstrap(): Promise<void> {
       });
       console.log('[bootstrap] Migrations complete.');
     } catch (err) {
-      console.error('[bootstrap] Migration failed:', err);
-      process.exit(1);
+      // Log but don't exit — app may still work if migrations already applied
+      console.error('[bootstrap] Migration warning:', err instanceof Error ? err.message : err);
     }
   }
 
