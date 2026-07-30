@@ -97,7 +97,15 @@ export class CollectionsService {
 
   async addActivity(id: string, data: { activityType: string; note: string; nextActionAt?: Date; metadata?: object }, actorId: string) {
     await this.find(id);
-    const activity = await this.prisma.collectionActivity.create({ data: { collectionCaseId: id, performedById: actorId, ...data } });
+    const { metadata, ...rest } = data;
+    const activity = await this.prisma.collectionActivity.create({
+      data: {
+        collectionCaseId: id,
+        performedById: actorId,
+        ...rest,
+        ...(metadata ? { metadata: JSON.stringify(metadata) } : {}),
+      },
+    });
     if (data.nextActionAt) await this.prisma.collectionCase.update({ where: { id }, data: { nextActionAt: data.nextActionAt } });
     this.audit(actorId, AuditAction.CREATE, id, `Recorded collection ${data.activityType.toLowerCase()}`);
     return activity;

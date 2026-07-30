@@ -58,9 +58,9 @@ export class AuditService {
           entityId: payload.entityId,
           entityType: payload.entityType,
           description: payload.description,
-          oldValues: payload.oldValues ? (payload.oldValues as object) : undefined,
-          newValues: payload.newValues ? (payload.newValues as object) : undefined,
-          changedFields: payload.changedFields ? (payload.changedFields as object) : undefined,
+          oldValues: payload.oldValues ? JSON.stringify(payload.oldValues) : undefined,
+          newValues: payload.newValues ? JSON.stringify(payload.newValues) : undefined,
+          changedFields: payload.changedFields ? JSON.stringify(payload.changedFields) : undefined,
           ipAddress: payload.ipAddress,
           userAgent: payload.userAgent,
           browser: payload.browser,
@@ -72,7 +72,7 @@ export class AuditService {
           statusCode: payload.statusCode,
           isSuccess: payload.isSuccess ?? true,
           errorMessage: payload.errorMessage,
-          metadata: payload.metadata ? (payload.metadata as object) : undefined,
+          metadata: payload.metadata ? JSON.stringify(payload.metadata) : undefined,
         },
       });
     } catch (err) {

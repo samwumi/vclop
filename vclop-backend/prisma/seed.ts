@@ -531,7 +531,7 @@ async function main(): Promise<void> {
     await prisma.userRole.upsert({
       where: { userId_roleId: { userId: user.id, roleId } },
       update: {},
-      create: { userId: user.id, roleId },
+      create: { id: require('crypto').randomUUID(), userId: user.id, roleId },
     });
     console.log(`✔  Demo user: ${u.email}  →  ${u.roleCode}`);
 
@@ -584,7 +584,7 @@ async function main(): Promise<void> {
   await prisma.userRole.upsert({
     where: { userId_roleId: { userId: adminUser.id, roleId: adminRole.id } },
     update: {},
-    create: { userId: adminUser.id, roleId: adminRole.id },
+    create: { id: require('crypto').randomUUID(), userId: adminUser.id, roleId: adminRole.id },
   });
 
   console.log(`✔  Admin user: ${adminUser.email}  (must change password on first login)`);
@@ -663,12 +663,12 @@ async function main(): Promise<void> {
                   { code: 'employer_name', label: 'Employer Name', type: 'TEXT', sortOrder: 0 },
                   {
                     code: 'employment_type', label: 'Employment Type', type: 'DROPDOWN', sortOrder: 1,
-                    options: [
+                    options: JSON.stringify([
                       { label: 'Employed', value: 'EMPLOYED' },
                       { label: 'Self-Employed', value: 'SELF_EMPLOYED' },
                       { label: 'Business Owner', value: 'BUSINESS_OWNER' },
                       { label: 'Unemployed', value: 'UNEMPLOYED' },
-                    ],
+                    ]),
                   },
                   { code: 'monthly_income', label: 'Monthly Income', type: 'MONEY', sortOrder: 2 },
                 ],

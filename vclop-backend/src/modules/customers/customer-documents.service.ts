@@ -35,7 +35,9 @@ export class CustomerDocumentsService {
     if (!docType) throw new ResourceNotFoundException('Document type', documentTypeId);
 
     if (docType.allowedMimeTypes) {
-      const allowed = docType.allowedMimeTypes as string[];
+      const allowed = (typeof docType.allowedMimeTypes === 'string'
+        ? JSON.parse(docType.allowedMimeTypes)
+        : docType.allowedMimeTypes) as string[];
       if (allowed.length > 0 && !allowed.includes(file.mimetype)) {
         throw new BusinessException(`${docType.name} must be one of: ${allowed.join(', ')}`);
       }

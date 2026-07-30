@@ -21,14 +21,14 @@ export class WorkflowsService {
     const definition = await this.prisma.workflowDefinition.create({
       data: {
         code: dto.code, name: dto.name, entityType: dto.entityType,
-        stages: { create: dto.stages.map((stage) => ({ ...stage, allowedActions: stage.allowedActions as Prisma.InputJsonValue | undefined })) },
+        stages: { create: dto.stages.map((stage) => ({ ...stage, allowedActions: stage.allowedActions ? JSON.stringify(stage.allowedActions) : undefined })) },
       }, include: { stages: true },
     });
     await this.prisma.workflowTransition.createMany({ data: dto.transitions.map((transition) => ({
-      fromStageId: definition.stages.find((stage) => stage.code === transition.fromStageCode)!.id,
-      toStageId: definition.stages.find((stage) => stage.code === transition.toStageCode)!.id,
+      fromStageId: (definition.stages as Array<{ id: string; code: string }>).find((s) => s.code === transition.fromStageCode)!.id,
+      toStageId: (definition.stages as Array<{ id: string; code: string }>).find((s) => s.code === transition.toStageCode)!.id,
       action: transition.action, requiresReason: transition.requiresReason ?? false,
-      conditions: transition.conditions as Prisma.InputJsonValue | undefined,
+      conditions: transition.conditions ? JSON.stringify(transition.conditions) : undefined,
     })) });
     this.audit(AuditAction.CREATE, actorId, definition.id, `Created workflow ${definition.code}`);
     return this.getDefinition(definition.id);

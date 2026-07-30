@@ -358,7 +358,7 @@ export class UsersService {
         this.prisma.userRole.upsert({
           where: { userId_roleId: { userId, roleId } },
           update: { expiresAt: expiresAt ?? null, assignedById },
-          create: { userId, roleId, assignedById, expiresAt },
+          create: { id: require('uuid').v4(), userId, roleId, assignedById, expiresAt },
         }),
       ),
     );
