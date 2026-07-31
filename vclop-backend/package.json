@@ -8,7 +8,7 @@
   "scripts": {
     "build": "prisma generate && nest build && node -e \"const fs=require('fs');fs.mkdirSync('dist/prisma',{recursive:true});fs.copyFileSync('prisma/schema.prisma','dist/prisma/schema.prisma');console.log('Prisma schema copied')\"",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "start": "prisma migrate deploy && node dist/src/main.js",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "prisma migrate deploy && node dist/src/main.js",
