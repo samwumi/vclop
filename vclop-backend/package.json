@@ -6,7 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "prisma generate && nest build && node -e \"const fs=require('fs');fs.mkdirSync('dist/prisma',{recursive:true});fs.copyFileSync('prisma/schema.prisma','dist/prisma/schema.prisma');console.log('Prisma schema copied')\"",
+    "build": "prisma generate && nest build && node -e \"const fs=require('fs');fs.mkdirSync('dist/prisma',{recursive:true});fs.copyFileSync('prisma/schema.prisma','dist/prisma/schema.prisma');console.log('Prisma schema copied')\" && cd ../vclop-frontend && npm install --legacy-peer-deps && (npm rebuild || true) && npm run build && cd ../vclop-backend && rm -rf public && cp -r ../vclop-frontend/dist public",
+    "postinstall": "npm rebuild || true",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "prisma migrate deploy && node dist/src/main.js",
     "start:dev": "nest start --watch",
