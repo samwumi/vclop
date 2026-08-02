@@ -4,7 +4,7 @@
   "description": "Vertical Capital Lending & Operations Platform",
   "private": true,
   "scripts": {
-    "build": "npm install --prefix vclop-backend --legacy-peer-deps && npm run build --prefix vclop-backend && npm install --prefix vclop-frontend --legacy-peer-deps && npm run build --prefix vclop-frontend",
+    "build": "bash build.sh",
     "start": "bash start.sh",
     "seed": "npm run prisma:seed --prefix vclop-backend"
   },
