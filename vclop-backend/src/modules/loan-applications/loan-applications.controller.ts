@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -8,7 +8,7 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { ok } from '../../common/utils/response.util';
 import { LoanApplicationsService } from './loan-applications.service';
 import { CreateLoanApplicationDto } from './dto/create-loan-application.dto';
-import { AddCollateralDto, AddGuarantorDto } from './dto/guarantor-collateral.dto';
+import { AddCollateralDto, AddGuarantorDto, UpdateGuarantorDto } from './dto/guarantor-collateral.dto';
 import { QueryLoanApplicationsDto } from './dto/query-loan-applications.dto';
 import { RecordRepaymentDto, ReviewLoanApplicationDto } from './dto/review-and-repayment.dto';
 
@@ -64,9 +64,32 @@ export class LoanApplicationsController {
 
   @Post(':id/guarantors')
   @RequirePermissions('loan_applications:update')
-  @ApiOperation({ summary: 'Add a guarantor to a DRAFT application' })
+  @ApiOperation({ summary: 'Add a guarantor to a loan application' })
   async addGuarantor(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AddGuarantorDto, @CurrentUser() actor: RequestUser) {
     return ok(await this.service.addGuarantor(id, dto, actor.id), 'Guarantor added');
+  }
+
+  @Patch(':id/guarantors/:guarantorId')
+  @RequirePermissions('loan_applications:update')
+  @ApiOperation({ summary: 'Update a guarantor on a loan application' })
+  async updateGuarantor(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('guarantorId', ParseUUIDPipe) guarantorId: string,
+    @Body() dto: UpdateGuarantorDto,
+    @CurrentUser() actor: RequestUser,
+  ) {
+    return ok(await this.service.updateGuarantor(id, guarantorId, dto, actor.id), 'Guarantor updated');
+  }
+
+  @Delete(':id/guarantors/:guarantorId')
+  @RequirePermissions('loan_applications:update')
+  @ApiOperation({ summary: 'Remove a guarantor from a loan application' })
+  async removeGuarantor(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('guarantorId', ParseUUIDPipe) guarantorId: string,
+    @CurrentUser() actor: RequestUser,
+  ) {
+    return ok(await this.service.removeGuarantor(id, guarantorId, actor.id), 'Guarantor removed');
   }
 
   @Post(':id/collaterals')

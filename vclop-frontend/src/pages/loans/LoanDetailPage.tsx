@@ -27,6 +27,7 @@ export function LoanDetailPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [showReject, setShowReject] = useState(false);
   const [guarantorForm, setGuarantorForm] = useState({ firstName: '', lastName: '', phone: '', relationship: '' });
+  const [editingGuarantor, setEditingGuarantor] = useState<{ id: string; firstName: string; lastName: string; phone: string; relationship: string } | null>(null);
   const [collateralForm, setCollateralForm] = useState({ description: '', estimatedValue: '' });
   const [repaymentAmount, setRepaymentAmount] = useState('');
   const [simulateAmount, setSimulateAmount] = useState('');
@@ -65,6 +66,23 @@ export function LoanDetailPage() {
     mutationFn: () => loansService.addGuarantor(id!, guarantorForm),
     onSuccess: () => { toast.success('Guarantor added'); setGuarantorForm({ firstName: '', lastName: '', phone: '', relationship: '' }); invalidate(); },
     onError: () => toast.error('Failed to add guarantor'),
+  });
+
+  const updateGuarantorMutation = useMutation({
+    mutationFn: () => loansService.updateGuarantor(id!, editingGuarantor!.id, {
+      firstName: editingGuarantor!.firstName,
+      lastName: editingGuarantor!.lastName,
+      phone: editingGuarantor!.phone,
+      relationship: editingGuarantor!.relationship,
+    }),
+    onSuccess: () => { toast.success('Guarantor updated'); setEditingGuarantor(null); invalidate(); },
+    onError: () => toast.error('Failed to update guarantor'),
+  });
+
+  const removeGuarantorMutation = useMutation({
+    mutationFn: (guarantorId: string) => loansService.removeGuarantor(id!, guarantorId),
+    onSuccess: () => { toast.success('Guarantor removed'); invalidate(); },
+    onError: () => toast.error('Failed to remove guarantor'),
   });
 
   const addCollateralMutation = useMutation({
@@ -227,8 +245,57 @@ export function LoanDetailPage() {
             <div className="card-body space-y-3">
               {application.guarantors?.map((g) => (
                 <div key={g.id} className="p-2.5 bg-gray-50 rounded-lg text-xs">
-                  <p className="font-medium text-gray-800">{g.firstName} {g.lastName}</p>
-                  <p className="text-gray-500">{g.phone} {g.relationship ? `· ${g.relationship}` : ''}</p>
+                  {editingGuarantor?.id === g.id ? (
+                    /* ── inline edit form ── */
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input className="form-input text-xs h-8" placeholder="First name" value={editingGuarantor.firstName}
+                          onChange={e => setEditingGuarantor(v => v && ({ ...v, firstName: e.target.value }))} />
+                        <input className="form-input text-xs h-8" placeholder="Last name" value={editingGuarantor.lastName}
+                          onChange={e => setEditingGuarantor(v => v && ({ ...v, lastName: e.target.value }))} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input className="form-input text-xs h-8" placeholder="Phone" value={editingGuarantor.phone}
+                          onChange={e => setEditingGuarantor(v => v && ({ ...v, phone: e.target.value }))} />
+                        <input className="form-input text-xs h-8" placeholder="Relationship" value={editingGuarantor.relationship}
+                          onChange={e => setEditingGuarantor(v => v && ({ ...v, relationship: e.target.value }))} />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => updateGuarantorMutation.mutate()}
+                          disabled={updateGuarantorMutation.isPending}
+                          className="btn-primary btn-sm flex-1 disabled:opacity-50">
+                          {updateGuarantorMutation.isPending ? 'Saving…' : 'Save'}
+                        </button>
+                        <button onClick={() => setEditingGuarantor(null)} className="btn-secondary btn-sm">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* ── read view ── */
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-gray-800">{g.firstName} {g.lastName}</p>
+                        <p className="text-gray-500">{g.phone}{g.relationship ? ` · ${g.relationship}` : ''}</p>
+                      </div>
+                      {hasPermission('loan_applications:update') && (
+                        <div className="flex gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => setEditingGuarantor({ id: g.id, firstName: g.firstName, lastName: g.lastName, phone: g.phone, relationship: g.relationship ?? '' })}
+                            className="btn-ghost btn-icon w-6 h-6 text-gray-400 hover:text-brand-600"
+                            title="Edit guarantor"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          </button>
+                          <button
+                            onClick={() => { if (confirm('Remove this guarantor?')) removeGuarantorMutation.mutate(g.id); }}
+                            className="btn-ghost btn-icon w-6 h-6 text-gray-400 hover:text-red-600"
+                            title="Remove guarantor"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
               {application.status === 'DRAFT' && (

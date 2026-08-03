@@ -8,7 +8,7 @@ import { PaginatedResult } from '../../common/interfaces/api-response.interface'
 import { BusinessException, ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { CustomersService } from '../customers/customers.service';
 import { CreateLoanApplicationDto } from './dto/create-loan-application.dto';
-import { AddCollateralDto, AddGuarantorDto } from './dto/guarantor-collateral.dto';
+import { AddCollateralDto, AddGuarantorDto, UpdateGuarantorDto } from './dto/guarantor-collateral.dto';
 import { QueryLoanApplicationsDto } from './dto/query-loan-applications.dto';
 import { RecordRepaymentDto, ReviewDecision, ReviewLoanApplicationDto } from './dto/review-and-repayment.dto';
 import { WorkflowsService } from '../workflows/workflows.service';
@@ -112,6 +112,41 @@ export class LoanApplicationsService {
     });
 
     this.emitAudit(AuditAction.CREATE, actorId, applicationId, `Added guarantor to ${application.applicationNumber}`);
+    return this.findOne(applicationId);
+  }
+
+  async updateGuarantor(applicationId: string, guarantorId: string, dto: UpdateGuarantorDto, actorId: string): Promise<unknown> {
+    // Verify the application exists (no status restriction — can edit guarantors at any stage)
+    const application = await this.prisma.loanApplication.findFirst({ where: { id: applicationId, deletedAt: null } });
+    if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
+
+    const guarantor = await this.prisma.guarantor.findFirst({ where: { id: guarantorId, loanApplicationId: applicationId } });
+    if (!guarantor) throw new ResourceNotFoundException('Guarantor', guarantorId);
+
+    await this.prisma.guarantor.update({
+      where: { id: guarantorId },
+      data: {
+        ...(dto.firstName !== undefined && { firstName: dto.firstName }),
+        ...(dto.lastName  !== undefined && { lastName:  dto.lastName }),
+        ...(dto.phone     !== undefined && { phone:     dto.phone }),
+        ...(dto.relationship !== undefined && { relationship: dto.relationship }),
+      },
+    });
+
+    this.emitAudit(AuditAction.UPDATE, actorId, applicationId, `Updated guarantor on ${application.applicationNumber}`);
+    return this.findOne(applicationId);
+  }
+
+  async removeGuarantor(applicationId: string, guarantorId: string, actorId: string): Promise<unknown> {
+    const application = await this.prisma.loanApplication.findFirst({ where: { id: applicationId, deletedAt: null } });
+    if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
+
+    const guarantor = await this.prisma.guarantor.findFirst({ where: { id: guarantorId, loanApplicationId: applicationId } });
+    if (!guarantor) throw new ResourceNotFoundException('Guarantor', guarantorId);
+
+    await this.prisma.guarantor.delete({ where: { id: guarantorId } });
+
+    this.emitAudit(AuditAction.DELETE, actorId, applicationId, `Removed guarantor from ${application.applicationNumber}`);
     return this.findOne(applicationId);
   }
 

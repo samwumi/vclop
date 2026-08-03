@@ -24,6 +24,32 @@ export class AddGuarantorDto {
   relationship?: string;
 }
 
+export class UpdateGuarantorDto {
+  @ApiPropertyOptional({ maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  firstName?: string;
+
+  @ApiPropertyOptional({ maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  lastName?: string;
+
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?\d{10,14}$/, { message: 'phone must be a valid phone number' })
+  phone?: string;
+
+  @ApiPropertyOptional({ maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  relationship?: string;
+}
+
 export class AddCollateralDto {
   @ApiProperty({ maxLength: 500 })
   @IsString()

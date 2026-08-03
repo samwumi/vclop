@@ -26,6 +26,16 @@ export const loansService = {
     return data.data!;
   },
 
+  async updateGuarantor(applicationId: string, guarantorId: string, payload: { firstName?: string; lastName?: string; phone?: string; relationship?: string }): Promise<LoanApplication> {
+    const { data } = await api.patch<ApiResponse<LoanApplication>>(`/loan-applications/${applicationId}/guarantors/${guarantorId}`, payload);
+    return data.data!;
+  },
+
+  async removeGuarantor(applicationId: string, guarantorId: string): Promise<LoanApplication> {
+    const { data } = await api.delete<ApiResponse<LoanApplication>>(`/loan-applications/${applicationId}/guarantors/${guarantorId}`);
+    return data.data!;
+  },
+
   async addCollateral(applicationId: string, payload: { description: string; estimatedValue?: number }): Promise<LoanApplication> {
     const { data } = await api.post<ApiResponse<LoanApplication>>(`/loan-applications/${applicationId}/collaterals`, payload);
     return data.data!;
