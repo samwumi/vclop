@@ -27,15 +27,15 @@ function KpiCard({ title, value, sub, icon: Icon, color }: {
   icon: typeof BarChart2; color: string;
 }) {
   return (
-    <div className="card p-5">
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-          {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+    <div className="card p-4">
+      <div className="flex justify-between items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs sm:text-sm text-gray-500 truncate">{title}</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1 truncate">{value}</p>
+          {sub && <p className="text-xs text-gray-400 mt-1 truncate">{sub}</p>}
         </div>
-        <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center`}>
-          <Icon className="w-5 h-5" />
+        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
     </div>
@@ -107,16 +107,18 @@ export function ReportsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === id ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            <Icon className="w-3.5 h-3.5" /> {label}
-          </button>
-        ))}
+      <div className="overflow-x-auto -mx-1 px-1">
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-max min-w-full sm:w-fit">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${tab === id ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <Icon className="w-3.5 h-3.5" /> {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Date filter (shown on relevant tabs) */}
@@ -266,66 +268,105 @@ export function ReportsPage() {
       {tab === 'officers' && (
         <>
           {officers.isLoading ? <PageLoader /> : (
-            <div className="card overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
-                <select className="form-input h-8 text-xs w-44" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
-                  <option value="">All locations</option>
-                  {[...new Set((officers.data ?? []).map(o => o.branch?.name).filter(Boolean))].map(n => (
-                    <option key={n} value={(officers.data ?? []).find(o => o.branch?.name === n)?.branch?.id ?? ''}>{n}</option>
-                  ))}
-                </select>
-                <span className="text-xs text-gray-400">{officers.data?.length ?? 0} officers</span>
-              </div>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Officer</th>
-                    <th>Location</th>
-                    <th>Customers</th>
-                    <th>Applications</th>
-                    <th>Disbursed</th>
-                    <th>Amount (₦)</th>
-                    <th>Target (₦)</th>
-                    <th>Progress</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(officers.data ?? []).map((o) => (
-                    <tr key={o.officerId}>
-                      <td>
-                        <p className="text-sm font-medium text-gray-800">{o.name}</p>
-                        <p className="text-xs text-gray-400">{o.employeeId}</p>
-                      </td>
-                      <td className="text-xs text-gray-600">{o.branch?.name ?? '—'}</td>
-                      <td>{o.customers}</td>
-                      <td>{o.applications}</td>
-                      <td>{o.disbursements}</td>
-                      <td className="font-medium">{money(o.disbursedAmount)}</td>
-                      <td className="text-gray-500">{o.monthlyTarget > 0 ? money(o.monthlyTarget) : '—'}</td>
-                      <td>
-                        {o.monthlyTarget > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${o.progressPercentage >= 100 ? 'bg-emerald-500' : o.progressPercentage >= 60 ? 'bg-brand-600' : 'bg-amber-500'}`}
-                                style={{ width: `${Math.min(100, o.progressPercentage)}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-gray-600">{o.progressPercentage.toFixed(0)}%</span>
-                          </div>
-                        ) : <span className="text-xs text-gray-400">No target</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {(officers.data?.length ?? 0) === 0 && (
-                <div className="py-10 text-center text-sm text-gray-400">
-                  <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                  No loan officers found for this period.
+            <>
+              {/* Summary cards */}
+              {(officers.data?.length ?? 0) > 0 && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <KpiCard
+                    title="Total Officers"
+                    value={officers.data!.length}
+                    sub="Loan officers"
+                    icon={Users}
+                    color="bg-brand-50 text-brand-600"
+                  />
+                  <KpiCard
+                    title="Total Customers"
+                    value={officers.data!.reduce((s, o) => s + (o.customers ?? 0), 0)}
+                    sub="Registered"
+                    icon={Users}
+                    color="bg-emerald-50 text-emerald-600"
+                  />
+                  <KpiCard
+                    title="Total Applications"
+                    value={officers.data!.reduce((s, o) => s + (o.applications ?? 0), 0)}
+                    sub="Submitted"
+                    icon={FileText}
+                    color="bg-violet-50 text-violet-600"
+                  />
+                  <KpiCard
+                    title="Total Disbursed"
+                    value={money(officers.data!.reduce((s, o) => s + (o.disbursedAmount ?? 0), 0))}
+                    sub={`${officers.data!.reduce((s, o) => s + (o.disbursements ?? 0), 0)} loans`}
+                    icon={Banknote}
+                    color="bg-amber-50 text-amber-600"
+                  />
                 </div>
               )}
-            </div>
+
+              <div className="card">
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
+                  <select className="form-input h-8 text-xs w-44" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+                    <option value="">All locations</option>
+                    {[...new Set((officers.data ?? []).map(o => o.branch?.name).filter(Boolean))].map(n => (
+                      <option key={n} value={(officers.data ?? []).find(o => o.branch?.name === n)?.branch?.id ?? ''}>{n}</option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-gray-400">{officers.data?.length ?? 0} officers</span>
+                </div>
+                {/* overflow-x-auto ensures the table scrolls horizontally instead of being clipped */}
+                <div className="overflow-x-auto">
+                  <table className="table min-w-full">
+                    <thead>
+                      <tr>
+                        <th className="whitespace-nowrap">Officer</th>
+                        <th className="whitespace-nowrap">Location</th>
+                        <th className="whitespace-nowrap">Customers</th>
+                        <th className="whitespace-nowrap">Applications</th>
+                        <th className="whitespace-nowrap">Disbursed</th>
+                        <th className="whitespace-nowrap">Amount (₦)</th>
+                        <th className="whitespace-nowrap">Target (₦)</th>
+                        <th className="whitespace-nowrap">Progress</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(officers.data ?? []).map((o) => (
+                        <tr key={o.officerId}>
+                          <td>
+                            <p className="text-sm font-medium text-gray-800 whitespace-nowrap">{o.name}</p>
+                            <p className="text-xs text-gray-400">{o.employeeId}</p>
+                          </td>
+                          <td className="text-xs text-gray-600 whitespace-nowrap">{o.branch?.name ?? '—'}</td>
+                          <td>{o.customers}</td>
+                          <td>{o.applications}</td>
+                          <td>{o.disbursements}</td>
+                          <td className="font-medium whitespace-nowrap">{money(o.disbursedAmount)}</td>
+                          <td className="text-gray-500 whitespace-nowrap">{o.monthlyTarget > 0 ? money(o.monthlyTarget) : '—'}</td>
+                          <td>
+                            {o.monthlyTarget > 0 ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${o.progressPercentage >= 100 ? 'bg-emerald-500' : o.progressPercentage >= 60 ? 'bg-brand-600' : 'bg-amber-500'}`}
+                                    style={{ width: `${Math.min(100, o.progressPercentage)}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-gray-600 whitespace-nowrap">{o.progressPercentage.toFixed(0)}%</span>
+                              </div>
+                            ) : <span className="text-xs text-gray-400">No target</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {(officers.data?.length ?? 0) === 0 && (
+                  <div className="py-10 text-center text-sm text-gray-400">
+                    <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                    No loan officers found for this period.
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </>
       )}
@@ -337,38 +378,43 @@ export function ReportsPage() {
             <div className="space-y-4">
               <div className="card p-5">
                 <h2 className="text-sm font-semibold text-gray-800 mb-4">Portfolio At Risk by Location</h2>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={par.data ?? []} layout="vertical" margin={{ left: 80 }}>
-                    <XAxis type="number" tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} />
-                    <YAxis type="category" dataKey="branchName" tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(v: number) => [`${v.toFixed(2)}%`, 'PAR']} />
-                    <Bar dataKey="par" name="PAR %" radius={[0, 4, 4, 0]}>
-                      {(par.data ?? []).map((d, i) => (
-                        <Cell key={i} fill={d.par > 10 ? '#dc2626' : d.par > 5 ? '#d97706' : '#16a34a'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="overflow-x-auto">
+                  <div style={{ minWidth: 320 }}>
+                    <ResponsiveContainer width="100%" height={280}>
+                      <BarChart data={par.data ?? []} layout="vertical" margin={{ left: 60, right: 20, top: 0, bottom: 0 }}>
+                        <XAxis type="number" tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} />
+                        <YAxis type="category" dataKey="branchName" tick={{ fontSize: 11 }} width={60} />
+                        <Tooltip formatter={(v: number) => [`${v.toFixed(2)}%`, 'PAR']} />
+                        <Bar dataKey="par" name="PAR %" radius={[0, 4, 4, 0]}>
+                          {(par.data ?? []).map((d, i) => (
+                            <Cell key={i} fill={d.par > 10 ? '#dc2626' : d.par > 5 ? '#d97706' : '#16a34a'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
 
               <div className="card overflow-hidden">
-                <table className="table">
+                <div className="overflow-x-auto">
+                <table className="table min-w-full">
                   <thead>
                     <tr>
-                      <th>Location</th>
-                      <th>Portfolio (₦)</th>
-                      <th>Overdue (₦)</th>
-                      <th>PAR</th>
-                      <th>Risk Level</th>
+                      <th className="whitespace-nowrap">Location</th>
+                      <th className="whitespace-nowrap">Portfolio (₦)</th>
+                      <th className="whitespace-nowrap">Overdue (₦)</th>
+                      <th className="whitespace-nowrap">PAR</th>
+                      <th className="whitespace-nowrap">Risk Level</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(par.data ?? []).sort((a, b) => b.par - a.par).map((d) => (
                       <tr key={d.branchId} className="cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/reports/location/${d.branchId}`)}>
-                        <td className="font-medium text-gray-900">{d.branchName}</td>
-                        <td>{money(d.portfolioValue)}</td>
-                        <td className={d.overdueValue > 0 ? 'text-red-600 font-medium' : ''}>{money(d.overdueValue)}</td>
-                        <td className="font-bold">{d.par.toFixed(2)}%</td>
+                        <td className="font-medium text-gray-900 whitespace-nowrap">{d.branchName}</td>
+                        <td className="whitespace-nowrap">{money(d.portfolioValue)}</td>
+                        <td className={`whitespace-nowrap ${d.overdueValue > 0 ? 'text-red-600 font-medium' : ''}`}>{money(d.overdueValue)}</td>
+                        <td className="font-bold whitespace-nowrap">{d.par.toFixed(2)}%</td>
                         <td>
                           <Badge variant={d.par > 10 ? 'red' : d.par > 5 ? 'yellow' : 'green'}>
                             {d.par > 10 ? 'High' : d.par > 5 ? 'Medium' : 'Low'}
@@ -378,6 +424,7 @@ export function ReportsPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
