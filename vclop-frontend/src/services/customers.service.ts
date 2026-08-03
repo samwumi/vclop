@@ -5,7 +5,10 @@ import type { Customer, Customer360, CustomerDocument, CustomerStatus } from '@/
 export const customersService = {
   async list(params?: PaginationParams & { status?: CustomerStatus; branchId?: string; search?: string }): Promise<PaginatedResponse<Customer>> {
     const p = new URLSearchParams();
-    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined) p.set(k, String(v)); });
+    if (params) Object.entries(params).forEach(([k, v]) => {
+      // Skip empty strings to avoid sending search= which could confuse the backend
+      if (v !== undefined && v !== '') p.set(k, String(v));
+    });
     const { data } = await api.get<ApiResponse<Customer[]>>(`/customers?${p}`);
     return { data: data.data ?? [], meta: data.meta! };
   },
