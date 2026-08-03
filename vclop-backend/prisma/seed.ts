@@ -358,7 +358,6 @@ async function main(): Promise<void> {
         'loan_applications:read', 'loan_applications:compliance_review',
         'virtual_accounts:read',
         'reports:read',
-        'settings:read',
       ],
     },
     {

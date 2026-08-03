@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Save, Briefcase, Users, MapPin, Edit, X } from 'lucide-react';
@@ -52,6 +52,26 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
   });
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  // Sync form when parent data loads (existingValues/profile arrive after mount)
+  useEffect(() => {
+    const p2 = profile as (typeof profile & Record<string, string | null | undefined>) | undefined;
+    setForm({
+      employerName:       (existingValues?.employer_name    as string) ?? '',
+      employmentType:     (existingValues?.employment_type  as string) ?? '',
+      monthlyIncome:      (existingValues?.monthly_income   as string) ?? '',
+      jobTitle:           (existingValues?.job_title         as string) ?? '',
+      employerAddress:    (existingValues?.employer_address  as string) ?? '',
+      employerPhone:      (existingValues?.employer_phone    as string) ?? '',
+      nokName:            (existingValues?.nok_name          as string) ?? '',
+      nokRelationship:    (existingValues?.nok_relationship  as string) ?? '',
+      nokPhone:           (existingValues?.nok_phone         as string) ?? '',
+      nokAddress:         (existingValues?.nok_address       as string) ?? '',
+      residentialAddress: p2?.residentialAddress ?? '',
+      businessAddress:    p2?.businessAddress    ?? '',
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingValues, profile]);
 
   const canEdit = hasPermission('customers:update') || hasPermission('customers:create');
 

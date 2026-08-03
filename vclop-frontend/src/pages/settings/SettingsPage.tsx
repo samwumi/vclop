@@ -66,15 +66,15 @@ export function SettingsPage() {
       {isLoading ? (
         <PageLoader />
       ) : (
-        <div className="flex gap-6">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
           {/* Group sidebar */}
-          <nav className="w-44 flex-shrink-0">
-            <div className="card overflow-hidden">
+          <nav className="md:w-44 md:flex-shrink-0">
+            <div className="card overflow-hidden flex md:flex-col flex-row flex-wrap">
               {groupNames.map((group) => (
                 <button
                   key={group}
                   onClick={() => setActiveGroup(group)}
-                  className={`w-full text-left px-4 py-2.5 text-sm capitalize border-b border-gray-100 last:border-0 transition-colors
+                  className={`text-left px-4 py-2.5 text-sm capitalize border-b border-gray-100 last:border-0 transition-colors whitespace-nowrap
                     ${group === currentGroup ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
                   {group.replace(/_/g, ' ')}
@@ -92,7 +92,7 @@ export function SettingsPage() {
             </div>
             <div className="card-body divide-y divide-gray-100">
               {settings.map((setting) => (
-                <div key={setting.id} className="py-4 grid grid-cols-2 gap-4 items-start">
+                <div key={setting.id} className="py-4 grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                   <div>
                     <p className="text-sm font-medium text-gray-700">{setting.label}</p>
                     {setting.description && (
