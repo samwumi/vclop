@@ -75,11 +75,13 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
 
   const canEdit = hasPermission('customers:update') || hasPermission('customers:create');
 
-  // Check if any data has been filled
+  // Check if any data has been filled — includes both form submissions AND profile fields
   const hasData = !!(
     form.employerName || form.employmentType || form.monthlyIncome ||
     form.jobTitle || form.nokName || form.nokPhone ||
-    form.residentialAddress || form.businessAddress
+    form.residentialAddress || form.businessAddress ||
+    form.employerAddress || form.employerPhone ||
+    form.nokRelationship || form.nokAddress
   );
 
   const saveMutation = useMutation({

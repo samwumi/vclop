@@ -2,18 +2,19 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Zap, Copy, Receipt, Car } from 'lucide-react';
+import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Zap, Copy, Receipt, Car, User, ChevronDown, ChevronUp, FileText as FileIcon, Eye } from 'lucide-react';
 import { loansService } from '@/services/loans.service';
 import { virtualAccountsService } from '@/services/virtual-accounts.service';
 import { receiptsService } from '@/services/receipts.service';
 import { workflowsService, type WorkflowAction } from '@/services/workflows.service';
 import { transportService } from '@/services/transport.service';
+import { customersService } from '@/services/customers.service';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Badge } from '@/components/ui/Badge';
 import { PageLoader } from '@/components/ui/LoadingScreen';
 import { useAuthStore } from '@/stores/auth.store';
 import { formatDate, formatDateTime } from '@/lib/utils';
-import type { LoanApplicationStatus } from '@/types/domain.types';
+import type { LoanApplicationStatus, Customer } from '@/types/domain.types';
 
 const STATUS_VARIANT: Record<LoanApplicationStatus, 'green' | 'red' | 'yellow' | 'blue' | 'gray'> = {
   DRAFT: 'gray', SUBMITTED: 'yellow', COMPLIANCE_REVIEW: 'yellow', AWAITING_INFORMATION: 'yellow', INTERNAL_CONTROL_REVIEW: 'yellow', ACCOUNTING_REVIEW: 'blue', APPROVED: 'blue', REJECTED: 'red', RETURNED: 'yellow', ESCALATED: 'red', DISBURSED: 'green', CANCELLED: 'gray',
@@ -35,6 +36,7 @@ export function LoanDetailPage() {
     purpose: '', location: '', customerCount: '', distanceKm: '', estimatedCost: '', suggestedAmount: '',
   });
   const [showTransportForm, setShowTransportForm] = useState(false);
+  const [showCustomerSection, setShowCustomerSection] = useState(false);
 
   const { data: application, isLoading } = useQuery({
     queryKey: ['loan-application', id],
@@ -61,6 +63,14 @@ export function LoanDetailPage() {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['loan-application', id] });
+
+  // Full customer 360 — loaded lazily when compliance/IC opens the section
+  const customerId = application?.customer?.id;
+  const { data: customer360 } = useQuery({
+    queryKey: ['customer360', customerId],
+    queryFn: () => customersService.get(customerId!),
+    enabled: !!customerId && showCustomerSection,
+  });
 
   const addGuarantorMutation = useMutation({
     mutationFn: () => loansService.addGuarantor(id!, guarantorForm),
@@ -236,6 +246,133 @@ export function LoanDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Customer Details — visible to compliance, IC, and admin */}
+      {(hasPermission('loan_applications:compliance_review') ||
+        hasPermission('loan_applications:internal_control_approve') ||
+        hasPermission('system:admin')) && application.customer && (
+        <div className="card">
+          <button
+            onClick={() => setShowCustomerSection(v => !v)}
+            className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4 text-brand-600" />
+              Customer Profile — {application.customer.firstName} {application.customer.lastName}
+              <Badge variant={application.customer.status === 'ELIGIBLE' ? 'green' : application.customer.status === 'KYC_PENDING' ? 'yellow' : 'gray'}>
+                {application.customer.status?.replace(/_/g, ' ')}
+              </Badge>
+            </div>
+            {showCustomerSection ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+          </button>
+
+          {showCustomerSection && (
+            <div className="border-t border-gray-100 px-5 pb-5 pt-4 space-y-5">
+              {!customer360 ? (
+                <p className="text-sm text-gray-400 text-center py-4">Loading customer data…</p>
+              ) : (() => {
+                const c = customer360.profile as Customer;
+                const fd = customer360.formData?.values as Record<string, string> | undefined;
+                const docs = customer360.documents;
+
+                const Row = ({ label, value }: { label: string; value?: string | null }) => (
+                  <div>
+                    <p className="text-xs text-gray-500">{label}</p>
+                    <p className="text-sm text-gray-800 font-medium mt-0.5">{value || '—'}</p>
+                  </div>
+                );
+
+                return (
+                  <div className="space-y-4">
+                    {/* Identity & Contact */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <Row label="Customer #" value={c.customerNumber} />
+                      <Row label="Phone" value={c.phone} />
+                      <Row label="Alt. Phone" value={c.alternatePhone} />
+                      <Row label="Email" value={c.email} />
+                      <Row label="BVN" value={c.bvn} />
+                      <Row label="NIN" value={c.nin} />
+                      <Row label="Gender" value={c.gender} />
+                      <Row label="Date of Birth" value={c.dateOfBirth ? formatDate(c.dateOfBirth) : null} />
+                    </div>
+
+                    {/* Address */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-gray-50">
+                      <Row label="Residential Address" value={c.residentialAddress} />
+                      <Row label="Business Address" value={c.businessAddress} />
+                    </div>
+
+                    {/* Employment & NOK from form data */}
+                    {fd && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-3 border-t border-gray-50">
+                        <Row label="Employer" value={fd.employer_name} />
+                        <Row label="Employment Type" value={fd.employment_type} />
+                        <Row label="Job Title" value={fd.job_title} />
+                        <Row label="Monthly Income" value={fd.monthly_income ? `₦${Number(fd.monthly_income).toLocaleString('en-NG')}` : null} />
+                        <Row label="NOK Name" value={fd.nok_name} />
+                        <Row label="NOK Phone" value={fd.nok_phone} />
+                        <Row label="NOK Relationship" value={fd.nok_relationship} />
+                      </div>
+                    )}
+
+                    {/* Documents */}
+                    <div className="pt-3 border-t border-gray-50">
+                      <p className="text-xs font-semibold text-gray-700 mb-3">
+                        Submitted Documents ({docs.length})
+                      </p>
+                      {docs.length === 0 ? (
+                        <p className="text-sm text-gray-400 italic">No documents uploaded yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {docs.map((doc) => (
+                            <div key={doc.id} className="flex items-center justify-between p-2.5 rounded-lg border border-gray-100 bg-gray-50">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium text-gray-800 truncate">
+                                    {(doc as { documentType?: { name?: string } }).documentType?.name ?? 'Document'}
+                                  </p>
+                                  <p className="text-xs text-gray-400 truncate">
+                                    {(doc as { originalName?: string }).originalName}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  doc.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700' :
+                                  doc.status === 'REJECTED' ? 'bg-red-50 text-red-700' :
+                                  'bg-amber-50 text-amber-700'
+                                }`}>{doc.status}</span>
+                                <a
+                                  href={(doc as { fileUrl?: string }).fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-xs text-brand-600 hover:underline"
+                                >
+                                  <Eye className="w-3.5 h-3.5" /> View
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <a
+                      href={`/customers/${c.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-xs text-brand-600 hover:underline text-center pt-2"
+                    >
+                      Open Full Customer Profile →
+                    </a>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Guarantors & Collateral — only editable while DRAFT */}
       {(application.loanProduct || application.status === 'DRAFT') && (
