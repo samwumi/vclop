@@ -65,7 +65,7 @@ export function NotificationPanel() {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-[calc(100vw-2rem)] sm:w-[340px] max-w-[340px] bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+        <div className="fixed sm:absolute right-2 sm:right-0 top-[60px] sm:top-full sm:mt-1 w-[calc(100vw-1rem)] sm:w-[340px] max-w-[340px] bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-800">

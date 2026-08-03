@@ -348,7 +348,14 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
 
           {/* ── Customer Details ──────────────────────────────────────────── */}
           {tab === 'customer' && (() => {
-            const c = customer360?.profile as Record<string, string | null | undefined> | undefined;
+            // Use customer360 when available, fall back to application.customer for immediate data
+            const c360 = customer360?.profile as Record<string, string | null | undefined> | undefined;
+            const appCust = application.customer as (typeof application.customer & Record<string, string | null | undefined>) | undefined;
+            // Merge: customer360 takes precedence for richer fields, appCust for immediate display
+            const c: Record<string, string | null | undefined> = {
+              ...appCust,
+              ...c360,
+            };
             const fd = customer360?.formData?.values as Record<string, string> | undefined;
             const Row = ({ label, value }: { label: string; value?: string | null }) => (
               <div className="flex justify-between py-1.5 border-b border-gray-50 last:border-0 gap-2">
