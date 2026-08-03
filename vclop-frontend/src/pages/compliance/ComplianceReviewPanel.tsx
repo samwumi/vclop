@@ -77,7 +77,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
 
   // Customer documents (loaded when panel opens)
   const { data: documents = [] } = useQuery({
-    queryKey: ['compliance-customer-docs', application.customer?.customerNumber],
+    queryKey: ['compliance-customer-docs', application.customerId],
     queryFn: () => complianceService.getCustomerDocuments(application.customerId),
     enabled: !!application.customerId,
   });
