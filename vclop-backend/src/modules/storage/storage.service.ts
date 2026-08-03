@@ -97,6 +97,11 @@ class LocalStorageDriver implements StorageDriver {
   }
 
   getUrl(key: string): string {
-    return `${this.publicUrl}/${key}`;
+    // Use relative URL so it works on any domain (local dev + production)
+    // Falls back to absolute publicUrl only if explicitly set
+    if (this.publicUrl && !this.publicUrl.includes('localhost')) {
+      return `${this.publicUrl}/${key}`;
+    }
+    return `/uploads/${key}`;
   }
 }

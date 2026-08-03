@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   CheckCircle2, XCircle, RotateCcw, MapPin, Clock,
-  ClipboardList, ShieldCheck, Navigation, FileText, Eye,
+  ClipboardList, ShieldCheck, Navigation, FileText, Eye, User,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { formatDateTime } from '@/lib/utils';
@@ -13,6 +13,7 @@ import {
   type WorkflowRecommendation,
 } from '@/services/compliance.service';
 import { workflowsService } from '@/services/workflows.service';
+import { customersService } from '@/services/customers.service';
 import type { ComplianceQueueItem } from '@/services/compliance.service';
 
 const VISIT_TYPES = ['BUSINESS', 'RESIDENCE', 'EMPLOYER', 'GUARANTOR', 'OTHER'];
@@ -24,7 +25,7 @@ const RECOMMENDATION_OPTS: Array<{ value: WorkflowRecommendation; label: string;
   { value: 'ESCALATE',             label: 'Escalate',           color: 'bg-violet-600' },
 ];
 
-type Tab = 'documents' | 'assessment' | 'verification' | 'visits' | 'action';
+type Tab = 'documents' | 'customer' | 'assessment' | 'verification' | 'visits' | 'action';
 
 interface Props {
   application: ComplianceQueueItem;
@@ -78,6 +79,13 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
   const { data: documents = [] } = useQuery({
     queryKey: ['compliance-customer-docs', application.customer?.customerNumber],
     queryFn: () => complianceService.getCustomerDocuments(application.customerId),
+    enabled: !!application.customerId,
+  });
+
+  // Full customer 360 for the Customer Details tab
+  const { data: customer360 } = useQuery({
+    queryKey: ['customer360', application.customerId],
+    queryFn: () => customersService.get(application.customerId),
     enabled: !!application.customerId,
   });
 
@@ -174,11 +182,12 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
   }
 
   const TABS: Array<{ id: Tab; label: string; icon: typeof ClipboardList }> = [
-    { id: 'documents',    label: 'Documents',    icon: FileText },
-    { id: 'assessment',   label: 'Assessment',   icon: ClipboardList },
-    { id: 'verification', label: 'Verifications', icon: ShieldCheck },
-    { id: 'visits',       label: 'Field Visits',  icon: Navigation },
-    { id: 'action',       label: 'Decision',      icon: CheckCircle2 },
+    { id: 'documents',    label: 'Documents',       icon: FileText },
+    { id: 'customer',     label: 'Customer Details', icon: User },
+    { id: 'assessment',   label: 'Assessment',      icon: ClipboardList },
+    { id: 'verification', label: 'Verifications',   icon: ShieldCheck },
+    { id: 'visits',       label: 'Field Visits',    icon: Navigation },
+    { id: 'action',       label: 'Decision',        icon: CheckCircle2 },
   ];
 
   const customer = application.customer;
@@ -337,9 +346,84 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
             </div>
           )}
 
+          {/* ── Customer Details ──────────────────────────────────────────── */}
+          {tab === 'customer' && (() => {
+            const c = customer360?.profile as Record<string, string | null | undefined> | undefined;
+            const fd = customer360?.formData?.values as Record<string, string> | undefined;
+            const Row = ({ label, value }: { label: string; value?: string | null }) => (
+              <div className="flex justify-between py-1.5 border-b border-gray-50 last:border-0 gap-2">
+                <span className="text-xs text-gray-500 flex-shrink-0">{label}</span>
+                <span className="text-xs font-medium text-gray-800 text-right">{value || <span className="text-gray-400 italic">—</span>}</span>
+              </div>
+            );
+            return (
+              <div className="space-y-4">
+                {/* Identity */}
+                <div className="card p-4">
+                  <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Identity</p>
+                  <Row label="Full Name"    value={c ? `${c.firstName ?? ''} ${c.middleName ?? ''} ${c.lastName ?? ''}`.trim() : ''} />
+                  <Row label="Customer No." value={c?.customerNumber} />
+                  <Row label="Type"         value={c?.type} />
+                  <Row label="Gender"       value={c?.gender} />
+                  <Row label="Date of Birth" value={c?.dateOfBirth ? new Date(c.dateOfBirth).toLocaleDateString('en-NG') : ''} />
+                  <Row label="Status"       value={c?.status} />
+                </div>
+
+                {/* Contact */}
+                <div className="card p-4">
+                  <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Contact & IDs</p>
+                  <Row label="Phone"         value={c?.phone} />
+                  <Row label="Alt. Phone"    value={c?.alternatePhone} />
+                  <Row label="Email"         value={c?.email} />
+                  <Row label="BVN"           value={c?.bvn} />
+                  <Row label="NIN"           value={c?.nin} />
+                </div>
+
+                {/* Address */}
+                <div className="card p-4">
+                  <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Address</p>
+                  <Row label="Residential" value={c?.residentialAddress} />
+                  <Row label="Business"    value={c?.businessAddress} />
+                </div>
+
+                {/* Employment from form data */}
+                {fd && (
+                  <div className="card p-4">
+                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Employment</p>
+                    <Row label="Employer"         value={fd.employer_name} />
+                    <Row label="Employment Type"  value={fd.employment_type} />
+                    <Row label="Job Title"        value={fd.job_title} />
+                    <Row label="Monthly Income"   value={fd.monthly_income ? `₦${Number(fd.monthly_income).toLocaleString('en-NG')}` : ''} />
+                    <Row label="Employer Phone"   value={fd.employer_phone} />
+                    <Row label="Employer Address" value={fd.employer_address} />
+                  </div>
+                )}
+
+                {/* Next of Kin from form data */}
+                {fd && (fd.nok_name || fd.nok_phone) && (
+                  <div className="card p-4">
+                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Next of Kin</p>
+                    <Row label="Full Name"     value={fd.nok_name} />
+                    <Row label="Relationship"  value={fd.nok_relationship} />
+                    <Row label="Phone"         value={fd.nok_phone} />
+                    <Row label="Address"       value={fd.nok_address} />
+                  </div>
+                )}
+
+                <a
+                  href={`/customers/${application.customerId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center text-xs text-brand-600 hover:underline py-2"
+                >
+                  Open Full Customer Profile in new tab →
+                </a>
+              </div>
+            );
+          })()}
+
           {/* ── Assessment ────────────────────────────────────────────────── */}
-          {tab === 'assessment' && (
-            <>
+          {tab === 'assessment' && (            <>
               <div>
                 <label className="form-label">Bank Statement Notes</label>
                 <textarea className="form-input" rows={3} placeholder="Summary of bank statement review — income patterns, outflows, salary credits…" value={form.bankStatementNotes} onChange={(e) => setForm(f => ({ ...f, bankStatementNotes: e.target.value }))} />
