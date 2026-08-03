@@ -19,14 +19,14 @@ interface KpiCardProps {
 
 function KpiCard({ title, value, sub, icon: Icon, color }: KpiCardProps) {
   return (
-    <div className="card p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
-      <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
+    <div className="card p-4 flex items-start gap-3">
+      <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
         <Icon className="w-5 h-5" />
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs sm:text-sm font-medium text-gray-500">{title}</p>
-        <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5 break-all">{value}</p>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <p className="text-xs font-medium text-gray-500 truncate">{title}</p>
+        <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-0.5 truncate">{value}</p>
+        {sub && <p className="text-xs text-gray-400 mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
   );
