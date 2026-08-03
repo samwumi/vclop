@@ -19,13 +19,13 @@ interface KpiCardProps {
 
 function KpiCard({ title, value, sub, icon: Icon, color }: KpiCardProps) {
   return (
-    <div className="card p-5 flex items-start gap-4">
-      <div className={`w-11 h-11 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
+    <div className="card p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+      <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
         <Icon className="w-5 h-5" />
       </div>
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-gray-500 truncate">{title}</p>
-        <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs sm:text-sm font-medium text-gray-500">{title}</p>
+        <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5 break-all">{value}</p>
         {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
       </div>
     </div>
@@ -85,7 +85,7 @@ export function PerformancePage() {
   const weekNo = Math.ceil(now.getDate() / 7);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="space-y-6">
       <Breadcrumbs />
 
       {/* Page title */}
@@ -100,8 +100,8 @@ export function PerformancePage() {
         </div>
       </div>
 
-      {/* KPI grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {/* KPI grid — 1 col mobile, 2 col tablet, 3 col desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
           title="Monthly Target"
           value={`₦${(perf?.monthlyTarget ?? 0).toLocaleString()}`}

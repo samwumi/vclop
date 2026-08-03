@@ -24,6 +24,7 @@ const APPLICATION_INCLUDE = {
 
 /** Periods-per-day used to translate a product's repayment frequency into an installment count for a given tenure. */
 const FREQUENCY_DAYS: Record<RepaymentFrequency, number> = {
+  DAILY: 1,
   WEEKLY: 7,
   BIWEEKLY: 14,
   MONTHLY: 30,

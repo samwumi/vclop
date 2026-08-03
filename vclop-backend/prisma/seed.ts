@@ -709,39 +709,55 @@ async function main(): Promise<void> {
   }
   console.log(`✔  Document checklist seeded`);
 
-  // ── 10. Default Loan Products (VCLOP Phase 4) ───────────────────────────────────
+  // ── 10. Default Loan Products ───────────────────────────────────────────────────
   const LOAN_PRODUCTS = [
     {
-      code: 'quick-cash-30',
-      name: 'Quick Cash (30 Days)',
-      description: 'Short-term flat-rate loan for salaried customers.',
-      minAmount: 10000,
-      maxAmount: 300000,
-      minTenureDays: 7,
-      maxTenureDays: 30,
+      code: 'daily-loan-24',
+      name: 'Daily Loan (24 Days)',
+      description: 'Short-term daily repayment loan over 24 days at 15% flat interest.',
+      minAmount: 5000,
+      maxAmount: 500000,
+      minTenureDays: 24,
+      maxTenureDays: 24,
       interestType: 'FLAT' as const,
-      interestRate: 10,
-      repaymentFrequency: 'WEEKLY' as const,
-      requiresGuarantor: false,
+      interestRate: 15,
+      repaymentFrequency: 'DAILY' as const,
+      requiresGuarantor: true,
       requiresCollateral: false,
     },
     {
-      code: 'business-growth-90',
-      name: 'Business Growth Loan (90 Days)',
-      description: 'Reducing-balance loan for registered business customers, requires a guarantor.',
-      minAmount: 100000,
-      maxAmount: 2000000,
-      minTenureDays: 30,
-      maxTenureDays: 90,
-      interestType: 'REDUCING_BALANCE' as const,
-      interestRate: 18,
-      repaymentFrequency: 'MONTHLY' as const,
+      code: 'weekly-loan-8',
+      name: 'Weekly Loan (8 Weeks)',
+      description: 'Medium-term weekly repayment loan over 8 weeks at 25% flat interest.',
+      minAmount: 10000,
+      maxAmount: 1000000,
+      minTenureDays: 56,
+      maxTenureDays: 56,
+      interestType: 'FLAT' as const,
+      interestRate: 25,
+      repaymentFrequency: 'WEEKLY' as const,
       requiresGuarantor: true,
       requiresCollateral: false,
     },
   ];
   for (const product of LOAN_PRODUCTS) {
-    await prisma.loanProduct.upsert({ where: { code: product.code }, update: {}, create: product });
+    await prisma.loanProduct.upsert({
+      where: { code: product.code },
+      update: {
+        name: product.name,
+        description: product.description,
+        minAmount: product.minAmount,
+        maxAmount: product.maxAmount,
+        minTenureDays: product.minTenureDays,
+        maxTenureDays: product.maxTenureDays,
+        interestType: product.interestType,
+        interestRate: product.interestRate,
+        repaymentFrequency: product.repaymentFrequency,
+        requiresGuarantor: product.requiresGuarantor,
+        requiresCollateral: product.requiresCollateral,
+      },
+      create: product,
+    });
   }
 
   // Admins can edit this definition and every stage/transition without a deployment.

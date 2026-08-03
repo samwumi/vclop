@@ -1217,6 +1217,7 @@ enum InterestType {
 }
 
 enum RepaymentFrequency {
+  DAILY
   WEEKLY
   BIWEEKLY
   MONTHLY

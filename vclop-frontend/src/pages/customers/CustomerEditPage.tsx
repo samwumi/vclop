@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, memo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -29,7 +29,7 @@ type FormState = {
   branchId: string;
 };
 
-function FormField({
+const FormField = memo(function FormField({
   label, type = 'text', required = false, value, error, onChange,
 }: {
   label: string;
@@ -52,7 +52,7 @@ function FormField({
       {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
     </div>
   );
-}
+});
 
 export function CustomerEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -102,7 +102,7 @@ export function CustomerEditPage() {
       const { data } = await api.get<ApiResponse<Branch[]>>('/branches/locations');
       return data.data ?? [];
     },
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   const set = useCallback((key: keyof FormState, value: string) => {

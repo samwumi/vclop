@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -33,6 +33,35 @@ const EMPTY: FormState = {
   bvn: '', nin: '', residentialAddress: '', businessAddress: '', branchId: '',
 };
 
+// FormField is defined OUTSIDE the component so its reference is stable
+// across renders — this prevents React from unmounting/remounting inputs
+// on every keystroke (which causes focus loss).
+const FormField = memo(function FormField({
+  label, field, type = 'text', required = false, value, error, onChange,
+}: {
+  label: string;
+  field: keyof FormState;
+  type?: string;
+  required?: boolean;
+  value: string;
+  error?: string;
+  onChange: (field: keyof FormState, value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="form-label text-xs">{label}{required && ' *'}</label>
+      <input
+        type={type}
+        className="form-input"
+        value={value}
+        onChange={(e) => onChange(field, e.target.value)}
+        required={required}
+      />
+      {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
+    </div>
+  );
+});
+
 export function NewCustomerPage() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -45,11 +74,13 @@ export function NewCustomerPage() {
       const { data } = await api.get<ApiResponse<Branch[]>>('/branches/locations');
       return data.data ?? [];
     },
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes — prevents refetch during typing
   });
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+  // Stable setter — passed as prop to FormField, won't change on re-renders
+  const handleFieldChange = useCallback(<K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
+  }, []);
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -93,20 +124,6 @@ export function NewCustomerPage() {
     mutation.mutate();
   };
 
-  const Input = ({ label, field, type = 'text', required = false }: { label: string; field: keyof FormState; type?: string; required?: boolean }) => (
-    <div>
-      <label className="form-label text-xs">{label}{required && ' *'}</label>
-      <input
-        type={type}
-        className="form-input"
-        value={form[field]}
-        onChange={(e) => set(field, e.target.value as never)}
-        required={required}
-      />
-      {errors[field] && <p className="text-xs text-red-500 mt-0.5">{errors[field]}</p>}
-    </div>
-  );
-
   return (
     <div className="max-w-3xl mx-auto">
       <Breadcrumbs />
@@ -119,46 +136,46 @@ export function NewCustomerPage() {
         <div className="card-body space-y-5">
           <div>
             <label className="form-label text-xs">Customer Type *</label>
-            <select className="form-input" value={form.type} onChange={(e) => set('type', e.target.value as FormState['type'])}>
+            <select className="form-input" value={form.type} onChange={(e) => handleFieldChange('type', e.target.value as FormState['type'])}>
               <option value="INDIVIDUAL">Individual</option>
               <option value="BUSINESS">Business</option>
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="First Name" field="firstName" required />
-            <Input label="Last Name" field="lastName" required />
-            <Input label="Middle Name" field="middleName" />
-            {form.type === 'BUSINESS' && <Input label="Business Name" field="businessName" required />}
+            <FormField label="First Name" field="firstName" required value={form.firstName} error={errors.firstName} onChange={handleFieldChange} />
+            <FormField label="Last Name" field="lastName" required value={form.lastName} error={errors.lastName} onChange={handleFieldChange} />
+            <FormField label="Middle Name" field="middleName" value={form.middleName} error={errors.middleName} onChange={handleFieldChange} />
+            {form.type === 'BUSINESS' && <FormField label="Business Name" field="businessName" required value={form.businessName} error={errors.businessName} onChange={handleFieldChange} />}
             <div>
               <label className="form-label text-xs">Gender</label>
-              <select className="form-input" value={form.gender} onChange={(e) => set('gender', e.target.value as FormState['gender'])}>
+              <select className="form-input" value={form.gender} onChange={(e) => handleFieldChange('gender', e.target.value as FormState['gender'])}>
                 <option value="">Select…</option>
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
                 <option value="OTHER">Other</option>
               </select>
             </div>
-            <Input label="Date of Birth" field="dateOfBirth" type="date" />
+            <FormField label="Date of Birth" field="dateOfBirth" type="date" value={form.dateOfBirth} error={errors.dateOfBirth} onChange={handleFieldChange} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Phone" field="phone" required />
-            <Input label="Alternate Phone" field="alternatePhone" />
-            <Input label="Email" field="email" type="email" />
-            <Input label="BVN" field="bvn" />
-            <Input label="NIN" field="nin" />
+            <FormField label="Phone" field="phone" required value={form.phone} error={errors.phone} onChange={handleFieldChange} />
+            <FormField label="Alternate Phone" field="alternatePhone" value={form.alternatePhone} error={errors.alternatePhone} onChange={handleFieldChange} />
+            <FormField label="Email" field="email" type="email" value={form.email} error={errors.email} onChange={handleFieldChange} />
+            <FormField label="BVN" field="bvn" value={form.bvn} error={errors.bvn} onChange={handleFieldChange} />
+            <FormField label="NIN" field="nin" value={form.nin} error={errors.nin} onChange={handleFieldChange} />
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            <Input label="Residential Address" field="residentialAddress" />
-            {form.type === 'BUSINESS' && <Input label="Business Address" field="businessAddress" />}
+            <FormField label="Residential Address" field="residentialAddress" value={form.residentialAddress} error={errors.residentialAddress} onChange={handleFieldChange} />
+            {form.type === 'BUSINESS' && <FormField label="Business Address" field="businessAddress" value={form.businessAddress} error={errors.businessAddress} onChange={handleFieldChange} />}
             <div>
               <label className="form-label text-xs">Location / Branch <span className="text-red-500">*</span></label>
               <select
                 className="form-input"
                 value={form.branchId}
-                onChange={(e) => set('branchId', e.target.value)}
+                onChange={(e) => handleFieldChange('branchId', e.target.value)}
                 required
               >
                 <option value="">Select location…</option>
