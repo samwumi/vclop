@@ -243,7 +243,7 @@ export function LoanDetailPage() {
                   </div>
                   <button
                     onClick={() => addGuarantorMutation.mutate()}
-                    disabled={!guarantorForm.firstName || !guarantorForm.lastName || !guarantorForm.phone}
+                    disabled={!guarantorForm.firstName || !guarantorForm.lastName || !guarantorForm.phone || !guarantorForm.relationship}
                     className="btn-secondary btn-sm gap-1.5 w-full disabled:opacity-50"
                   >
                     <UserPlus className="w-3.5 h-3.5" /> Add Guarantor

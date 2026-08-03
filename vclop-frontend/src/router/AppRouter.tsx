@@ -28,6 +28,7 @@ import { ReportsPage } from '@/pages/reports/ReportsPage';
 import { CustomersPage } from '@/pages/customers/CustomersPage';
 import { NewCustomerPage } from '@/pages/customers/NewCustomerPage';
 import { Customer360Page } from '@/pages/customers/Customer360Page';
+import { CustomerEditPage } from '@/pages/customers/CustomerEditPage';
 
 // Phase 2 — loans
 import { LoansPage } from '@/pages/loans/LoansPage';
@@ -69,9 +70,10 @@ export function AppRouter() {
         <Route path="/dashboard" element={<ProtectedRoute permission="dashboard:read"><DashboardPage /></ProtectedRoute>} />
 
         {/* Customers */}
-        <Route path="/customers"     element={<ProtectedRoute permission="customers:read"><CustomersPage /></ProtectedRoute>} />
-        <Route path="/customers/new" element={<ProtectedRoute permission="customers:create"><NewCustomerPage /></ProtectedRoute>} />
-        <Route path="/customers/:id" element={<ProtectedRoute permission="customers:read"><Customer360Page /></ProtectedRoute>} />
+        <Route path="/customers"          element={<ProtectedRoute permission="customers:read"><CustomersPage /></ProtectedRoute>} />
+        <Route path="/customers/new"      element={<ProtectedRoute permission="customers:create"><NewCustomerPage /></ProtectedRoute>} />
+        <Route path="/customers/:id"      element={<ProtectedRoute permission="customers:read"><Customer360Page /></ProtectedRoute>} />
+        <Route path="/customers/:id/edit" element={<ProtectedRoute permission="customers:update"><CustomerEditPage /></ProtectedRoute>} />
 
         {/* Loans */}
         <Route path="/loans"     element={<ProtectedRoute permission="loan_applications:read"><LoansPage /></ProtectedRoute>} />
