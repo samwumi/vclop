@@ -36,15 +36,24 @@ export class CustomersController {
   @ApiQuery({ name: 'status', enum: CustomerStatus, required: false })
   @ApiQuery({ name: 'branchId', required: false })
   findAll(@Query() query: QueryCustomersDto, @CurrentUser() actor: RequestUser) {
-    // Loan officers only see customers they personally registered
     const canViewAll =
       actor.permissions.has('system:admin') ||
       actor.permissions.has('customers:manage') ||
       actor.permissions.has('loan_applications:compliance_review') ||
       actor.permissions.has('loan_applications:internal_control_approve') ||
       actor.permissions.has('loan_applications:disburse');
-    if (!canViewAll && !query.assignedOfficerId) {
-      query.assignedOfficerId = actor.id;
+
+    if (!canViewAll) {
+      // Loan officer — see customers they registered OR customers in their branch
+      // This lets officers see branch customers even if assignedOfficerId differs
+      if (!query.assignedOfficerId && !query.branchId) {
+        // Show own customers first; if branchId is set on actor, scope to branch
+        if (actor.branchId) {
+          query.branchId = actor.branchId;
+        } else {
+          query.assignedOfficerId = actor.id;
+        }
+      }
     }
     return this.service.findAll(query);
   }
