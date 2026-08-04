@@ -41,13 +41,18 @@ export class ComplianceController {
   constructor(private readonly service: ComplianceService) {}
   @Get('queue') @RequirePermissions('loan_applications:compliance_review')
   async queue(@CurrentUser() user: RequestUser) {
-    // Check if officer is on Head Office — HQ users see everything
-    let isHQ = !user.branchId;
-    if (user.branchId) {
-      const branch = await this.service.getBranchIsHQ(user.branchId);
-      isHQ = branch;
-    }
-    return this.service.queue(user.branchId ?? undefined, isHQ);
+    // Build list of all branches this compliance officer covers:
+    // - Their primary branchId
+    // - All additional branches from UserBranch table (managedBranchIds)
+    const allBranchIds = [
+      ...(user.branchId ? [user.branchId] : []),
+      ...(user.managedBranchIds ?? []),
+    ];
+    // Unique, deduplicated
+    const uniqueBranchIds = [...new Set(allBranchIds)];
+    // If no branches assigned → HQ/non-location role → see everything
+    const isHQ = uniqueBranchIds.length === 0;
+    return this.service.queue(uniqueBranchIds, isHQ);
   }
   @Get('applications/:id/assessment') @RequirePermissions('loan_applications:compliance_review') assessment(@Param('id', ParseUUIDPipe) id: string) { return this.service.assessment(id); }
   @Put('applications/:id/assessment') @RequirePermissions('loan_applications:compliance_review') async save(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AssessmentDto, @CurrentUser() user: RequestUser) { return ok(await this.service.saveAssessment(id, dto, user.id)); }

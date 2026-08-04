@@ -18,7 +18,13 @@ const EMPTY_FORM = {
   firstName: '', lastName: '', email: '', username: '',
   password: '', jobTitle: '', branchId: '', departmentId: '',
   roleIds: [] as string[],
+  additionalBranchIds: [] as string[], // for multi-branch roles
 };
+
+// Roles that are NOT location-based (see everything)
+const NON_LOCATION_ROLE_CODES = ['INTERNAL_CONTROL', 'ACCOUNTING_HEAD', 'MANAGER', 'SUPER_ADMIN'];
+// Roles that can cover multiple locations
+const MULTI_LOCATION_ROLE_CODES = ['COMPLIANCE_OFFICER', 'ACCOUNTANT'];
 
 export function UsersPage() {
   const [search, setSearch] = useState('');
@@ -75,12 +81,23 @@ export function UsersPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async () => api.post('/users', {
-      ...form,
-      branchId:     form.branchId     || undefined,
-      departmentId: form.departmentId || undefined,
-      jobTitle:     form.jobTitle     || undefined,
-    }),
+    mutationFn: async () => {
+      const res = await api.post('/users', {
+        ...form,
+        branchId:     form.branchId     || undefined,
+        departmentId: form.departmentId || undefined,
+        jobTitle:     form.jobTitle     || undefined,
+      });
+      const userId = res.data?.data?.id;
+      // Assign additional branches for multi-location roles
+      if (userId && form.additionalBranchIds.length > 0) {
+        await Promise.all(
+          form.additionalBranchIds.map(bid =>
+            api.post(`/users/${userId}/branches`, { branchId: bid }).catch(() => {})
+          )
+        );
+      }
+    },
     onSuccess: () => {
       toast.success('User created');
       setShowForm(false);
@@ -282,19 +299,63 @@ export function UsersPage() {
                   <input className="form-input" value={form.jobTitle} onChange={(e) => set('jobTitle', e.target.value)} placeholder="e.g. Loan Officer" />
                 </div>
 
-                {/* Location / Branch */}
-                <div>
-                  <label className="form-label">Location / Branch <span className="text-red-500">*</span></label>
-                  <select required className="form-input" value={form.branchId} onChange={(e) => set('branchId', e.target.value)}>
-                    <option value="">Select location…</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Primary location. Compliance/accounting staff can be assigned additional locations after creation.
-                  </p>
-                </div>
+                {/* Location / Branch — context-aware based on role */}
+                {(() => {
+                  const selectedRoleCodes = (rolesData ?? [])
+                    .filter(r => form.roleIds.includes(r.id))
+                    .map(r => r.code);
+                  const isNonLocation = selectedRoleCodes.some(c => NON_LOCATION_ROLE_CODES.includes(c));
+                  const isMultiLocation = selectedRoleCodes.some(c => MULTI_LOCATION_ROLE_CODES.includes(c));
+
+                  if (isNonLocation) {
+                    return (
+                      <div className="sm:col-span-2 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-700">
+                        ℹ This role is not location-based — the user will see data across all branches.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <div>
+                        <label className="form-label">Primary Location / Branch <span className="text-red-500">*</span></label>
+                        <select required className="form-input" value={form.branchId} onChange={(e) => set('branchId', e.target.value)}>
+                          <option value="">Select location…</option>
+                          {branches.map((b) => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {isMultiLocation && (
+                        <div>
+                          <label className="form-label">Additional Locations (optional)</label>
+                          <div className="border border-gray-200 rounded-lg p-3 space-y-1.5 max-h-40 overflow-y-auto">
+                            {branches.filter(b => b.id !== form.branchId).map(b => (
+                              <label key={b.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={form.additionalBranchIds.includes(b.id)}
+                                  onChange={e => set('additionalBranchIds',
+                                    e.target.checked
+                                      ? [...form.additionalBranchIds, b.id]
+                                      : form.additionalBranchIds.filter(id => id !== b.id)
+                                  )}
+                                />
+                                {b.name}
+                              </label>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {selectedRoleCodes.includes('COMPLIANCE_OFFICER')
+                              ? 'Compliance officer will review applications from all selected locations.'
+                              : 'Accountant will see loans from all selected locations.'}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {/* Department */}
                 <div>

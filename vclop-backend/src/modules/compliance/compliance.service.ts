@@ -8,11 +8,10 @@ import { ResourceNotFoundException } from '../../common/exceptions/app.exception
 export class ComplianceService {
   constructor(private readonly prisma: PrismaService, private readonly events: EventEmitter2) {}
 
-  async queue(actorBranchId?: string, actorBranchIsHQ?: boolean) {
-    // Filter by compliance officer's branch ONLY when they are on a location branch.
-    // Officers assigned to Head Office see all applications across all locations.
-    const branchFilter = (actorBranchId && !actorBranchIsHQ)
-      ? { customer: { branchId: actorBranchId } }
+  async queue(branchIds: string[], isHQ: boolean) {
+    // If HQ/non-location → see all. Otherwise filter by covered branches.
+    const branchFilter = (!isHQ && branchIds.length > 0)
+      ? { customer: { branchId: { in: branchIds } } }
       : {};
 
     return this.prisma.loanApplication.findMany({
