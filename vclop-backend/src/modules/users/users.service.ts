@@ -148,7 +148,8 @@ export class UsersService {
         departmentId: dto.departmentId,
         supervisorId: dto.supervisorId,
         jobTitle: dto.jobTitle,
-        status: UserStatus.PENDING_VERIFICATION,
+        status: UserStatus.ACTIVE,
+        emailVerifiedAt: new Date(),
         mustChangePassword: true,
         createdById,
       },
@@ -159,18 +160,8 @@ export class UsersService {
       await this.assignRoles(user.id, { roleIds: dto.roleIds }, createdById);
     }
 
-    if (dto.sendVerificationEmail !== false) {
-      const token = await this.tokenService.issueEmailVerificationToken(user.id);
-      this.events.emit('notification.send', {
-        recipientId: user.id,
-        recipientEmail: user.email,
-        event: 'auth.email_verification',
-        variables: {
-          firstName: user.firstName,
-          verifyLink: `${this.config.get<string>('app.frontendUrl')}/auth/verify-email?token=${token}`,
-        },
-      });
-    }
+    // Admin-created accounts are pre-verified — no email verification needed
+    // The user will be prompted to change their password on first login
 
     this.events.emit('audit.log', {
       userId: createdById, action: AuditAction.CREATE, module: 'users',
