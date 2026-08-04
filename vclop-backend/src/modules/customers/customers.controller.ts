@@ -65,6 +65,10 @@ export class CustomersController {
   @RequirePermissions('customers:create')
   @ApiOperation({ summary: 'Register a new customer (blocked if phone/email/BVN/NIN already exists — no duplicate customers)' })
   async create(@Body() dto: CreateCustomerDto, @CurrentUser() actor: RequestUser) {
+    // Default branchId to the officer's own branch if not explicitly provided
+    if (!dto.branchId && actor.branchId) {
+      dto.branchId = actor.branchId;
+    }
     return ok(await this.service.create(dto, actor.id), 'Customer registered');
   }
 

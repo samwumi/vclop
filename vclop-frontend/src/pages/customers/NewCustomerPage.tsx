@@ -1,10 +1,11 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { customersService } from '@/services/customers.service';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { api } from '@/lib/axios';
+import { useAuthStore } from '@/stores/auth.store';
 import type { ApiResponse } from '@/types/api.types';
 
 interface Branch { id: string; code: string; name: string; }
@@ -67,6 +68,7 @@ export function NewCustomerPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user } = useAuthStore();
 
   const { data: branches = [] } = useQuery<Branch[]>({
     queryKey: ['branches', 'locations'],
@@ -74,8 +76,24 @@ export function NewCustomerPage() {
       const { data } = await api.get<ApiResponse<Branch[]>>('/branches/locations');
       return data.data ?? [];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes — prevents refetch during typing
+    staleTime: 5 * 60 * 1000,
+    // Pre-select officer's branch once branches load
+    select: (data) => {
+      // Side-effect: set branchId to officer's branch if not already set
+      return data;
+    },
   });
+
+  // Pre-select the logged-in officer's branch
+  useEffect(() => {
+    if (user?.branchId && !form.branchId && branches.length > 0) {
+      const myBranch = branches.find(b => b.id === user.branchId);
+      if (myBranch) {
+        setForm(f => ({ ...f, branchId: myBranch.id }));
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branches, user?.branchId]);
 
   // Stable setter — passed as prop to FormField, won't change on re-renders
   const handleFieldChange = useCallback(<K extends keyof FormState>(key: K, value: FormState[K]) => {
