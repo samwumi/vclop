@@ -54,8 +54,7 @@ export function UsersPage() {
       const { data } = await api.get<ApiResponse<Branch[]>>('/branches/locations');
       return data.data ?? [];
     },
-    enabled: showForm,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
@@ -64,8 +63,7 @@ export function UsersPage() {
       const { data } = await api.get<ApiResponse<Department[]>>('/departments?limit=100');
       return data.data ?? [];
     },
-    enabled: showForm,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   const createMutation = useMutation({
