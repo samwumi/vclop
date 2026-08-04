@@ -37,36 +37,36 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
-    employerName:       (existingValues?.employer_name    as string) ?? '',
-    employmentType:     (existingValues?.employment_type  as string) ?? '',
-    monthlyIncome:      (existingValues?.monthly_income   as string) ?? '',
-    jobTitle:           (existingValues?.job_title         as string) ?? '',
-    employerAddress:    (existingValues?.employer_address  as string) ?? '',
-    employerPhone:      (existingValues?.employer_phone    as string) ?? '',
-    nokName:            (existingValues?.nok_name          as string) ?? '',
-    nokRelationship:    (existingValues?.nok_relationship  as string) ?? '',
-    nokPhone:           (existingValues?.nok_phone         as string) ?? '',
-    nokAddress:         (existingValues?.nok_address       as string) ?? '',
+    employerName:       (p?.employerName       as string) ?? (existingValues?.employer_name    as string) ?? '',
+    employmentType:     (p?.employmentType     as string) ?? (existingValues?.employment_type  as string) ?? '',
+    monthlyIncome:      (p?.monthlyIncome      as string) ?? (existingValues?.monthly_income   as string) ?? '',
+    jobTitle:           (p?.jobTitle           as string) ?? (existingValues?.job_title         as string) ?? '',
+    employerAddress:    (p?.employerAddress    as string) ?? (existingValues?.employer_address  as string) ?? '',
+    employerPhone:      (p?.employerPhone      as string) ?? (existingValues?.employer_phone    as string) ?? '',
+    nokName:            (p?.nokName            as string) ?? (existingValues?.nok_name          as string) ?? '',
+    nokRelationship:    (p?.nokRelationship    as string) ?? (existingValues?.nok_relationship  as string) ?? '',
+    nokPhone:           (p?.nokPhone           as string) ?? (existingValues?.nok_phone         as string) ?? '',
+    nokAddress:         (p?.nokAddress         as string) ?? (existingValues?.nok_address       as string) ?? '',
     residentialAddress: p?.residentialAddress ?? '',
     businessAddress:    p?.businessAddress    ?? '',
   });
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  // Sync form when parent data loads (existingValues/profile arrive after mount)
+  // Sync form when parent data loads — read from profile fields directly
   useEffect(() => {
     const p2 = profile as (typeof profile & Record<string, string | null | undefined>) | undefined;
     setForm({
-      employerName:       (existingValues?.employer_name    as string) ?? '',
-      employmentType:     (existingValues?.employment_type  as string) ?? '',
-      monthlyIncome:      (existingValues?.monthly_income   as string) ?? '',
-      jobTitle:           (existingValues?.job_title         as string) ?? '',
-      employerAddress:    (existingValues?.employer_address  as string) ?? '',
-      employerPhone:      (existingValues?.employer_phone    as string) ?? '',
-      nokName:            (existingValues?.nok_name          as string) ?? '',
-      nokRelationship:    (existingValues?.nok_relationship  as string) ?? '',
-      nokPhone:           (existingValues?.nok_phone         as string) ?? '',
-      nokAddress:         (existingValues?.nok_address       as string) ?? '',
+      employerName:       (p2?.employerName       as string) ?? (existingValues?.employer_name    as string) ?? '',
+      employmentType:     (p2?.employmentType     as string) ?? (existingValues?.employment_type  as string) ?? '',
+      monthlyIncome:      (p2?.monthlyIncome      as string) ?? (existingValues?.monthly_income   as string) ?? '',
+      jobTitle:           (p2?.jobTitle           as string) ?? (existingValues?.job_title         as string) ?? '',
+      employerAddress:    (p2?.employerAddress    as string) ?? (existingValues?.employer_address  as string) ?? '',
+      employerPhone:      (p2?.employerPhone      as string) ?? (existingValues?.employer_phone    as string) ?? '',
+      nokName:            (p2?.nokName            as string) ?? (existingValues?.nok_name          as string) ?? '',
+      nokRelationship:    (p2?.nokRelationship    as string) ?? (existingValues?.nok_relationship  as string) ?? '',
+      nokPhone:           (p2?.nokPhone           as string) ?? (existingValues?.nok_phone         as string) ?? '',
+      nokAddress:         (p2?.nokAddress         as string) ?? (existingValues?.nok_address       as string) ?? '',
       residentialAddress: p2?.residentialAddress ?? '',
       businessAddress:    p2?.businessAddress    ?? '',
     });
@@ -86,43 +86,21 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // Save all fields directly to customer profile — no form template dependency
       await customersService.update(customerId, {
         residentialAddress: form.residentialAddress || undefined,
         businessAddress:    form.businessAddress    || undefined,
+        employerName:       form.employerName       || undefined,
+        employmentType:     form.employmentType     || undefined,
+        jobTitle:           form.jobTitle           || undefined,
+        monthlyIncome:      form.monthlyIncome ? Number(form.monthlyIncome) : undefined,
+        employerPhone:      form.employerPhone      || undefined,
+        employerAddress:    form.employerAddress    || undefined,
+        nokName:            form.nokName            || undefined,
+        nokRelationship:    form.nokRelationship    || undefined,
+        nokPhone:           form.nokPhone           || undefined,
+        nokAddress:         form.nokAddress         || undefined,
       });
-
-      try {
-        const { adminService } = await import('@/services/admin.service');
-        const template = await adminService.forms.getDefaultTemplate('CUSTOMER');
-        if (template) {
-          const fieldsByCode = new Map(
-            (template as { sections: Array<{ fields: Array<{ code: string; id: string }> }> })
-              .sections.flatMap(s => s.fields.map(f => [f.code, f.id] as const))
-          );
-          const payload = Object.entries({
-            employer_name:    form.employerName,
-            employment_type:  form.employmentType,
-            monthly_income:   form.monthlyIncome,
-            job_title:        form.jobTitle,
-            employer_address: form.employerAddress,
-            employer_phone:   form.employerPhone,
-            nok_name:         form.nokName,
-            nok_relationship: form.nokRelationship,
-            nok_phone:        form.nokPhone,
-            nok_address:      form.nokAddress,
-          })
-            .filter(([code, value]) => fieldsByCode.has(code) && value)
-            .map(([code, value]) => ({ fieldId: fieldsByCode.get(code)!, value }));
-
-          if (payload.length) {
-            await adminService.forms.submit(
-              (template as { id: string }).id, 'CUSTOMER', customerId, payload
-            );
-          }
-        }
-      } catch {
-        // No form template — core fields already saved
-      }
     },
     onSuccess: () => {
       toast.success('Additional details saved');
