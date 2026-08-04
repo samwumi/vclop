@@ -44,7 +44,7 @@ export function ProfilePage() {
 
   const passwordMutation = useMutation({
     mutationFn: async () => {
-      await api.post('/auth/change-password', {
+      await api.patch('/auth/change-password', {
         currentPassword: pwd.current,
         newPassword: pwd.next,
       });
