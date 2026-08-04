@@ -51,31 +51,33 @@ export function UsersPage() {
   const { data: rolesData = [] } = useQuery({
     queryKey: ['roles', 'all'],
     queryFn: async () => {
-      const { data } = await api.get('/roles?page=1&limit=100');
-      const payload = data?.data;
-      if (Array.isArray(payload)) return payload as Role[];
-      if (payload?.data && Array.isArray(payload.data)) return payload.data as Role[];
-      return [] as Role[];
+      try {
+        const res = await api.get('/roles?page=1&limit=100');
+        const d = res.data?.data;
+        return (Array.isArray(d) ? d : d?.data ?? []) as Role[];
+      } catch { return [] as Role[]; }
     },
   });
 
   const { data: branches = [] } = useQuery<Branch[]>({
     queryKey: ['branches', 'locations'],
     queryFn: async () => {
-      const { data } = await api.get<ApiResponse<Branch[]>>('/branches/locations');
-      return data.data ?? [];
+      try {
+        const res = await api.get('/branches/locations');
+        const d = res.data?.data;
+        return (Array.isArray(d) ? d : d?.data ?? []) as Branch[];
+      } catch { return []; }
     },
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
     queryKey: ['departments', 'all'],
     queryFn: async () => {
-      // Use the paginated endpoint and extract the array
-      const { data } = await api.get('/departments?limit=100');
-      const payload = data?.data;
-      if (Array.isArray(payload)) return payload as Department[];
-      if (payload?.data && Array.isArray(payload.data)) return payload.data as Department[];
-      return [];
+      try {
+        const res = await api.get('/departments?limit=100');
+        const d = res.data?.data;
+        return (Array.isArray(d) ? d : d?.data ?? []) as Department[];
+      } catch { return []; }
     },
   });
 
