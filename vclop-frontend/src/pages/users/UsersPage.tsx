@@ -48,13 +48,15 @@ export function UsersPage() {
     placeholderData: (prev) => prev,
   });
 
-  const { data: rolesData } = useQuery({
-    queryKey: ['roles', 'provisioning'],
+  const { data: rolesData = [] } = useQuery({
+    queryKey: ['roles', 'all'],
     queryFn: async () => {
-      const { data } = await api.get<ApiResponse<Role[]>>('/roles?page=1&limit=100');
-      return data.data ?? [];
+      const { data } = await api.get('/roles?page=1&limit=100');
+      const payload = data?.data;
+      if (Array.isArray(payload)) return payload as Role[];
+      if (payload?.data && Array.isArray(payload.data)) return payload.data as Role[];
+      return [] as Role[];
     },
-    enabled: showForm,
   });
 
   const { data: branches = [] } = useQuery<Branch[]>({
@@ -63,21 +65,18 @@ export function UsersPage() {
       const { data } = await api.get<ApiResponse<Branch[]>>('/branches/locations');
       return data.data ?? [];
     },
-    staleTime: 5 * 60 * 1000,
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ['departments', 'list'],
+    queryKey: ['departments', 'all'],
     queryFn: async () => {
-      const res = await api.get('/departments/list');
-      // Paginated response: res.data.data = { data: [...], meta: {} }
-      // Or direct array: res.data.data = [...]
-      const payload = res.data?.data;
+      // Use the paginated endpoint and extract the array
+      const { data } = await api.get('/departments?limit=100');
+      const payload = data?.data;
       if (Array.isArray(payload)) return payload as Department[];
       if (payload?.data && Array.isArray(payload.data)) return payload.data as Department[];
       return [];
     },
-    staleTime: 5 * 60 * 1000,
   });
 
   const createMutation = useMutation({
