@@ -44,15 +44,11 @@ export class CustomersController {
       actor.permissions.has('loan_applications:disburse');
 
     if (!canViewAll) {
-      // Loan officer — see customers they registered OR customers in their branch
-      // This lets officers see branch customers even if assignedOfficerId differs
-      if (!query.assignedOfficerId && !query.branchId) {
-        // Show own customers first; if branchId is set on actor, scope to branch
-        if (actor.branchId) {
-          query.branchId = actor.branchId;
-        } else {
-          query.assignedOfficerId = actor.id;
-        }
+      // Loan officer — see customers they personally registered (by assignedOfficerId)
+      // This is the most reliable scope since branchId can differ when officer registers
+      // customers at other locations
+      if (!query.assignedOfficerId) {
+        query.assignedOfficerId = actor.id;
       }
     }
     return this.service.findAll(query);
