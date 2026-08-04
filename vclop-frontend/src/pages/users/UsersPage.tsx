@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Download, Users, MoreHorizontal } from 'lucide-react';
+import { Plus, Download, Users, MoreHorizontal, KeyRound, Trash2, ShieldOff, ShieldCheck, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import { ModulePage } from '@/components/ui/ModulePage';
@@ -25,7 +25,10 @@ export function UsersPage() {
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const { hasPermission } = useAuthStore();
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [resetPwdUserId, setResetPwdUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const { hasPermission, user: currentUser } = useAuthStore();
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -92,7 +95,53 @@ export function UsersPage() {
   const set = <K extends keyof typeof EMPTY_FORM>(k: K, v: (typeof EMPTY_FORM)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, password }: { userId: string; password: string }) =>
+      api.post(`/users/${userId}/reset-password`, { newPassword: password }),
+    onSuccess: () => {
+      toast.success('Password reset. User must change on next login.');
+      setResetPwdUserId(null);
+      setNewPassword('');
+    },
+    onError: (e: unknown) =>
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Reset failed'),
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ userId, status }: { userId: string; status: string }) =>
+      api.patch(`/users/${userId}`, { status }),
+    onSuccess: () => {
+      toast.success('User status updated');
+      qc.invalidateQueries({ queryKey: ['users'] });
+      setOpenMenuId(null);
+    },
+    onError: (e: unknown) =>
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed'),
+  });
+
+  const unlockMutation = useMutation({
+    mutationFn: async (userId: string) => api.post(`/users/${userId}/unlock`),
+    onSuccess: () => {
+      toast.success('User account unlocked');
+      qc.invalidateQueries({ queryKey: ['users'] });
+      setOpenMenuId(null);
+    },
+    onError: () => toast.error('Failed to unlock'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: string) => api.delete(`/users/${userId}`),
+    onSuccess: () => {
+      toast.success('User deleted');
+      qc.invalidateQueries({ queryKey: ['users'] });
+      setOpenMenuId(null);
+    },
+    onError: (e: unknown) =>
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Delete failed'),
+  });
+
   return (
+    <>
     <ModulePage
       title="Users"
       subtitle="Manage platform users, their roles and branch assignments"
@@ -134,10 +183,66 @@ export function UsersPage() {
               <td className="text-xs">{user.branch?.name ?? '—'}</td>
               <td><UserStatusBadge status={user.status} /></td>
               <td className="text-xs text-gray-500">{formatDate(user.lastLoginAt)}</td>
-              <td>
-                <button className="btn-ghost btn-icon w-8 h-8 text-gray-400">
+              <td onClick={e => e.stopPropagation()} className="relative">
+                <button
+                  onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
+                  className="btn-ghost btn-icon w-8 h-8 text-gray-400"
+                >
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
+                {openMenuId === user.id && (
+                  <div className="absolute right-0 top-8 w-52 bg-white rounded-xl shadow-lg border border-gray-200 z-50 py-1 overflow-hidden">
+                    {/* Reset password */}
+                    {hasPermission('users:reset_password') && (
+                      <button
+                        onClick={() => { setResetPwdUserId(user.id); setOpenMenuId(null); }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <KeyRound className="w-4 h-4 text-gray-400" /> Reset Password
+                      </button>
+                    )}
+                    {/* Unlock */}
+                    {hasPermission('users:update') && user.status === 'LOCKED' && (
+                      <button
+                        onClick={() => unlockMutation.mutate(user.id)}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50"
+                      >
+                        <Unlock className="w-4 h-4" /> Unlock Account
+                      </button>
+                    )}
+                    {/* Activate / Deactivate */}
+                    {hasPermission('users:update') && user.id !== currentUser?.id && (
+                      user.status === 'ACTIVE' ? (
+                        <button
+                          onClick={() => toggleStatusMutation.mutate({ userId: user.id, status: 'SUSPENDED' })}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-amber-700 hover:bg-amber-50"
+                        >
+                          <ShieldOff className="w-4 h-4" /> Deactivate
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => toggleStatusMutation.mutate({ userId: user.id, status: 'ACTIVE' })}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50"
+                        >
+                          <ShieldCheck className="w-4 h-4" /> Activate
+                        </button>
+                      )
+                    )}
+                    {/* Delete */}
+                    {hasPermission('users:delete') && user.id !== currentUser?.id && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete ${user.firstName} ${user.lastName}? This cannot be undone.`)) {
+                            deleteMutation.mutate(user.id);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100"
+                      >
+                        <Trash2 className="w-4 h-4" /> Delete User
+                      </button>
+                    )}
+                  </div>
+                )}
               </td>
             </tr>
           ))}
@@ -237,5 +342,49 @@ export function UsersPage() {
         </div>
       )}
     </ModulePage>
+
+    {/* Reset Password Modal */}
+    {resetPwdUserId && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/40" onClick={() => { setResetPwdUserId(null); setNewPassword(''); }} />
+        <div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 space-y-4">
+          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-brand-600" /> Reset Password
+          </h3>
+          <div>
+            <label className="form-label">New Temporary Password</label>
+            <input
+              type="text"
+              className="form-input"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Min 8 chars, include uppercase + number"
+              autoFocus
+            />
+            <p className="text-xs text-gray-400 mt-1">User will be required to change this on next login.</p>
+          </div>
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <button
+              onClick={() => { setResetPwdUserId(null); setNewPassword(''); }}
+              className="btn-secondary"
+            >Cancel</button>
+            <button
+              onClick={() => {
+                if (!newPassword || newPassword.length < 8) {
+                  toast.error('Password must be at least 8 characters');
+                  return;
+                }
+                resetPasswordMutation.mutate({ userId: resetPwdUserId, password: newPassword });
+              }}
+              disabled={resetPasswordMutation.isPending}
+              className="btn-primary disabled:opacity-50"
+            >
+              {resetPasswordMutation.isPending ? 'Resetting…' : 'Reset Password'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   );
 }
