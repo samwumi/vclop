@@ -21,6 +21,16 @@ import { ok } from '../../common/utils/response.util';
 export class DepartmentsController {
   constructor(private readonly service: DepartmentsService) {}
 
+  /**
+   * Public list of active departments — for dropdowns in user creation forms.
+   * Requires only basic auth — no special permission needed.
+   */
+  @Get('list')
+  @ApiOperation({ summary: 'List active departments (for dropdowns)' })
+  listAll() {
+    return this.service.findAll({ page: 1, limit: 100 } as PaginationDto);
+  }
+
   @Get()
   @RequirePermissions('departments:read')
   @ApiOperation({ summary: 'List departments' })

@@ -49,7 +49,7 @@ export function UsersPage() {
   });
 
   const { data: branches = [] } = useQuery<Branch[]>({
-    queryKey: ['branches', 'form'],
+    queryKey: ['branches', 'locations'],
     queryFn: async () => {
       const { data } = await api.get<ApiResponse<Branch[]>>('/branches/locations');
       return data.data ?? [];
@@ -58,10 +58,15 @@ export function UsersPage() {
   });
 
   const { data: departments = [] } = useQuery<Department[]>({
-    queryKey: ['departments', 'form'],
+    queryKey: ['departments', 'list'],
     queryFn: async () => {
-      const { data } = await api.get<ApiResponse<Department[]>>('/departments?limit=100');
-      return data.data ?? [];
+      const res = await api.get('/departments/list');
+      // Paginated response: res.data.data = { data: [...], meta: {} }
+      // Or direct array: res.data.data = [...]
+      const payload = res.data?.data;
+      if (Array.isArray(payload)) return payload as Department[];
+      if (payload?.data && Array.isArray(payload.data)) return payload.data as Department[];
+      return [];
     },
     staleTime: 5 * 60 * 1000,
   });
