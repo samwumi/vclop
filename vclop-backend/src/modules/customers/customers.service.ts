@@ -155,6 +155,17 @@ export class CustomersService {
         ...(dto.gpsLng !== undefined && { gpsLng: dto.gpsLng }),
         ...(dto.branchId !== undefined && { branchId: dto.branchId }),
         ...(dto.assignedOfficerId !== undefined && { assignedOfficerId: dto.assignedOfficerId }),
+        // Employment & NOK
+        ...(dto.employerName !== undefined && { employerName: dto.employerName }),
+        ...(dto.employmentType !== undefined && { employmentType: dto.employmentType }),
+        ...(dto.jobTitle !== undefined && { jobTitle: dto.jobTitle }),
+        ...(dto.monthlyIncome !== undefined && { monthlyIncome: dto.monthlyIncome }),
+        ...(dto.employerPhone !== undefined && { employerPhone: dto.employerPhone }),
+        ...(dto.employerAddress !== undefined && { employerAddress: dto.employerAddress }),
+        ...(dto.nokName !== undefined && { nokName: dto.nokName }),
+        ...(dto.nokRelationship !== undefined && { nokRelationship: dto.nokRelationship }),
+        ...(dto.nokPhone !== undefined && { nokPhone: dto.nokPhone }),
+        ...(dto.nokAddress !== undefined && { nokAddress: dto.nokAddress }),
         updatedById: actorId,
       },
     });

@@ -578,6 +578,18 @@ model Customer {
   businessAddress    String?            @db.VarChar(500)
   gpsLat             Float?
   gpsLng             Float?
+  // Employment fields
+  employerName       String?            @db.VarChar(200)
+  employmentType     String?            @db.VarChar(50)
+  jobTitle           String?            @db.VarChar(100)
+  monthlyIncome      Decimal?           @db.Decimal(15, 2)
+  employerPhone      String?            @db.VarChar(20)
+  employerAddress    String?            @db.VarChar(500)
+  // Next of Kin
+  nokName            String?            @db.VarChar(200)
+  nokRelationship    String?            @db.VarChar(100)
+  nokPhone           String?            @db.VarChar(20)
+  nokAddress         String?            @db.VarChar(500)
   branchId           String?            @db.VarChar(36)
   assignedOfficerId  String?            @db.VarChar(36)
   profileCompletion  Int                @default(0)
