@@ -43,9 +43,9 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
-        // Force full page reload to clear any stale React Query cache
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
+        // Only redirect if we're in the browser and not already on the login page
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
+          window.location.replace('/auth/login');
         }
       },
 
