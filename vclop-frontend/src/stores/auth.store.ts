@@ -43,6 +43,10 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+        // Force full page reload to clear any stale React Query cache
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
       },
 
       hasPermission: (code: string) => {
