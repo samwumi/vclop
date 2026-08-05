@@ -276,130 +276,82 @@ export function UsersPage() {
           </div>
           <div className="card-body">
             <form className="space-y-4" onSubmit={submit}>
+
+              {/* Basic fields */}
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="form-label">First Name <span className="text-red-500">*</span></label>
-                  <input required className="form-input" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
-                </div>
-                <div>
-                  <label className="form-label">Last Name <span className="text-red-500">*</span></label>
-                  <input required className="form-input" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
-                </div>
-                <div>
-                  <label className="form-label">Email <span className="text-red-500">*</span></label>
-                  <input required type="email" className="form-input" value={form.email} onChange={(e) => set('email', e.target.value)} />
-                </div>
-                <div>
-                  <label className="form-label">Username <span className="text-red-500">*</span></label>
-                  <input required className="form-input" value={form.username} onChange={(e) => set('username', e.target.value.toLowerCase())} />
-                </div>
-                <div>
-                  <label className="form-label">Temporary Password <span className="text-red-500">*</span></label>
-                  <input required type="password" minLength={8} className="form-input" value={form.password} onChange={(e) => set('password', e.target.value)} />
-                </div>
-                <div>
-                  <label className="form-label">Job Title</label>
-                  <input className="form-input" value={form.jobTitle} onChange={(e) => set('jobTitle', e.target.value)} placeholder="e.g. Loan Officer" />
-                </div>
-
-                {/* Location / Branch — context-aware based on role */}
-                {(() => {
-                  const selectedRoleCodes = (rolesData ?? [])
-                    .filter(r => form.roleIds.includes(r.id))
-                    .map(r => r.code);
-                  const isNonLocation = selectedRoleCodes.some(c => NON_LOCATION_ROLE_CODES.includes(c));
-                  const isMultiLocation = selectedRoleCodes.some(c => MULTI_LOCATION_ROLE_CODES.includes(c));
-
-                  if (isNonLocation) {
-                    return (
-                      <div className="sm:col-span-2 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-700">
-                        ℹ This role is not location-based — the user will see data across all branches.
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <>
-                      <div>
-                        <label className="form-label">Primary Location / Branch <span className="text-red-500">*</span></label>
-                        <select required className="form-input" value={form.branchId} onChange={(e) => set('branchId', e.target.value)}>
-                          <option value="">Select location…</option>
-                          {branches.map((b) => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {isMultiLocation && (
-                        <div>
-                          <label className="form-label">Additional Locations (optional)</label>
-                          <div className="border border-gray-200 rounded-lg p-3 space-y-1.5 max-h-40 overflow-y-auto">
-                            {branches.filter(b => b.id !== form.branchId).map(b => (
-                              <label key={b.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={form.additionalBranchIds.includes(b.id)}
-                                  onChange={e => set('additionalBranchIds',
-                                    e.target.checked
-                                      ? [...form.additionalBranchIds, b.id]
-                                      : form.additionalBranchIds.filter(id => id !== b.id)
-                                  )}
-                                />
-                                {b.name}
-                              </label>
-                            ))}
-                          </div>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {selectedRoleCodes.includes('COMPLIANCE_OFFICER')
-                              ? 'Compliance officer will review applications from all selected locations.'
-                              : 'Accountant will see loans from all selected locations.'}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-
-                {/* Department */}
-                <div>
-                  <label className="form-label">Department</label>
-                  <select className="form-input" value={form.departmentId} onChange={(e) => set('departmentId', e.target.value)}>
-                    <option value="">Select department…</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
+                <div><label className="form-label">First Name <span className="text-red-500">*</span></label><input required className="form-input" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} /></div>
+                <div><label className="form-label">Last Name <span className="text-red-500">*</span></label><input required className="form-input" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} /></div>
+                <div><label className="form-label">Email <span className="text-red-500">*</span></label><input required type="email" className="form-input" value={form.email} onChange={(e) => set('email', e.target.value)} /></div>
+                <div><label className="form-label">Username <span className="text-red-500">*</span></label><input required className="form-input" value={form.username} onChange={(e) => set('username', e.target.value.toLowerCase())} /></div>
+                <div><label className="form-label">Temporary Password <span className="text-red-500">*</span></label><input required type="password" minLength={8} className="form-input" value={form.password} onChange={(e) => set('password', e.target.value)} /></div>
+                <div><label className="form-label">Job Title</label><input className="form-input" value={form.jobTitle} onChange={(e) => set('jobTitle', e.target.value)} placeholder="e.g. Loan Officer" /></div>
               </div>
 
-              {/* Roles */}
+              {/* Roles — select before location so branch field adapts */}
               <div>
                 <label className="form-label">Roles <span className="text-red-500">*</span></label>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 p-3 border border-gray-200 rounded-lg">
                   {rolesData?.filter((r) => r.isActive).map((role) => (
                     <label key={role.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={form.roleIds.includes(role.id)}
-                        onChange={(e) =>
-                          set('roleIds', e.target.checked
-                            ? [...form.roleIds, role.id]
-                            : form.roleIds.filter((id) => id !== role.id))
-                        }
-                      />
+                      <input type="checkbox" checked={form.roleIds.includes(role.id)}
+                        onChange={(e) => set('roleIds', e.target.checked ? [...form.roleIds, role.id] : form.roleIds.filter((id) => id !== role.id))} />
                       {role.name}
                     </label>
                   ))}
                 </div>
               </div>
 
+              {/* Location — adapts based on selected role */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {(() => {
+                  const selectedRoleCodes = (rolesData ?? []).filter(r => form.roleIds.includes(r.id)).map(r => r.code);
+                  const isNonLocation = selectedRoleCodes.some(c => NON_LOCATION_ROLE_CODES.includes(c));
+                  const isMultiLocation = selectedRoleCodes.some(c => MULTI_LOCATION_ROLE_CODES.includes(c));
+
+                  if (form.roleIds.length === 0) {
+                    return <div className="sm:col-span-2 p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-500">Select a role above to configure location settings.</div>;
+                  }
+                  if (isNonLocation) {
+                    return <div className="sm:col-span-2 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-700">ℹ This role is not location-based — the user sees data across all branches.</div>;
+                  }
+                  return (
+                    <>
+                      <div>
+                        <label className="form-label">Location / Branch <span className="text-red-500">*</span></label>
+                        <select className="form-input" value={form.branchId} onChange={(e) => set('branchId', e.target.value)}>
+                          <option value="">Select location…</option>
+                          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </div>
+                      {isMultiLocation && (
+                        <div>
+                          <label className="form-label">Additional Locations (optional)</label>
+                          <div className="border border-gray-200 rounded-lg p-3 space-y-1.5 max-h-40 overflow-y-auto">
+                            {branches.filter(b => b.id !== form.branchId).map(b => (
+                              <label key={b.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" checked={form.additionalBranchIds.includes(b.id)}
+                                  onChange={e => set('additionalBranchIds', e.target.checked ? [...form.additionalBranchIds, b.id] : form.additionalBranchIds.filter(id => id !== b.id))} />
+                                {b.name}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+                <div>
+                  <label className="form-label">Department</label>
+                  <select className="form-input" value={form.departmentId} onChange={(e) => set('departmentId', e.target.value)}>
+                    <option value="">Select department…</option>
+                    {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'Creating…' : 'Create User'}
-                </button>
+                <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={createMutation.isPending}>{createMutation.isPending ? 'Creating…' : 'Create User'}</button>
               </div>
             </form>
           </div>
