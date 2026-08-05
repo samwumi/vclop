@@ -107,8 +107,12 @@ export function UsersPage() {
       setForm(EMPTY_FORM);
       qc.invalidateQueries({ queryKey: ['users'] });
     },
-    onError: (e: unknown) =>
-      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to create user'),
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { message?: string; errors?: unknown } } })?.response?.data?.message;
+      const errors = (e as { response?: { data?: { message?: string; errors?: unknown } } })?.response?.data?.errors;
+      toast.error(msg ?? `Failed to create user. ${errors ? JSON.stringify(errors) : 'Check console.'}`);
+      console.error('Create user error:', e);
+    },
   });
 
   const submit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); createMutation.mutate(); };
