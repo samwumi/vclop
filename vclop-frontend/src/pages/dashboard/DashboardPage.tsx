@@ -258,11 +258,12 @@ export function DashboardPage() {
 
   useQuery({ queryKey: ['dashboard', 'bootstrap'], queryFn: dashboardService.bootstrap, staleTime: 60_000 });
 
-  const { data: summary } = useQuery({
+  const { data: summary, error: summaryError } = useQuery({
     queryKey: ['dashboard', 'operational-summary'],
     queryFn: dashboardService.operationalSummary,
     staleTime: 30_000,
     refetchInterval: 60_000,
+    retry: 2,
   });
 
   const { data: performance } = useQuery({
@@ -303,7 +304,13 @@ export function DashboardPage() {
       </div>
 
       {/* Role-specific panel */}
-      {!summary ? (
+      {summaryError ? (
+        <div className="card p-8 text-center">
+          <p className="text-sm text-red-600 font-medium">Dashboard failed to load</p>
+          <p className="text-xs text-gray-400 mt-1">Try refreshing the page. If the issue persists contact your administrator.</p>
+          <button onClick={() => window.location.reload()} className="btn-secondary btn-sm mt-4">Refresh</button>
+        </div>
+      ) : !summary ? (
         <div className="card p-8 text-center">
           <div className="animate-pulse space-y-3">
             <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto" />
