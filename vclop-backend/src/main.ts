@@ -21,11 +21,10 @@ async function bootstrap(): Promise<void> {
       console.log('[bootstrap] Running Prisma migrations...');
       execSync('npx prisma migrate deploy', {
         stdio: 'inherit',
-        cwd: path.resolve(__dirname, '../../'),
+        cwd: path.resolve(__dirname, '../../'), // dist/src -> dist -> vclop-backend (has prisma/)
       });
       console.log('[bootstrap] Migrations complete.');
     } catch (err) {
-      // Log but don't exit — app may still work if migrations already applied
       console.error('[bootstrap] Migration warning:', err instanceof Error ? err.message : err);
     }
   }
