@@ -231,21 +231,20 @@ function AdminPanel({ summary, hasPermission }: {
         {hasPermission('users:read') && <StatCard title="Total Users" queryKey={['dashboard', 'active-users']} queryFn={dashboardService.activeUsers} icon={Users} color="blue" />}
         {hasPermission('branches:read') && <StatCard title="Branches" queryKey={['dashboard', 'total-branches']} queryFn={dashboardService.totalBranches} icon={GitBranch} color="green" />}
         {hasPermission('departments:read') && <StatCard title="Departments" queryKey={['dashboard', 'total-departments']} queryFn={dashboardService.totalDepartments} icon={Building2} color="purple" />}
-        {hasPermission('system:health') && (
-          <div className="card p-5 flex items-start gap-4">
-            <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div><p className="text-sm font-medium text-gray-500">Platform</p><p className="text-2xl font-bold text-gray-900 mt-0.5">Online</p></div>
+        <div className="card p-5 flex items-start gap-4">
+          <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <Activity className="w-5 h-5 text-emerald-600" />
           </div>
-        )}
+          <div><p className="text-sm font-medium text-gray-500">Platform</p><p className="text-2xl font-bold text-gray-900 mt-0.5">Online</p></div>
+        </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {hasPermission('audit:read') && <><LoginActivityChart /><UserStatusChart /></>}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {hasPermission('audit:read') && <LoginActivityChart />}
+        {hasPermission('audit:read') && <UserStatusChart />}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {hasPermission('audit:read') && <RecentAuditTable />}
-        {hasPermission('system:health') && <div className="lg:col-span-1"><SystemHealthWidget /></div>}
+        {hasPermission('system:health') && <SystemHealthWidget />}
       </div>
     </div>
   );
