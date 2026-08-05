@@ -303,7 +303,15 @@ export function DashboardPage() {
       </div>
 
       {/* Role-specific panel */}
-      {summary && (
+      {!summary ? (
+        <div className="card p-8 text-center">
+          <div className="animate-pulse space-y-3">
+            <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto" />
+            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
+            <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto" />
+          </div>
+        </div>
+      ) : (
         <>
           {role === 'LOAN_OFFICER' && (
             <LoanOfficerPanel summary={summary} performance={performance} />
