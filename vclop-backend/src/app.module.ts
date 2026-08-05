@@ -3,7 +3,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ScheduleModule } from '@nestjs/schedule';
 import { WinstonModule } from 'nest-winston';
 import { AppThrottlerGuard } from './common/guards/throttler.guard';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -91,9 +90,6 @@ import { HealthModule } from './modules/health/health.module';
       verboseMemoryLeak: true,
       ignoreErrors: false,
     }),
-
-    // Scheduled tasks
-    ScheduleModule.forRoot(),
 
     // Core infrastructure
     PrismaModule,
