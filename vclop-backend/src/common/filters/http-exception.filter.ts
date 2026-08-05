@@ -49,12 +49,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
         }
       }
     } else if (exception instanceof Error) {
-      message = process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : exception.message;
+      // Log the full error always
       this.logger.error(
         `Unhandled exception: ${exception.message}`,
         exception.stack,
         'HttpExceptionFilter',
       );
+      // In production return the actual message so it's visible (not sensitive data)
+      message = exception.message || 'An unexpected error occurred';
     }
 
     const body: ApiResponse<null> = {
