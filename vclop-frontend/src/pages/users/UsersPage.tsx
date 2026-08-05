@@ -83,8 +83,10 @@ export function UsersPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { additionalBranchIds, ...userFields } = form;
       const res = await api.post('/users', {
-        ...form,
+        ...userFields,
         branchId:     form.branchId     || undefined,
         departmentId: form.departmentId || undefined,
         jobTitle:     form.jobTitle     || undefined,
