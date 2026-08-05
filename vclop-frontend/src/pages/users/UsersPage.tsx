@@ -21,9 +21,9 @@ const EMPTY_FORM = {
   additionalBranchIds: [] as string[], // for multi-branch roles
 };
 
-// Roles that are NOT location-based (see everything)
-const NON_LOCATION_ROLE_CODES = ['INTERNAL_CONTROL', 'ACCOUNTING_HEAD', 'MANAGER', 'SUPER_ADMIN'];
-// Roles that can cover multiple locations
+// Roles that are NOT location-based (see everything across all branches)
+const NON_LOCATION_ROLE_CODES = ['INTERNAL_CONTROL', 'ACCOUNTING_HEAD', 'MANAGER', 'SYSTEM_ADMIN'];
+// Roles that can cover multiple locations (primary + additional branches)
 const MULTI_LOCATION_ROLE_CODES = ['COMPLIANCE_OFFICER', 'ACCOUNTANT'];
 
 export function UsersPage() {
