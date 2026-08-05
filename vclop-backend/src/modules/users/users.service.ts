@@ -108,20 +108,21 @@ export class UsersService {
   // ────────────────────────────────────────────────────────────────────────────
 
   async create(dto: CreateUserDto, createdById: string): Promise<unknown> {
-    const existingConditions = [
-      { email: dto.email.toLowerCase() },
-      { username: dto.username.toLowerCase() },
-      ...(dto.phone ? [{ phone: dto.phone }] : []),
-      ...(dto.employeeId ? [{ employeeId: dto.employeeId }] : []),
-    ];
-
+    // Check uniqueness across ALL users including soft-deleted (DB unique constraint applies to all rows)
     const existing = await this.prisma.user.findFirst({
-      where: { deletedAt: null, OR: existingConditions },
+      where: {
+        OR: [
+          { email: dto.email.toLowerCase() },
+          { username: dto.username.toLowerCase() },
+          ...(dto.phone ? [{ phone: dto.phone }] : []),
+          ...(dto.employeeId ? [{ employeeId: dto.employeeId }] : []),
+        ],
+      },
     });
 
     if (existing) {
       if (existing.email === dto.email.toLowerCase()) throw new ResourceAlreadyExistsException('User', 'email', dto.email);
-      if (existing.username === dto.username.toLowerCase()) throw new ResourceAlreadyExistsException('User', 'username', dto.username);
+      if (existing.username === dto.username.toLowerCase()) throw new ResourceAlreadyExistsException('User', 'username', `Username "${dto.username}" is already taken — choose a different one`);
       throw new BusinessException('Phone or employee ID already in use');
     }
 
