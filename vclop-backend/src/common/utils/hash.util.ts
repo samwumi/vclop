@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 export function sha256(value: string): string {
   return crypto.createHash('sha256').update(value).digest('hex');
