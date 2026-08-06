@@ -23,11 +23,16 @@ export class CustomersService {
     private readonly formSubmissions: FormSubmissionsService,
   ) {}
 
-  async findAll(query: PaginationDto & { status?: CustomerStatus; branchId?: string; assignedOfficerId?: string }): Promise<PaginatedResult<unknown>> {
+  async findAll(query: PaginationDto & { status?: CustomerStatus; branchId?: string; branchIds?: string[]; assignedOfficerId?: string }): Promise<PaginatedResult<unknown>> {
     const where = {
       deletedAt: null,
       ...(query.status && { status: query.status }),
-      ...(query.branchId && { branchId: query.branchId }),
+      // Support single branchId or multiple branchIds
+      ...(query.branchIds?.length
+        ? { branchId: { in: query.branchIds } }
+        : query.branchId
+          ? { branchId: query.branchId }
+          : {}),
       ...(query.assignedOfficerId && { assignedOfficerId: query.assignedOfficerId }),
       ...(query.search && {
         OR: [

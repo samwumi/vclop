@@ -36,20 +36,38 @@ export class CustomersController {
   @ApiQuery({ name: 'status', enum: CustomerStatus, required: false })
   @ApiQuery({ name: 'branchId', required: false })
   findAll(@Query() query: QueryCustomersDto, @CurrentUser() actor: RequestUser) {
-    const canViewAll =
-      actor.permissions.has('system:admin') ||
-      actor.permissions.has('customers:manage') ||
-      actor.permissions.has('loan_applications:compliance_review') ||
-      actor.permissions.has('loan_applications:internal_control_approve') ||
-      actor.permissions.has('loan_applications:disburse');
+    const isAdmin = actor.permissions.has('system:admin');
+    const isIC = actor.permissions.has('loan_applications:internal_control_approve');
+    const isAcctHead = actor.permissions.has('loan_applications:disburse_head');
 
-    if (!canViewAll) {
-      // Loan officer — see customers they personally registered (by assignedOfficerId)
-      // This is the most reliable scope since branchId can differ when officer registers
-      // customers at other locations
-      if (!query.assignedOfficerId) {
-        query.assignedOfficerId = actor.id;
+    // Compliance officers and accountants — scope to their assigned branches
+    const isCompliance = actor.permissions.has('loan_applications:compliance_review');
+    const isAccountant = actor.permissions.has('loan_applications:disburse') && !isAcctHead;
+
+    if (isAdmin || isIC || isAcctHead) {
+      // Admin, IC, Accounting Head — see all customers across all branches
+      return this.service.findAll(query);
+    }
+
+    if (isCompliance || isAccountant) {
+      // Compliance / Accountant — scope to their branches
+      if (!query.branchId) {
+        const branchIds = [
+          ...(actor.branchId ? [actor.branchId] : []),
+          ...(actor.managedBranchIds ?? []),
+        ];
+        const uniqueBranchIds = [...new Set(branchIds)];
+        if (uniqueBranchIds.length > 0) {
+          // Pass all branch IDs to service for OR query
+          (query as typeof query & { branchIds?: string[] }).branchIds = uniqueBranchIds;
+        }
       }
+      return this.service.findAll(query);
+    }
+
+    // Loan officer / Collections — see only their own registered customers
+    if (!query.assignedOfficerId) {
+      query.assignedOfficerId = actor.id;
     }
     return this.service.findAll(query);
   }
