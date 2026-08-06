@@ -473,10 +473,10 @@ async function main(): Promise<void> {
   }
   // Map demo users to their location branch (fall back to headOffice if not found)
   const DEMO_BRANCH_MAP: Record<string, string> = {
-    'EMP-0002': LOCATIONS_BY_CODE['LOC-SURULERE'] ?? headOffice.id,   // Loan Officer
-    'EMP-0003': LOCATIONS_BY_CODE['LOC-ISLAND1']  ?? headOffice.id,   // Compliance
-    'EMP-0004': headOffice.id,                                          // IC — HQ
-    'EMP-0005': LOCATIONS_BY_CODE['LOC-OSHODI']   ?? headOffice.id,   // Accountant
+    'EMP-0002': LOCATIONS_BY_CODE['LOC-OSHODI']   ?? headOffice.id,   // Loan Officer → Oshodi
+    'EMP-0003': LOCATIONS_BY_CODE['LOC-OSHODI']   ?? headOffice.id,   // Compliance → Oshodi (same branch as officer)
+    'EMP-0004': headOffice.id,                                          // IC — HQ (no branch)
+    'EMP-0005': LOCATIONS_BY_CODE['LOC-OSHODI']   ?? headOffice.id,   // Accountant → Oshodi
     'EMP-0006': headOffice.id,                                          // Accounting Head — HQ
     'EMP-0007': LOCATIONS_BY_CODE['LOC-SURULERE'] ?? headOffice.id,   // Collections
   };
