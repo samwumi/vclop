@@ -55,6 +55,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
     arrivedAt: '',
     completedAt: '',
     findings: '',
+    photos: [] as string[], // base64 photos
   });
 
   // ── Workflow action state ──────────────────────────────────────────────────
@@ -130,10 +131,11 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
       arrivedAt:   visitForm.arrivedAt   || undefined,
       completedAt: visitForm.completedAt || undefined,
       findings:    visitForm.findings    || undefined,
+      photos:      visitForm.photos.length > 0 ? JSON.stringify(visitForm.photos) : undefined,
     }),
     onSuccess: () => {
       toast.success('Field visit logged');
-      setVisitForm({ visitType: 'BUSINESS', latitude: '', longitude: '', arrivedAt: '', completedAt: '', findings: '' });
+      setVisitForm({ visitType: 'BUSINESS', latitude: '', longitude: '', arrivedAt: '', completedAt: '', findings: '', photos: [] });
       qc.invalidateQueries({ queryKey: ['compliance-visits', application.id] });
     },
     onError: (e: unknown) =>
@@ -571,6 +573,53 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                   <label className="form-label">Findings</label>
                   <textarea className="form-input" rows={3} placeholder="What did you observe? Business premises, stock, staff, residence…" value={visitForm.findings} onChange={(e) => setVisitForm(f => ({ ...f, findings: e.target.value }))} />
                 </div>
+
+                {/* Business Photo Upload */}
+                <div>
+                  <label className="form-label">Business Photos</label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      capture="environment"
+                      className="hidden"
+                      id="visit-photo-input"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        files.forEach(file => {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            const base64 = ev.target?.result as string;
+                            setVisitForm(f => ({ ...f, photos: [...f.photos, base64] }));
+                          };
+                          reader.readAsDataURL(file);
+                        });
+                        e.target.value = '';
+                      }}
+                    />
+                    <label
+                      htmlFor="visit-photo-input"
+                      className="btn-secondary btn-sm gap-1.5 w-full cursor-pointer flex items-center justify-center"
+                    >
+                      📷 Take / Upload Business Photo
+                    </label>
+                    {visitForm.photos.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {visitForm.photos.map((photo, i) => (
+                          <div key={i} className="relative">
+                            <img src={photo} alt={`Visit photo ${i + 1}`} className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                            <button
+                              onClick={() => setVisitForm(f => ({ ...f, photos: f.photos.filter((_, idx) => idx !== i) }))}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+                            >×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <button
                   onClick={() => visitMutation.mutate()}
                   disabled={!visitForm.visitType || visitMutation.isPending}
@@ -603,6 +652,20 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                         </p>
                       )}
                       {v.findings && <p className="text-gray-600">{v.findings}</p>}
+                      {v.photos && (() => {
+                        try {
+                          const photos = JSON.parse(v.photos) as string[];
+                          return photos.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {photos.map((src, i) => (
+                                <a key={i} href={src} target="_blank" rel="noopener noreferrer">
+                                  <img src={src} alt={`Photo ${i + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-200 hover:opacity-80" />
+                                </a>
+                              ))}
+                            </div>
+                          ) : null;
+                        } catch { return null; }
+                      })()}
                     </div>
                   ))}
                 </div>

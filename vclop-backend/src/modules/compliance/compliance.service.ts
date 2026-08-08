@@ -66,7 +66,7 @@ export class ComplianceService {
   }
 
   async addVisit(applicationId: string, payload: {
-    visitType: string; latitude?: number; longitude?: number; arrivedAt?: string; completedAt?: string; findings?: string;
+    visitType: string; latitude?: number; longitude?: number; arrivedAt?: string; completedAt?: string; findings?: string; photos?: string;
   }, actorId: string) {
     await this.assertApplication(applicationId);
     const visit = await this.prisma.fieldVisit.create({
@@ -79,6 +79,7 @@ export class ComplianceService {
         arrivedAt: payload.arrivedAt ? new Date(payload.arrivedAt) : undefined,
         completedAt: payload.completedAt ? new Date(payload.completedAt) : undefined,
         findings: payload.findings,
+        photos: payload.photos,
       },
     });
     this.audit(actorId, AuditAction.CREATE, applicationId, 'Recorded field visit');

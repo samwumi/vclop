@@ -57,6 +57,7 @@ export interface FieldVisit {
   arrivedAt: string | null;
   completedAt: string | null;
   findings: string | null;
+  photos: string | null;
   createdAt: string;
 }
 
@@ -113,6 +114,7 @@ export const complianceService = {
       arrivedAt?: string;
       completedAt?: string;
       findings?: string;
+      photos?: string;
     },
   ): Promise<FieldVisit> {
     const { data } = await api.post<ApiResponse<FieldVisit>>(

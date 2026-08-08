@@ -294,6 +294,20 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                             </a>
                           )}
                           {v.findings && <p className="text-gray-600 mt-0.5">{v.findings}</p>}
+                          {v.photos && (() => {
+                            try {
+                              const photos = JSON.parse(v.photos) as string[];
+                              return photos.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                  {photos.map((src, i) => (
+                                    <a key={i} href={src} target="_blank" rel="noopener noreferrer" title="View full photo">
+                                      <img src={src} alt={`Site photo ${i + 1}`} className="w-14 h-14 object-cover rounded border border-gray-200 hover:opacity-80" />
+                                    </a>
+                                  ))}
+                                </div>
+                              ) : null;
+                            } catch { return null; }
+                          })()}
                         </div>
                       ))}
                     </div>
