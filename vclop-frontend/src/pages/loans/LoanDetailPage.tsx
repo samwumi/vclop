@@ -493,7 +493,33 @@ export function LoanDetailPage() {
           </div>
           <div className="card-body">
             {!virtualAccount ? (
-              <p className="text-xs text-gray-500">Account not yet created — this happens automatically a few seconds after disbursement. Refresh to check again.</p>
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500">Virtual account not yet created — this happens automatically on disbursement. If it didn't create, use the button below.</p>
+                {hasPermission('virtual_accounts:read') && (
+                  <button
+                    onClick={() => {
+                      const loanId = application.loan!.id;
+                      import('@/lib/axios').then(({ api }) => {
+                        toast.loading('Creating virtual account…');
+                        api.post(`/virtual-accounts/create-for-loan/${loanId}`)
+                          .then(() => {
+                            toast.dismiss();
+                            toast.success('Virtual account created');
+                            qc.invalidateQueries({ queryKey: ['virtual-account', 'loan', loanId] });
+                          })
+                          .catch((e: unknown) => {
+                            toast.dismiss();
+                            const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed';
+                            toast.error(`VA creation failed: ${msg}`);
+                          });
+                      });
+                    }}
+                    className="btn-secondary btn-sm gap-1.5"
+                  >
+                    <Wallet className="w-3.5 h-3.5" /> Create Virtual Account
+                  </button>
+                )}
+              </div>
             ) : (
               <>
                 <div className="flex flex-wrap items-center gap-6">

@@ -58,14 +58,23 @@ export class VirtualAccountsService {
     }
   }
 
-  async createForLoanApplication(loanApplicationId: string): Promise<unknown> {
-    // Find the loan by application ID
-    const loan = await this.prisma.loan.findFirst({
-      where: { loanApplicationId },
-      include: { loanApplication: { select: { customerId: true } } },
+  async createForLoanApplication(idOrLoanId: string): Promise<unknown> {
+    // Try as direct loan ID first
+    const directLoan = await this.prisma.loan.findFirst({
+      where: { id: idOrLoanId },
+      select: { id: true, customerId: true },
     });
-    if (!loan) throw new ResourceNotFoundException('Loan for application', loanApplicationId);
-    return this.createForLoan(loan.id, loan.loanApplication.customerId);
+    if (directLoan) {
+      return this.createForLoan(directLoan.id, directLoan.customerId);
+    }
+
+    // Try as loanApplicationId
+    const loan = await this.prisma.loan.findFirst({
+      where: { loanApplicationId: idOrLoanId },
+      select: { id: true, customerId: true },
+    });
+    if (!loan) throw new ResourceNotFoundException('Loan', idOrLoanId);
+    return this.createForLoan(loan.id, loan.customerId);
   }
 
   async createForLoan(loanId: string, customerId: string): Promise<unknown> {

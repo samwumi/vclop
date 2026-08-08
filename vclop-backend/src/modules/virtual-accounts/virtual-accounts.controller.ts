@@ -80,15 +80,9 @@ export class VirtualAccountsController {
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('virtual_accounts:read')
-  @ApiOperation({ summary: 'Manually create a virtual account for a disbursed loan' })
+  @ApiOperation({ summary: 'Manually create a virtual account for a disbursed loan (by loan ID or loan application ID)' })
   async createForLoan(@Param('loanId', ParseUUIDPipe) loanId: string) {
-    // Get the loan to find the customer
-    const loan = await this.service.findByLoanId(loanId).catch(() => null);
-    if (!loan) {
-      // Try by loanApplicationId
-      return ok(await this.service.createForLoanApplication(loanId), 'Virtual account created');
-    }
-    return ok(loan, 'Virtual account already exists');
+    return ok(await this.service.createForLoanApplication(loanId), 'Virtual account created');
   }
 
   /**
