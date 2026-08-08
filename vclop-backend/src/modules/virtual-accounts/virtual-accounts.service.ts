@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 import { AuditAction, VirtualAccountProviderType, VirtualAccountTransactionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BusinessException, ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
@@ -13,6 +14,7 @@ export class VirtualAccountsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
     private readonly providerFactory: VirtualAccountProviderFactory,
     private readonly loanApplicationsService: LoanApplicationsService,
     private readonly events: EventEmitter2,
@@ -151,11 +153,16 @@ export class VirtualAccountsService {
   async simulatePayment(virtualAccountId: string, dto: SimulatePaymentDto): Promise<unknown> {
     const account = await this.prisma.virtualAccount.findUnique({ where: { id: virtualAccountId } });
     if (!account) throw new ResourceNotFoundException('Virtual account', virtualAccountId);
-    if (account.provider !== 'LOCAL') {
-      throw new BusinessException('simulatePayment only works for accounts on the LOCAL provider');
+
+    // Allow simulation for LOCAL provider and PAYSTACK test mode
+    const isTestMode = account.provider === 'LOCAL' ||
+      (account.provider === 'PAYSTACK' && (this.config.get<string>('PAYSTACK_SECRET_KEY') ?? '').startsWith('sk_test_'));
+
+    if (!isTestMode) {
+      throw new BusinessException('simulatePayment only works for LOCAL provider or Paystack test mode');
     }
 
-    return this.reconcile('LOCAL', {
+    return this.reconcile(account.provider, {
       providerReference: `sim-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       accountNumber: account.accountNumber,
       amount: dto.amount,

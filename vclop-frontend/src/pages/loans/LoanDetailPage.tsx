@@ -553,7 +553,7 @@ export function LoanDetailPage() {
                   </div>
                 </div>
 
-                {virtualAccount.provider === 'LOCAL' && hasPermission('virtual_accounts:simulate') && application.loan.status === 'ACTIVE' && (
+                {(virtualAccount.provider === 'LOCAL' || virtualAccount.provider === 'PAYSTACK') && hasPermission('virtual_accounts:simulate') && application.loan.status === 'ACTIVE' && (
                   <div className="mt-4 pt-4 border-t border-gray-100 flex items-end gap-2">
                     <div>
                       <label className="form-label text-xs">Simulate incoming payment (testing only)</label>
