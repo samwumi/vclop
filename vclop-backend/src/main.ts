@@ -49,7 +49,12 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
     rawBody: true,
+    bodyParser: true,
   });
+
+  // Increase body size limit for base64 photo uploads (field visit photos)
+  app.use(require('express').json({ limit: '50mb' }));
+  app.use(require('express').urlencoded({ limit: '50mb', extended: true }));
 
   const configService = app.get(ConfigService);
   const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);

@@ -590,8 +590,23 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                         files.forEach(file => {
                           const reader = new FileReader();
                           reader.onload = (ev) => {
-                            const base64 = ev.target?.result as string;
-                            setVisitForm(f => ({ ...f, photos: [...f.photos, base64] }));
+                            const img = new Image();
+                            img.onload = () => {
+                              // Compress: max 800px, 60% quality
+                              const canvas = document.createElement('canvas');
+                              const MAX = 800;
+                              let { width, height } = img;
+                              if (width > MAX || height > MAX) {
+                                if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+                                else { width = Math.round(width * MAX / height); height = MAX; }
+                              }
+                              canvas.width = width;
+                              canvas.height = height;
+                              canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+                              const compressed = canvas.toDataURL('image/jpeg', 0.6);
+                              setVisitForm(f => ({ ...f, photos: [...f.photos, compressed] }));
+                            };
+                            img.src = ev.target?.result as string;
                           };
                           reader.readAsDataURL(file);
                         });
