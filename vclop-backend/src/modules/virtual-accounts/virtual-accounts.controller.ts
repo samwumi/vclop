@@ -73,6 +73,25 @@ export class VirtualAccountsController {
   }
 
   /**
+   * Manually trigger virtual account creation for a loan that didn't get one automatically.
+   * Useful when the auto-creation failed (e.g. Paystack error on disbursement).
+   */
+  @Post('create-for-loan/:loanId')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('virtual_accounts:read')
+  @ApiOperation({ summary: 'Manually create a virtual account for a disbursed loan' })
+  async createForLoan(@Param('loanId', ParseUUIDPipe) loanId: string) {
+    // Get the loan to find the customer
+    const loan = await this.service.findByLoanId(loanId).catch(() => null);
+    if (!loan) {
+      // Try by loanApplicationId
+      return ok(await this.service.createForLoanApplication(loanId), 'Virtual account created');
+    }
+    return ok(loan, 'Virtual account already exists');
+  }
+
+  /**
    * Real bank webhook endpoint — intentionally has no JWT guard, since the
    * bank's servers can't authenticate with our app's JWTs. Protected instead
    * by the provider's own signature verification inside the service.
