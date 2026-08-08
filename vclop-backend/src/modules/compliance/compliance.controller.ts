@@ -33,6 +33,7 @@ class FieldVisitDto {
   @IsOptional() @IsDateString() arrivedAt?: string;
   @IsOptional() @IsDateString() completedAt?: string;
   @IsOptional() @IsString() findings?: string;
+  @IsOptional() @IsString() photos?: string;
 }
 
 @ApiTags('Compliance') @ApiBearerAuth('JWT-auth') @UseGuards(JwtAuthGuard, PermissionsGuard)
