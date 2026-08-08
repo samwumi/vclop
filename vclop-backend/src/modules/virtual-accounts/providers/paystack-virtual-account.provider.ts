@@ -42,34 +42,62 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
     const [firstName, ...rest] = input.customerName.trim().split(/\s+/);
     const lastName = rest.join(' ') || firstName;
 
-    // Paystack requires an email to create a customer. Falls back to a
-    // synthetic one if this customer genuinely has none on file — flagged
-    // here since a placeholder email means the customer won't get
-    // Paystack's own email receipts/notifications for this account.
     const email = input.customerEmail ?? `customer-${input.customerId}@no-email.vclop.local`;
     if (!input.customerEmail) {
-      this.logger.warn(`No email on file for customer ${input.customerId} — using a placeholder for Paystack customer creation`);
+      this.logger.warn(`No email for customer ${input.customerId} — using placeholder`);
     }
 
-    const customer = await this.request<{ customer_code: string; id: number }>('POST', '/customer', {
-      email,
-      first_name: firstName,
-      last_name: lastName,
-      phone: input.customerPhone,
-    });
+    // Step 1: Create or fetch existing Paystack customer
+    let customerCode: string;
+    try {
+      const customer = await this.request<{ customer_code: string; id: number }>('POST', '/customer', {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        phone: input.customerPhone,
+      });
+      customerCode = customer.customer_code;
+    } catch (err) {
+      // Customer may already exist — try fetching by email
+      try {
+        const existing = await this.request<{ customer_code: string }>('GET', `/customer/${encodeURIComponent(email)}`);
+        customerCode = existing.customer_code;
+        this.logger.log(`Reusing existing Paystack customer ${customerCode} for ${email}`);
+      } catch {
+        throw err; // rethrow original error
+      }
+    }
 
+    // Step 2: Validate customer with BVN if available (required by some banks)
+    if (input.customerBvn) {
+      try {
+        await this.request('POST', `/customer/${customerCode}/identification`, {
+          country: 'NG',
+          type: 'bvn',
+          value: input.customerBvn,
+          first_name: firstName,
+          last_name: lastName,
+        });
+        this.logger.log(`BVN submitted for Paystack customer ${customerCode}`);
+      } catch (bvnErr) {
+        // BVN validation failure shouldn't block DVA creation — log and continue
+        this.logger.warn(`BVN validation for ${customerCode} failed: ${(bvnErr as Error).message}`);
+      }
+    }
+
+    // Step 3: Create Dedicated Virtual Account
     const dva = await this.request<{
       id: number;
       account_number: string;
       account_name: string;
       bank: { name: string; slug: string; id: number };
     }>('POST', '/dedicated_account', {
-      customer: customer.customer_code,
+      customer: customerCode,
       preferred_bank: this.preferredBank,
     });
 
     return {
-      providerCustomerId: customer.customer_code,
+      providerCustomerId: customerCode,
       providerAccountId: String(dva.id),
       accountNumber: dva.account_number,
       accountName: dva.account_name,

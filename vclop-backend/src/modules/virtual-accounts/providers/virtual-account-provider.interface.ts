@@ -13,6 +13,7 @@ export interface CreateVirtualAccountInput {
   customerName: string;
   customerEmail?: string;
   customerPhone: string;
+  customerBvn?: string;
 }
 
 export interface CreateVirtualAccountResult {

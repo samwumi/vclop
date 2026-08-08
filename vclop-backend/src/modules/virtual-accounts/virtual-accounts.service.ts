@@ -82,6 +82,7 @@ export class VirtualAccountsService {
       customerName: customer.businessName ?? `${customer.firstName} ${customer.lastName}`,
       customerEmail: customer.email ?? undefined,
       customerPhone: customer.phone,
+      customerBvn: customer.bvn ?? undefined,
     });
 
     const account = await this.prisma.virtualAccount.create({
