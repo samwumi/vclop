@@ -47,6 +47,9 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
       this.logger.warn(`No email for customer ${input.customerId} — using placeholder`);
     }
 
+    // Normalize phone to international format (+234) as Paystack requires
+    const phone = this.normalizePhone(input.customerPhone);
+
     // Step 1: Create or fetch existing Paystack customer
     let customerCode: string;
     try {
@@ -54,7 +57,7 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
         email,
         first_name: firstName,
         last_name: lastName,
-        phone: input.customerPhone,
+        phone,
       });
       customerCode = customer.customer_code;
     } catch (err) {
@@ -155,6 +158,14 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
       narration: data.authorization.narration,
       receivedAt: data.paid_at ? new Date(data.paid_at) : new Date(),
     };
+  }
+
+  private normalizePhone(phone: string): string {
+    // Convert 080xxxxxxxx → +234xxxxxxxxx
+    const digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('234')) return `+${digits}`;
+    if (digits.startsWith('0')) return `+234${digits.slice(1)}`;
+    return `+234${digits}`;
   }
 
   private get baseUrl(): string {
