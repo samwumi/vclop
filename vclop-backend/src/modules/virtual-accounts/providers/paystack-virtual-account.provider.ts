@@ -71,7 +71,7 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
       }
     }
 
-    // Step 2: Validate customer with BVN if available (required by some banks)
+    // Step 2: Validate customer with BVN (REQUIRED for Titan Bank live DVA)
     if (input.customerBvn) {
       try {
         await this.request('POST', `/customer/${customerCode}/identification`, {
@@ -82,10 +82,35 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
           last_name: lastName,
         });
         this.logger.log(`BVN submitted for Paystack customer ${customerCode}`);
+
+        // Wait for BVN validation to complete (Paystack validates async with NIBSS)
+        // Poll up to 10 times with 3 second intervals
+        let validated = false;
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          try {
+            const customerData = await this.request<{
+              identified: boolean;
+              identifications?: Array<{ status: string }>;
+            }>('GET', `/customer/${customerCode}`);
+            if (customerData.identified) {
+              validated = true;
+              this.logger.log(`BVN validated for customer ${customerCode} after ${i + 1} attempt(s)`);
+              break;
+            }
+          } catch {
+            // Keep polling
+          }
+        }
+
+        if (!validated) {
+          this.logger.warn(`BVN not yet validated for ${customerCode} after polling — attempting DVA creation anyway`);
+        }
       } catch (bvnErr) {
-        // BVN validation failure shouldn't block DVA creation — log and continue
-        this.logger.warn(`BVN validation for ${customerCode} failed: ${(bvnErr as Error).message}`);
+        this.logger.warn(`BVN validation for ${customerCode}: ${(bvnErr as Error).message}`);
       }
+    } else {
+      this.logger.warn(`Customer ${input.customerId} has no BVN — Titan Bank DVA requires BVN validation`);
     }
 
     // Step 3: Create Dedicated Virtual Account
