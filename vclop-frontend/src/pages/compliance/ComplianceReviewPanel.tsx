@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   CheckCircle2, XCircle, RotateCcw, MapPin, Clock,
-  ClipboardList, ShieldCheck, Navigation, FileText, Eye, User,
+  ClipboardList, ShieldCheck, Navigation, FileText, Eye, User, Car,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { formatDateTime, normalizeFileUrl } from '@/lib/utils';
@@ -14,7 +14,9 @@ import {
 } from '@/services/compliance.service';
 import { workflowsService } from '@/services/workflows.service';
 import { customersService } from '@/services/customers.service';
+import { transportService } from '@/services/transport.service';
 import type { ComplianceQueueItem } from '@/services/compliance.service';
+import type { TransportRequest } from '@/services/transport.service';
 
 const VISIT_TYPES = ['BUSINESS', 'RESIDENCE', 'EMPLOYER', 'GUARANTOR', 'OTHER'];
 const RECOMMENDATION_OPTS: Array<{ value: WorkflowRecommendation; label: string; color: string }> = [
@@ -25,7 +27,7 @@ const RECOMMENDATION_OPTS: Array<{ value: WorkflowRecommendation; label: string;
   { value: 'ESCALATE',             label: 'Escalate',           color: 'bg-violet-600' },
 ];
 
-type Tab = 'documents' | 'customer' | 'assessment' | 'verification' | 'visits' | 'action';
+type Tab = 'documents' | 'customer' | 'assessment' | 'verification' | 'visits' | 'transport' | 'action';
 
 interface Props {
   application: ComplianceQueueItem;
@@ -63,6 +65,15 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
   const [wfReason, setWfReason] = useState('');
   const [wfNotes, setWfNotes] = useState('');
 
+  // ── Transport request form state ───────────────────────────────────────────
+  const [transportForm, setTransportForm] = useState({
+    purpose: '',
+    location: '',
+    customerCount: '1',
+    distanceKm: '',
+    suggestedAmount: '',
+  });
+
   const invalidateQueue = () => qc.invalidateQueries({ queryKey: ['compliance-queue'] });
 
   // ── Queries ────────────────────────────────────────────────────────────────
@@ -88,6 +99,13 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
     queryKey: ['customer360', application.customerId],
     queryFn: () => customersService.get(application.customerId),
     enabled: !!application.customerId,
+  });
+
+  // Transport requests for this application
+  const { data: transportRequests = [] } = useQuery({
+    queryKey: ['transport-requests', application.id],
+    queryFn: () => transportService.list(),
+    select: (data) => (data as TransportRequest[]).filter((r) => r.loanApplicationId === application.id),
   });
 
   // Seed form with existing assessment data when loaded
@@ -157,6 +175,24 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
       toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Workflow action failed'),
   });
 
+  const transportMutation = useMutation({
+    mutationFn: () => transportService.create({
+      loanApplicationId: application.id,
+      purpose: transportForm.purpose,
+      location: transportForm.location,
+      customerCount: transportForm.customerCount ? Number(transportForm.customerCount) : 1,
+      ...(transportForm.distanceKm    ? { distanceKm:    Number(transportForm.distanceKm)    } : {}),
+      ...(transportForm.suggestedAmount ? { suggestedAmount: Number(transportForm.suggestedAmount) } : {}),
+    }),
+    onSuccess: () => {
+      toast.success('Transport request submitted for approval');
+      setTransportForm({ purpose: '', location: '', customerCount: '1', distanceKm: '', suggestedAmount: '' });
+      qc.invalidateQueries({ queryKey: ['transport-requests', application.id] });
+    },
+    onError: (e: unknown) =>
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to submit transport request'),
+  });
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   function VerifyRow({ label, verifiedAt, field }: {
     label: string;
@@ -189,6 +225,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
     { id: 'assessment',   label: 'Assessment',      icon: ClipboardList },
     { id: 'verification', label: 'Verifications',   icon: ShieldCheck },
     { id: 'visits',       label: 'Field Visits',    icon: Navigation },
+    { id: 'transport',    label: 'Transport',        icon: Car },
     { id: 'action',       label: 'Decision',        icon: CheckCircle2 },
   ];
 
@@ -686,6 +723,101 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                 </div>
               )}
             </>
+          )}
+
+          {/* ── Transport ──────────────────────────────────────────────────── */}
+          {tab === 'transport' && (
+            <div className="space-y-4">
+              {/* Request form */}
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-gray-700">Request Transport for Field Visit</p>
+                <div>
+                  <label className="form-label">Purpose <span className="text-red-500">*</span></label>
+                  <textarea
+                    className="form-input"
+                    rows={2}
+                    placeholder="e.g. Field verification visit for 3 pending loan applications in Oshodi"
+                    value={transportForm.purpose}
+                    onChange={(e) => setTransportForm(f => ({ ...f, purpose: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Location / Destination <span className="text-red-500">*</span></label>
+                  <input
+                    className="form-input"
+                    placeholder="e.g. Oshodi Market, Lagos"
+                    value={transportForm.location}
+                    onChange={(e) => setTransportForm(f => ({ ...f, location: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="form-label">No. of Customers</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="form-input"
+                      value={transportForm.customerCount}
+                      onChange={(e) => setTransportForm(f => ({ ...f, customerCount: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">Distance (km)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-input"
+                      placeholder="e.g. 12"
+                      value={transportForm.distanceKm}
+                      onChange={(e) => setTransportForm(f => ({ ...f, distanceKm: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">Suggested (₦)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="e.g. 3000"
+                      value={transportForm.suggestedAmount}
+                      onChange={(e) => setTransportForm(f => ({ ...f, suggestedAmount: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => transportMutation.mutate()}
+                  disabled={!transportForm.purpose.trim() || !transportForm.location.trim() || transportMutation.isPending}
+                  className="btn-primary gap-1.5 w-full disabled:opacity-50"
+                >
+                  <Car className="w-4 h-4" />
+                  {transportMutation.isPending ? 'Submitting…' : 'Submit Transport Request'}
+                </button>
+              </div>
+
+              {/* Existing requests for this application */}
+              {transportRequests.length > 0 && (
+                <div className="pt-3 border-t border-gray-100 space-y-2">
+                  <p className="text-xs font-semibold text-gray-600">Previous Requests ({transportRequests.length})</p>
+                  {transportRequests.map((req) => (
+                    <div key={req.id} className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-700 truncate">{req.purpose}</span>
+                        <span className={`ml-2 flex-shrink-0 px-2 py-0.5 rounded-full font-medium ${
+                          req.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' :
+                          req.status === 'REJECTED' ? 'bg-red-50 text-red-700' :
+                          req.status === 'PAID'     ? 'bg-blue-50 text-blue-700' :
+                          'bg-amber-50 text-amber-700'
+                        }`}>{req.status}</span>
+                      </div>
+                      <p className="text-gray-500">{req.location} · {req.customerCount} customer(s)</p>
+                      {req.approvedAmount && (
+                        <p className="text-emerald-700 font-medium">✓ Approved: ₦{Number(req.approvedAmount).toLocaleString()}</p>
+                      )}
+                      {req.reason && <p className="text-red-600">{req.reason}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* ── Decision / Workflow Action ────────────────────────────────── */}
