@@ -89,10 +89,24 @@ export class ComplianceService {
   // ── Customer-level field visits (KYC verification, independent of loan) ──
 
   async listCustomerVisits(customerId: string) {
-    return this.prisma.fieldVisit.findMany({
-      where: { customerId },
-      orderBy: { createdAt: 'desc' },
-    });
+    // Use raw query — the customerId column may not exist yet in production
+    // until the migration runs on next deploy. If the column doesn't exist,
+    // return an empty array gracefully.
+    try {
+      const visits = await this.prisma.$queryRaw<Array<{
+        id: string; loanApplicationId: string | null; customerId: string | null;
+        visitType: string; conductedById: string | null; latitude: number | null;
+        longitude: number | null; arrivedAt: Date | null; completedAt: Date | null;
+        findings: string | null; photos: string | null; createdAt: Date; updatedAt: Date;
+      }>>`
+        SELECT * FROM field_visits
+        WHERE customerId = ${customerId}
+        ORDER BY createdAt DESC
+      `;
+      return visits;
+    } catch {
+      return [];
+    }
   }
 
   async addCustomerVisit(customerId: string, payload: {
@@ -100,19 +114,31 @@ export class ComplianceService {
   }, actorId: string) {
     const customer = await this.prisma.customer.findFirst({ where: { id: customerId, deletedAt: null } });
     if (!customer) throw new ResourceNotFoundException('Customer', customerId);
-    const visit = await this.prisma.fieldVisit.create({
-      data: {
-        customerId,
-        conductedById: actorId,
-        visitType: payload.visitType,
-        latitude: payload.latitude,
-        longitude: payload.longitude,
-        arrivedAt: payload.arrivedAt ? new Date(payload.arrivedAt) : undefined,
-        completedAt: payload.completedAt ? new Date(payload.completedAt) : undefined,
-        findings: payload.findings,
-        photos: payload.photos,
-      },
-    });
+
+    // Use raw insert so we can omit loanApplicationId entirely (the column may
+    // still be NOT NULL in production until the migration runs on next deploy).
+    const id = require('crypto').randomUUID() as string;
+    const now = new Date();
+    await this.prisma.$executeRaw`
+      INSERT INTO field_visits
+        (id, customerId, conductedById, visitType, latitude, longitude,
+         arrivedAt, completedAt, findings, photos, createdAt, updatedAt)
+      VALUES (
+        ${id},
+        ${customerId},
+        ${actorId},
+        ${payload.visitType},
+        ${payload.latitude ?? null},
+        ${payload.longitude ?? null},
+        ${payload.arrivedAt ? new Date(payload.arrivedAt) : null},
+        ${payload.completedAt ? new Date(payload.completedAt) : null},
+        ${payload.findings ?? null},
+        ${payload.photos ?? null},
+        ${now},
+        ${now}
+      )
+    `;
+    const visit = await this.prisma.fieldVisit.findUnique({ where: { id } });
     this.audit(actorId, AuditAction.CREATE, customerId, 'Recorded KYC field visit for customer');
     return visit;
   }
