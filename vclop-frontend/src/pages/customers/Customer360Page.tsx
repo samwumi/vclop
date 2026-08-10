@@ -30,9 +30,6 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'green' | 'red' | '
   BLACKLISTED:   { label: 'Blacklisted',   variant: 'red' },
 };
 
-// Statuses that allow a loan application to be opened
-const LOAN_ALLOWED_STATUSES: CustomerStatus[] = ['REGISTERED', 'KYC_PENDING', 'KYC_VERIFIED', 'ELIGIBLE'];
-
 // KYC step order used to render the progress bar
 const KYC_STEPS: CustomerStatus[] = ['REGISTERED', 'KYC_PENDING', 'KYC_VERIFIED', 'ELIGIBLE'];
 const KYC_ORDER: Record<string, number> = {
@@ -86,9 +83,19 @@ export function Customer360Page() {
   const c           = data.profile as Customer;
   const s           = STATUS_BADGE[c.status] ?? { label: c.status, variant: 'gray' as const };
   const missingDocs = data.documents.filter((d) => d.status !== 'VERIFIED').length;
-  const canApplyLoan =
+  const isLoanOfficer =
     hasPermission('loan_applications:create') &&
-    LOAN_ALLOWED_STATUSES.includes(c.status as CustomerStatus);
+    !hasPermission('loan_applications:compliance_review') &&
+    !hasPermission('loan_applications:internal_control_approve') &&
+    !hasPermission('loan_applications:disburse_head') &&
+    !hasPermission('system:admin');
+
+  // Only loan officers can apply for a loan from the customer profile.
+  // REGISTERED/KYC_PENDING customers are eligible to apply — compliance
+  // marks them KYC_VERIFIED and ELIGIBLE during their review.
+  const canApplyLoan =
+    isLoanOfficer &&
+    (c.status === 'REGISTERED' || c.status === 'KYC_PENDING' || c.status === 'KYC_VERIFIED' || c.status === 'ELIGIBLE');
 
   return (
     <div>
@@ -360,8 +367,12 @@ function CustomerOverviewTab({
             </p>
           )}
 
+          {/* Apply for Loan — only show for loan officers, not compliance/IC */}
           {hasPermission('loan_applications:create') &&
-            LOAN_ALLOWED_STATUSES.includes(c.status as CustomerStatus) && (
+            !hasPermission('loan_applications:compliance_review') &&
+            !hasPermission('loan_applications:internal_control_approve') &&
+            !hasPermission('system:admin') &&
+            (c.status === 'REGISTERED' || c.status === 'KYC_PENDING' || c.status === 'KYC_VERIFIED' || c.status === 'ELIGIBLE') && (
             <button
               onClick={() => navigate(`/loans/new?customerId=${c.id}`)}
               className="btn-primary btn-sm gap-1.5 w-full mt-1"

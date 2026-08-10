@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldAlert, CheckCircle2, XCircle, RotateCcw,
-  Eye, FileText, ClipboardList,
+  Eye, FileText, ClipboardList, Car,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModulePage } from '@/components/ui/ModulePage';
@@ -11,6 +11,8 @@ import { formatDate, formatDateTime, normalizeFileUrl } from '@/lib/utils';
 import { api } from '@/lib/axios';
 import { workflowsService, type WorkflowAction } from '@/services/workflows.service';
 import { complianceService } from '@/services/compliance.service';
+import { transportService } from '@/services/transport.service';
+import type { TransportRequest } from '@/services/transport.service';
 import type { ApiResponse } from '@/types/api.types';
 import type { LoanApplication } from '@/types/domain.types';
 
@@ -53,6 +55,13 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
   const allVisits = [...visits, ...customerVisits].filter(
     (v, i, arr) => arr.findIndex((x) => x.id === v.id) === i,
   );
+
+  // Transport requests for this application — IC needs to see what compliance requested
+  const { data: transportRequests = [] } = useQuery({
+    queryKey: ['ic-transport', application.id],
+    queryFn: () => transportService.list(),
+    select: (data) => (data as TransportRequest[]).filter((r) => r.loanApplicationId === application.id),
+  });
 
   const mutation = useMutation({
     mutationFn: () => workflowsService.transition('LOAN_APPLICATION', application.id, {
@@ -320,6 +329,32 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                               ) : null;
                             } catch { return null; }
                           })()}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Transport requests — what compliance requested to do the field work */}
+                  {transportRequests.length > 0 && (
+                    <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Car className="w-3.5 h-3.5 text-gray-500" />
+                        <p className="font-semibold text-gray-600">Transport Requests ({transportRequests.length})</p>
+                      </div>
+                      {transportRequests.map((req) => (
+                        <div key={req.id} className="mb-2 pb-2 border-b border-gray-100 last:border-0">
+                          <div className="flex items-center justify-between gap-2 mb-0.5">
+                            <span className="font-medium text-gray-700 truncate">{req.purpose}</span>
+                            <span className={`flex-shrink-0 px-2 py-0.5 rounded-full font-medium ${
+                              req.status === 'APPROVED' || req.status === 'PAID' ? 'bg-emerald-50 text-emerald-700' :
+                              req.status === 'REJECTED' ? 'bg-red-50 text-red-700' :
+                              'bg-amber-50 text-amber-700'
+                            }`}>{req.status}</span>
+                          </div>
+                          <p className="text-gray-500">{req.location}</p>
+                          {req.approvedAmount != null && (
+                            <p className="text-emerald-700">Approved: ₦{Number(req.approvedAmount).toLocaleString()}</p>
+                          )}
                         </div>
                       ))}
                     </div>

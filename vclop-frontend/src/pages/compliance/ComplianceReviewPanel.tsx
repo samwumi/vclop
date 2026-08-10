@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import {
   CheckCircle2, XCircle, RotateCcw, MapPin, Clock,
   ClipboardList, ShieldCheck, Navigation, FileText, Eye, User, Car,
+  ShieldAlert,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { formatDateTime, normalizeFileUrl } from '@/lib/utils';
@@ -17,6 +18,7 @@ import { customersService } from '@/services/customers.service';
 import { transportService } from '@/services/transport.service';
 import type { ComplianceQueueItem } from '@/services/compliance.service';
 import type { TransportRequest } from '@/services/transport.service';
+import type { CustomerStatus } from '@/types/domain.types';
 
 const VISIT_TYPES = ['BUSINESS', 'RESIDENCE', 'EMPLOYER', 'GUARANTOR', 'OTHER'];
 const RECOMMENDATION_OPTS: Array<{ value: WorkflowRecommendation; label: string; color: string }> = [
@@ -191,6 +193,18 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
     },
     onError: (e: unknown) =>
       toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to submit transport request'),
+  });
+
+  const kycMutation = useMutation({
+    mutationFn: (status: CustomerStatus) =>
+      customersService.updateStatus(application.customerId, status),
+    onSuccess: (_, status) => {
+      toast.success(`Customer marked ${status.replace(/_/g, ' ')}`);
+      qc.invalidateQueries({ queryKey: ['customer360', application.customerId] });
+      qc.invalidateQueries({ queryKey: ['compliance-queue'] });
+    },
+    onError: (e: unknown) =>
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to update KYC status'),
   });
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -412,7 +426,53 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                   <Row label="Type"         value={c?.type} />
                   <Row label="Gender"       value={c?.gender} />
                   <Row label="Date of Birth" value={c?.dateOfBirth ? new Date(c.dateOfBirth).toLocaleDateString('en-NG') : ''} />
-                  <Row label="Status"       value={c?.status} />
+                </div>
+
+                {/* ── KYC Status — compliance action ── */}
+                <div className="card p-4 border-2 border-brand-100 bg-brand-50/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldAlert className="w-4 h-4 text-brand-600" />
+                    <p className="text-xs font-semibold text-brand-800 uppercase tracking-wide">KYC Verification Status</p>
+                  </div>
+                  <div className="flex items-center justify-between mb-3 py-1.5 border-b border-gray-100">
+                    <span className="text-xs text-gray-500">Current Status</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      c?.status === 'ELIGIBLE'     ? 'bg-emerald-100 text-emerald-700' :
+                      c?.status === 'KYC_VERIFIED' ? 'bg-blue-100 text-blue-700' :
+                      c?.status === 'KYC_PENDING'  ? 'bg-amber-100 text-amber-700' :
+                      c?.status === 'INELIGIBLE'   ? 'bg-red-100 text-red-700' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>{(c?.status ?? '').replace(/_/g, ' ')}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-2">
+                    After completing field visit and verifications, advance the customer:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(['KYC_VERIFIED', 'ELIGIBLE', 'INELIGIBLE', 'BLACKLISTED'] as CustomerStatus[]).map((status) => (
+                      <button
+                        key={status}
+                        disabled={c?.status === status || kycMutation.isPending}
+                        onClick={() => kycMutation.mutate(status)}
+                        className={`btn-sm disabled:opacity-50 disabled:cursor-default ${
+                          c?.status === status          ? 'btn-primary' :
+                          status === 'ELIGIBLE'         ? 'bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-600' :
+                          status === 'KYC_VERIFIED'     ? 'bg-blue-600 text-white hover:bg-blue-700 border border-blue-600' :
+                          status === 'INELIGIBLE'       ? 'bg-red-600 text-white hover:bg-red-700 border border-red-600' :
+                          'bg-gray-800 text-white hover:bg-gray-900 border border-gray-800'
+                        }`}
+                      >
+                        {status === 'ELIGIBLE' && '✓ '}
+                        {status === 'KYC_VERIFIED' && '✓ '}
+                        {status.replace(/_/g, ' ')}
+                        {c?.status === status && ' (current)'}
+                      </button>
+                    ))}
+                  </div>
+                  {c?.status === 'ELIGIBLE' && (
+                    <p className="text-xs text-emerald-700 mt-2 font-medium">
+                      ✓ Customer is Eligible — you can now submit the compliance decision.
+                    </p>
+                  )}
                 </div>
 
                 {/* Contact */}
