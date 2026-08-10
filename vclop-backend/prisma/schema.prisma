@@ -974,7 +974,8 @@ model ComplianceAssessment {
 
 model FieldVisit {
   id                String    @id @default(uuid()) @db.VarChar(36)
-  loanApplicationId String    @db.VarChar(36)
+  loanApplicationId String?   @db.VarChar(36)
+  customerId        String?   @db.VarChar(36)
   visitType         String    @db.VarChar(50)
   conductedById     String?   @db.VarChar(36)
   latitude          Decimal?  @db.Decimal(10, 8)
@@ -987,6 +988,7 @@ model FieldVisit {
   updatedAt         DateTime  @updatedAt
 
   @@index([loanApplicationId])
+  @@index([customerId])
   @@map("field_visits")
 }
 

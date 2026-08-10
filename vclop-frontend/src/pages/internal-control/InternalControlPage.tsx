@@ -42,6 +42,18 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
     queryFn: () => complianceService.getFieldVisits(application.id),
   });
 
+  // Also load customer-level KYC field visits so IC sees everything compliance logged
+  const { data: customerVisits = [] } = useQuery({
+    queryKey: ['ic-customer-visits', application.customerId],
+    queryFn: () => complianceService.getCustomerFieldVisits(application.customerId),
+    enabled: !!application.customerId,
+  });
+
+  // Combine both for display — deduplicate by id
+  const allVisits = [...visits, ...customerVisits].filter(
+    (v, i, arr) => arr.findIndex((x) => x.id === v.id) === i,
+  );
+
   const mutation = useMutation({
     mutationFn: () => workflowsService.transition('LOAN_APPLICATION', application.id, {
       action: action!,
@@ -127,7 +139,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                     {(customer as typeof customer & { nin?: string }).nin && <><span className="text-blue-600">NIN</span><span className="text-blue-900">{(customer as typeof customer & { nin?: string }).nin}</span></>}
                   </div>
                   <a href={`/customers/${application.customerId}`} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
-                    Open Customer Profile →
+                    Open Customer Profile (incl. Field Verification) →
                   </a>
                 </div>
               )}
@@ -281,10 +293,10 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                     ))}
                   </div>
                   {/* Field visits */}
-                  {visits.length > 0 && (
+                  {allVisits.length > 0 && (
                     <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
-                      <p className="font-semibold text-gray-600 mb-2">Field Visits ({visits.length})</p>
-                      {visits.map((v) => (
+                      <p className="font-semibold text-gray-600 mb-2">Field Visits ({allVisits.length})</p>
+                      {allVisits.map((v) => (
                         <div key={v.id} className="mb-2 pb-2 border-b border-gray-100 last:border-0">
                           <p className="font-medium text-gray-700 uppercase">{v.visitType}</p>
                           {v.arrivedAt && <p className="text-gray-500">{formatDateTime(v.arrivedAt)}</p>}

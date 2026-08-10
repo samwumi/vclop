@@ -152,4 +152,32 @@ export const complianceService = {
       documentType: { name: string; code: string } | null;
     }>;
   },
+
+  /** GET /compliance/customers/:customerId/field-visits */
+  async getCustomerFieldVisits(customerId: string): Promise<FieldVisit[]> {
+    const { data } = await api.get<ApiResponse<FieldVisit[]>>(
+      `/compliance/customers/${customerId}/field-visits`,
+    );
+    return data.data ?? [];
+  },
+
+  /** POST /compliance/customers/:customerId/field-visits */
+  async addCustomerFieldVisit(
+    customerId: string,
+    payload: {
+      visitType: string;
+      latitude?: number;
+      longitude?: number;
+      arrivedAt?: string;
+      completedAt?: string;
+      findings?: string;
+      photos?: string;
+    },
+  ): Promise<FieldVisit> {
+    const { data } = await api.post<ApiResponse<FieldVisit>>(
+      `/compliance/customers/${customerId}/field-visits`,
+      payload,
+    );
+    return data.data!;
+  },
 };

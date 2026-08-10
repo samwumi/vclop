@@ -59,4 +59,19 @@ export class ComplianceController {
   @Put('applications/:id/assessment') @RequirePermissions('loan_applications:compliance_review') async save(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AssessmentDto, @CurrentUser() user: RequestUser) { return ok(await this.service.saveAssessment(id, dto, user.id)); }
   @Get('applications/:id/field-visits') @RequirePermissions('loan_applications:compliance_review') visits(@Param('id', ParseUUIDPipe) id: string) { return this.service.listVisits(id); }
   @Post('applications/:id/field-visits') @RequirePermissions('loan_applications:compliance_review') async addVisit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: FieldVisitDto, @CurrentUser() user: RequestUser) { return ok(await this.service.addVisit(id, dto, user.id)); }
+
+  // ── Customer-level KYC field visits ───────────────────────────────────────
+  @Get('customers/:customerId/field-visits') @RequirePermissions('loan_applications:compliance_review')
+  customerVisits(@Param('customerId', ParseUUIDPipe) customerId: string) {
+    return this.service.listCustomerVisits(customerId);
+  }
+
+  @Post('customers/:customerId/field-visits') @RequirePermissions('loan_applications:compliance_review')
+  async addCustomerVisit(
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+    @Body() dto: FieldVisitDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return ok(await this.service.addCustomerVisit(customerId, dto, user.id));
+  }
 }

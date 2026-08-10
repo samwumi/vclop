@@ -86,6 +86,37 @@ export class ComplianceService {
     return visit;
   }
 
+  // ── Customer-level field visits (KYC verification, independent of loan) ──
+
+  async listCustomerVisits(customerId: string) {
+    return this.prisma.fieldVisit.findMany({
+      where: { customerId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async addCustomerVisit(customerId: string, payload: {
+    visitType: string; latitude?: number; longitude?: number; arrivedAt?: string; completedAt?: string; findings?: string; photos?: string;
+  }, actorId: string) {
+    const customer = await this.prisma.customer.findFirst({ where: { id: customerId, deletedAt: null } });
+    if (!customer) throw new ResourceNotFoundException('Customer', customerId);
+    const visit = await this.prisma.fieldVisit.create({
+      data: {
+        customerId,
+        conductedById: actorId,
+        visitType: payload.visitType,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        arrivedAt: payload.arrivedAt ? new Date(payload.arrivedAt) : undefined,
+        completedAt: payload.completedAt ? new Date(payload.completedAt) : undefined,
+        findings: payload.findings,
+        photos: payload.photos,
+      },
+    });
+    this.audit(actorId, AuditAction.CREATE, customerId, 'Recorded KYC field visit for customer');
+    return visit;
+  }
+
   async getBranchIsHQ(branchId: string): Promise<boolean> {
     const branch = await this.prisma.branch.findUnique({ where: { id: branchId }, select: { isHeadOffice: true } });
     return branch?.isHeadOffice ?? false;
