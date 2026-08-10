@@ -91,10 +91,14 @@ export function NewLoanPage() {
                   </div>
                   <button type="button" onClick={() => { setSelectedCustomer(null); setValue('customerId', ''); }} className="text-xs text-red-500 hover:underline">Change</button>
                 </div>
-                {selectedCustomer.status !== 'ELIGIBLE' && (
-                  <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                    ⚠ This customer's status is <strong>{selectedCustomer.status}</strong>. Only <strong>ELIGIBLE</strong> customers can apply for a loan.
-                    Go to the customer's profile to update their KYC status first.
+                {selectedCustomer.status !== 'ELIGIBLE' && selectedCustomer.status !== 'KYC_VERIFIED' && selectedCustomer.status !== 'KYC_PENDING' && selectedCustomer.status !== 'REGISTERED' && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-800">
+                    ⚠ This customer is <strong>{selectedCustomer.status}</strong> and cannot apply for a loan.
+                  </div>
+                )}
+                {(selectedCustomer.status === 'REGISTERED' || selectedCustomer.status === 'KYC_PENDING') && (
+                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-800">
+                    ℹ Customer is <strong>{selectedCustomer.status.replace(/_/g, ' ')}</strong>. Compliance will verify KYC and mark Eligible during their review.
                   </div>
                 )}
               </>
@@ -168,7 +172,7 @@ export function NewLoanPage() {
 
         <div className="flex justify-end gap-3 pb-6">
           <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
-          <button type="submit" disabled={mutation.isPending || (!!selectedCustomer && selectedCustomer.status !== 'ELIGIBLE')} className="btn-primary gap-2 disabled:opacity-50">
+          <button type="submit" disabled={mutation.isPending || (!!selectedCustomer && !['REGISTERED','KYC_PENDING','KYC_VERIFIED','ELIGIBLE'].includes(selectedCustomer.status))} className="btn-primary gap-2 disabled:opacity-50">
             {mutation.isPending ? <LoadingSpinner className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
             {mutation.isPending ? 'Creating…' : 'Create Application'}
           </button>
