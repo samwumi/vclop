@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModulePage } from '@/components/ui/ModulePage';
-import { formatDate, formatDateTime } from '@/lib/utils';
+import { formatDate, formatDateTime, normalizeFileUrl } from '@/lib/utils';
 import { api } from '@/lib/axios';
 import { workflowsService, type WorkflowAction } from '@/services/workflows.service';
 import { complianceService } from '@/services/compliance.service';
@@ -151,7 +151,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${doc.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700' : doc.status === 'REJECTED' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
                       {doc.status}
                     </span>
-                    <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-brand-600 hover:underline font-medium">
+                    <a href={normalizeFileUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-brand-600 hover:underline font-medium">
                       <Eye className="w-3.5 h-3.5" /> View
                     </a>
                   </div>

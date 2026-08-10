@@ -1,5 +1,24 @@
 import { api } from '@/lib/axios';
+import { useAuthStore } from '@/stores/auth.store';
 import type { ApiResponse } from '@/types/api.types';
+
+// ── Authenticated file download helper ──────────────────────────────────────
+// window.open() doesn't send the Authorization header, so we fetch the blob
+// using the axios instance (which attaches the JWT) then trigger a download.
+async function downloadFile(url: string, filename: string): Promise<void> {
+  const token = useAuthStore.getState().accessToken;
+  const resp = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!resp.ok) throw new Error(`Export failed: ${resp.status} ${resp.statusText}`);
+  const blob = await resp.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(href);
+}
 
 export interface LocationSummary {
   branchId: string;
@@ -125,23 +144,23 @@ export const reportsService = {
     return data.data ?? null;
   },
 
-  // Excel export — triggers browser download
-  exportLocationSummary() {
-    window.open(`/api/v1/reports/export/location-summary`, '_blank');
+  // Excel export — triggers authenticated browser download
+  async exportLocationSummary() {
+    await downloadFile('/api/v1/reports/export/location-summary', 'location-summary.xlsx');
   },
 
-  exportOfficerPerformance(params?: { from?: string; to?: string; branchId?: string }) {
+  async exportOfficerPerformance(params?: { from?: string; to?: string; branchId?: string }) {
     const p = new URLSearchParams();
     if (params?.from)     p.set('from', params.from);
     if (params?.to)       p.set('to', params.to);
     if (params?.branchId) p.set('branchId', params.branchId);
-    window.open(`/api/v1/reports/export/officer-performance?${p}`, '_blank');
+    await downloadFile(`/api/v1/reports/export/officer-performance?${p}`, 'officer-performance.xlsx');
   },
 
-  exportDisbursements(from?: string, to?: string) {
+  async exportDisbursements(from?: string, to?: string) {
     const p = new URLSearchParams();
     if (from) p.set('from', from);
     if (to)   p.set('to', to);
-    window.open(`/api/v1/reports/export/disbursements?${p}`, '_blank');
+    await downloadFile(`/api/v1/reports/export/disbursements?${p}`, 'disbursements.xlsx');
   },
 };

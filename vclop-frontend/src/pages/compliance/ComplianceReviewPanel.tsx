@@ -6,7 +6,7 @@ import {
   ClipboardList, ShieldCheck, Navigation, FileText, Eye, User,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime, normalizeFileUrl } from '@/lib/utils';
 import {
   complianceService,
   type ComplianceAssessment,
@@ -324,7 +324,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                               {doc.status}
                             </span>
                             <a
-                              href={doc.fileUrl}
+                              href={normalizeFileUrl(doc.fileUrl)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center gap-1 text-xs text-brand-600 hover:underline font-medium"

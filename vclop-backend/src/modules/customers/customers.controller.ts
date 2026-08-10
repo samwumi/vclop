@@ -8,10 +8,12 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CustomerStatus } from '@prisma/client';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
@@ -130,5 +132,42 @@ export class CustomersController {
   async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: RequestUser) {
     await this.service.remove(id, actor.id);
     return ok(null, 'Customer deleted');
+  }
+
+  @Get('export/csv')
+  @RequirePermissions('customers:read')
+  @ApiOperation({ summary: 'Export customers list as CSV' })
+  async exportCsv(
+    @Query() query: QueryCustomersDto,
+    @CurrentUser() actor: RequestUser,
+    @Res() res: Response,
+  ) {
+    const isAdmin = actor.permissions.has('system:admin');
+    const isIC = actor.permissions.has('loan_applications:internal_control_approve');
+    const isAcctHead = actor.permissions.has('loan_applications:disburse_head');
+    const isCompliance = actor.permissions.has('loan_applications:compliance_review');
+
+    if (!isAdmin && !isIC && !isAcctHead && !isCompliance) {
+      query.assignedOfficerId = actor.id;
+    } else if ((isCompliance) && !isAdmin && !isIC && !isAcctHead) {
+      if (!query.branchId) {
+        const branchIds = [
+          ...(actor.branchId ? [actor.branchId] : []),
+          ...(actor.managedBranchIds ?? []),
+        ];
+        const uniqueIds = [...new Set(branchIds)];
+        if (uniqueIds.length > 0) {
+          (query as typeof query & { branchIds?: string[] }).branchIds = uniqueIds;
+        }
+      }
+    }
+
+    const csv = await this.service.exportCsv(query);
+    const today = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="customers-${today}.csv"`,
+    });
+    res.send(csv);
   }
 }

@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, CheckCircle2, XCircle, Clock, Trash2 } from 'lucide-react';
+import { Upload, CheckCircle2, XCircle, Clock, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { customersService, documentTypesService } from '@/services/customers.service';
 import { PageLoader } from '@/components/ui/LoadingScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/auth.store';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime, normalizeFileUrl } from '@/lib/utils';
 import type { CustomerDocument } from '@/types/domain.types';
 
 const STATUS_MAP = {
@@ -155,6 +155,15 @@ export function CustomerDocumentsTab({ customerId }: { customerId: string }) {
                               className="btn-ghost btn-sm text-red-600 px-2 py-1 text-xs">Reject</button>
                           </>
                         )}
+                        <a
+                          href={normalizeFileUrl(doc.fileUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-ghost btn-icon w-7 h-7 text-brand-600"
+                          title="View document"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </a>
                         {hasPermission('documents:delete') && doc.status !== 'VERIFIED' && (
                           <button onClick={() => deleteMutation.mutate(doc.id)} className="btn-ghost btn-icon w-7 h-7 text-gray-400">
                             <Trash2 className="w-3.5 h-3.5" />

@@ -37,3 +37,24 @@ export function truncate(str: string, max = 50): string {
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Normalizes a document fileUrl so it always points to the current origin.
+ * Documents stored before production env was configured may have
+ * "http://localhost:3000/uploads/..." — this strips that and returns a
+ * relative "/uploads/..." URL that works on any domain.
+ */
+export function normalizeFileUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    // If it's localhost or 127.x, strip the origin so the browser uses the current host
+    if (u.hostname === 'localhost' || u.hostname.startsWith('127.')) {
+      return u.pathname + u.search;
+    }
+    return url;
+  } catch {
+    // Already a relative URL
+    return url;
+  }
+}

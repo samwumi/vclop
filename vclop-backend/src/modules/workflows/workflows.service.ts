@@ -80,7 +80,9 @@ export class WorkflowsService {
     this.assertStagePermission(currentStage.requiredPermission, actor);
     const activeTask = instance.tasks[0];
     if (!activeTask) throw new BusinessException('There is no active task for this workflow stage');
-    if (activeTask.assignedToId && activeTask.assignedToId !== actor.id) throw new ForbiddenActionException('This workflow task is assigned to another user');
+    // Any user with the required permission can action a task — do not block
+    // based on the auto-assigned userId (first available user at submission time
+    // may differ from who actually opens the case).
     const transition = await this.prisma.workflowTransition.findFirst({ where: { fromStageId: currentStage.id, action: dto.action }, include: { toStage: true } });
     if (!transition) throw new BusinessException(`${dto.action} is not allowed from ${currentStage.name}`);
     if (transition.requiresReason && !dto.reason?.trim()) throw new BusinessException('A reason is required for this action');

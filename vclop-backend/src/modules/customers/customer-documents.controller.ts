@@ -8,12 +8,16 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
+import * as path from 'path';
+import * as fs from 'fs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
@@ -75,5 +79,32 @@ export class CustomerDocumentsController {
   async remove(@Param('documentId', ParseUUIDPipe) documentId: string, @CurrentUser() actor: RequestUser) {
     await this.service.remove(documentId, actor.id);
     return ok(null, 'Document deleted');
+  }
+
+  @Get(':documentId/download')
+  @RequirePermissions('documents:read')
+  @ApiOperation({ summary: 'Stream / download a document file (authenticated)' })
+  async download(
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Res() res: Response,
+  ) {
+    const doc = await this.service.getDocumentForDownload(documentId, customerId);
+    // fileKey is the relative path e.g. "customers/<id>/documents/<uuid>.pdf"
+    const uploadDir = process.env.UPLOAD_DIR
+      ? path.resolve(process.env.UPLOAD_DIR)
+      : path.resolve(process.cwd(), 'uploads');
+    const filePath = path.join(uploadDir, doc.fileKey);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'File not found on server' });
+    }
+
+    res.set({
+      'Content-Type': doc.mimeType,
+      'Content-Disposition': `inline; filename="${doc.originalName}"`,
+      'Cache-Control': 'private, max-age=3600',
+    });
+    fs.createReadStream(filePath).pipe(res);
   }
 }

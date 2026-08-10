@@ -79,6 +79,31 @@ export const customersService = {
   async deleteDocument(customerId: string, documentId: string): Promise<void> {
     await api.delete(`/customers/${customerId}/documents/${documentId}`);
   },
+
+  /** Download a document through the authenticated backend endpoint — avoids exposing raw /uploads/ files */
+  getDocumentDownloadUrl(customerId: string, documentId: string): string {
+    return `/api/v1/customers/${customerId}/documents/${documentId}/download`;
+  },
+
+  /** Export customers list as CSV — uses authenticated fetch so JWT is included */
+  async exportCsv(params?: { search?: string; status?: string; branchId?: string }): Promise<void> {
+    const token = (await import('@/stores/auth.store')).useAuthStore.getState().accessToken;
+    const p = new URLSearchParams();
+    if (params?.search)   p.set('search', params.search);
+    if (params?.status)   p.set('status', params.status);
+    if (params?.branchId) p.set('branchId', params.branchId);
+    const resp = await fetch(`/api/v1/customers/export/csv?${p}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!resp.ok) throw new Error('Export failed');
+    const blob = await resp.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = `customers-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(href);
+  },
 };
 
 export const documentTypesService = {

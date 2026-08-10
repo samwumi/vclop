@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Plus, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { loansService } from '@/services/loans.service';
 import { ModulePage } from '@/components/ui/ModulePage';
 import { Badge } from '@/components/ui/Badge';
@@ -79,10 +80,14 @@ export function LoansPage() {
       onSearchChange={(v) => { setSearch(v); setPage(1); }}
       actions={[
         {
-          label: 'Export',
+          label: 'Export CSV',
           icon: Download,
-          onClick: () => {},
-          permission: hasPermission('loan_applications:export'),
+          onClick: () => {
+            loansService.exportCsv({ status: status || undefined, search }).catch(() =>
+              toast.error('Export failed — please try again'),
+            );
+          },
+          permission: true,
         },
         {
           label: 'New Application',

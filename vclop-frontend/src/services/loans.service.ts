@@ -60,4 +60,23 @@ export const loansService = {
     const { data } = await api.post<ApiResponse<Loan>>(`/loan-applications/loans/${loanId}/repayments`, payload);
     return data.data!;
   },
+
+  /** Export loan applications as CSV — uses authenticated fetch so JWT is included */
+  async exportCsv(params?: { status?: string; search?: string }): Promise<void> {
+    const token = (await import('@/stores/auth.store')).useAuthStore.getState().accessToken;
+    const p = new URLSearchParams();
+    if (params?.status) p.set('status', params.status);
+    if (params?.search) p.set('search', params.search);
+    const resp = await fetch(`/api/v1/loan-applications/export/csv?${p}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!resp.ok) throw new Error('Export failed');
+    const blob = await resp.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = `loan-applications-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(href);
+  },
 };

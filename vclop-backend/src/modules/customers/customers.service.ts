@@ -219,6 +219,72 @@ export class CustomersService {
     return ELIGIBLE_STATUSES.includes(status);
   }
 
+  async exportCsv(query: PaginationDto & { status?: CustomerStatus; branchId?: string; branchIds?: string[]; assignedOfficerId?: string }): Promise<string> {
+    const where = {
+      deletedAt: null,
+      ...(query.status && { status: query.status }),
+      ...(query.branchIds?.length
+        ? { branchId: { in: query.branchIds } }
+        : query.branchId
+          ? { branchId: query.branchId }
+          : {}),
+      ...(query.assignedOfficerId && { assignedOfficerId: query.assignedOfficerId }),
+      ...(query.search && {
+        OR: [
+          { firstName: { contains: query.search } },
+          { lastName: { contains: query.search } },
+          { phone: { contains: query.search } },
+          { customerNumber: { contains: query.search } },
+          { bvn: { contains: query.search } },
+        ],
+      }),
+    };
+
+    const customers = await this.prisma.customer.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 5000,
+      select: {
+        customerNumber: true, firstName: true, middleName: true, lastName: true,
+        type: true, status: true, phone: true, alternatePhone: true, email: true,
+        bvn: true, nin: true, gender: true, dateOfBirth: true,
+        residentialAddress: true, businessAddress: true,
+        employerName: true, employmentType: true, jobTitle: true, monthlyIncome: true,
+        nokName: true, nokRelationship: true, nokPhone: true,
+        createdAt: true,
+      },
+    });
+
+    const headers = [
+      'Customer No.', 'First Name', 'Middle Name', 'Last Name', 'Type', 'Status',
+      'Phone', 'Alt Phone', 'Email', 'BVN', 'NIN', 'Gender', 'Date of Birth',
+      'Residential Address', 'Business Address',
+      'Employer', 'Employment Type', 'Job Title', 'Monthly Income',
+      'NOK Name', 'NOK Relationship', 'NOK Phone',
+      'Registered',
+    ];
+
+    const escape = (v: unknown) => {
+      if (v == null) return '';
+      const s = String(v).replace(/"/g, '""');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+    };
+
+    const rows = customers.map((c) => [
+      c.customerNumber, c.firstName, c.middleName ?? '', c.lastName,
+      c.type, c.status, c.phone, c.alternatePhone ?? '', c.email ?? '',
+      c.bvn ?? '', c.nin ?? '', c.gender ?? '',
+      c.dateOfBirth ? new Date(c.dateOfBirth).toLocaleDateString('en-NG') : '',
+      c.residentialAddress ?? '', c.businessAddress ?? '',
+      c.employerName ?? '', c.employmentType ?? '', c.jobTitle ?? '',
+      c.monthlyIncome != null ? Number(c.monthlyIncome) : '',
+      c.nokName ?? '', c.nokRelationship ?? '', c.nokPhone ?? '',
+      new Date(c.createdAt).toLocaleDateString('en-NG'),
+    ].map(escape).join(','));
+
+    return [headers.join(','), ...rows].join('\n');
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   private async assertExists(id: string) {

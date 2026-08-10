@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
@@ -125,5 +126,29 @@ export class LoanApplicationsController {
   @ApiOperation({ summary: 'Record a repayment against a disbursed loan' })
   async recordRepayment(@Param('loanId', ParseUUIDPipe) loanId: string, @Body() dto: RecordRepaymentDto, @CurrentUser() actor: RequestUser) {
     return ok(await this.service.recordRepayment(loanId, dto, actor.id), 'Repayment recorded');
+  }
+
+  @Get('export/csv')
+  @RequirePermissions('loan_applications:read')
+  @ApiOperation({ summary: 'Export loan applications as CSV' })
+  async exportCsv(@Query() query: QueryLoanApplicationsDto, @CurrentUser() actor: RequestUser, @Res() res: Response) {
+    const isAdmin = actor.permissions.has('system:admin');
+    const canViewAll =
+      isAdmin ||
+      actor.permissions.has('loan_applications:compliance_review') ||
+      actor.permissions.has('loan_applications:internal_control_approve') ||
+      actor.permissions.has('loan_applications:disburse_head');
+
+    if (!canViewAll && !query.submittedById) {
+      query.submittedById = actor.id;
+    }
+
+    const csv = await this.service.exportCsv(query);
+    const today = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="loan-applications-${today}.csv"`,
+    });
+    res.send(csv);
   }
 }

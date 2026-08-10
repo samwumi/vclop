@@ -119,6 +119,16 @@ export class CustomerDocumentsService {
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
+  /** Returns the document record with fileKey for the download endpoint */
+  async getDocumentForDownload(documentId: string, customerId: string) {
+    const doc = await this.prisma.customerDocument.findFirst({
+      where: { id: documentId, customerId },
+      select: { id: true, fileKey: true, originalName: true, mimeType: true, customerId: true },
+    });
+    if (!doc) throw new ResourceNotFoundException('Document', documentId);
+    return doc;
+  }
+
   private async refreshProfileCompletion(customerId: string): Promise<void> {
     const [requiredTypes, customer] = await Promise.all([
       this.prisma.documentType.count({ where: { isActive: true, isRequiredDefault: true, deletedAt: null } }),

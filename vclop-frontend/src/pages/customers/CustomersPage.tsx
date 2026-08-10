@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Users, Plus, Download, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 import { customersService } from '@/services/customers.service';
 import { ModulePage } from '@/components/ui/ModulePage';
 import { Badge } from '@/components/ui/Badge';
@@ -49,7 +50,16 @@ export function CustomersPage() {
       search={search}
       onSearchChange={(v) => { setSearch(v); setPage(1); }}
       actions={[
-        { label: 'Export', icon: Download, onClick: () => {}, permission: hasPermission('customers:export') },
+        {
+          label: 'Export CSV',
+          icon: Download,
+          onClick: () => {
+            customersService.exportCsv({ search }).catch(() =>
+              toast.error('Export failed — please try again'),
+            );
+          },
+          permission: true,
+        },
         { label: 'New Customer', icon: Plus, onClick: () => navigate('/customers/new'), variant: 'primary', permission: hasPermission('customers:create') },
       ]}
       columns={COLUMNS}

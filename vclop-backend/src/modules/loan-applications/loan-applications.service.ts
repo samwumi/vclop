@@ -72,8 +72,12 @@ export class LoanApplicationsService {
   async create(dto: CreateLoanApplicationDto, actorId: string): Promise<unknown> {
     const customer = await this.prisma.customer.findFirst({ where: { id: dto.customerId, deletedAt: null } });
     if (!customer) throw new ResourceNotFoundException('Customer', dto.customerId);
-    if (!this.customersService.isEligible(customer.status)) {
-      throw new BusinessException(`Customer must be ELIGIBLE to apply for a loan (currently ${customer.status})`);
+    // Allow applications for customers who are REGISTERED, KYC_PENDING, KYC_VERIFIED, or ELIGIBLE.
+    // Compliance officers verify KYC during their review stage, so the customer does not need
+    // to be fully ELIGIBLE before a loan officer can originate the application.
+    const LOAN_ELIGIBLE_STATUSES: string[] = ['REGISTERED', 'KYC_PENDING', 'KYC_VERIFIED', 'ELIGIBLE'];
+    if (!LOAN_ELIGIBLE_STATUSES.includes(customer.status)) {
+      throw new BusinessException(`Customer status is ${customer.status} — cannot apply for a loan. Customer must be REGISTERED or KYC-verified.`);
     }
 
     const product = await this.prisma.loanProduct.findFirst({ where: { id: dto.loanProductId, deletedAt: null, isActive: true } });
@@ -426,6 +430,62 @@ export class LoanApplicationsService {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  async exportCsv(query: QueryLoanApplicationsDto & PaginationDto): Promise<string> {
+    const where = {
+      deletedAt: null,
+      ...(query.status && { status: query.status }),
+      ...(query.customerId && { customerId: query.customerId }),
+      ...(query.loanProductId && { loanProductId: query.loanProductId }),
+      ...(query.submittedById && { submittedById: query.submittedById }),
+      ...(query.branchId && { customer: { branchId: query.branchId } }),
+    };
+
+    const items = await this.prisma.loanApplication.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 5000,
+      select: {
+        applicationNumber: true,
+        amount: true,
+        tenureDays: true,
+        purpose: true,
+        status: true,
+        submittedAt: true,
+        createdAt: true,
+        customer: { select: { customerNumber: true, firstName: true, lastName: true, phone: true } },
+        loanProduct: { select: { name: true } },
+      },
+    });
+
+    const headers = [
+      'Application No.', 'Customer No.', 'Customer Name', 'Phone',
+      'Product', 'Amount (₦)', 'Tenure (days)', 'Purpose', 'Status',
+      'Submitted', 'Created',
+    ];
+
+    const escape = (v: unknown) => {
+      if (v == null) return '';
+      const s = String(v).replace(/"/g, '""');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+    };
+
+    const rows = items.map((a) => [
+      a.applicationNumber,
+      a.customer?.customerNumber ?? '',
+      a.customer ? `${a.customer.firstName} ${a.customer.lastName}` : '',
+      a.customer?.phone ?? '',
+      a.loanProduct?.name ?? '',
+      Number(a.amount),
+      a.tenureDays,
+      a.purpose ?? '',
+      a.status,
+      a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('en-NG') : '',
+      new Date(a.createdAt).toLocaleDateString('en-NG'),
+    ].map(escape).join(','));
+
+    return [headers.join(','), ...rows].join('\n');
+  }
 
   private async assertEditable(applicationId: string) {
     const application = await this.prisma.loanApplication.findFirst({ where: { id: applicationId, deletedAt: null } });

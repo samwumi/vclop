@@ -97,9 +97,11 @@ class LocalStorageDriver implements StorageDriver {
   }
 
   getUrl(key: string): string {
-    // Use relative URL so it works on any domain (local dev + production)
-    // Falls back to absolute publicUrl only if explicitly set
-    if (this.publicUrl && !this.publicUrl.includes('localhost')) {
+    // Always use a relative URL so it works on any domain (local dev + production).
+    // This means the backend must serve /uploads/ as static assets, which it does.
+    // An explicit STORAGE_PUBLIC_URL env override is only respected if set and
+    // does NOT contain "localhost" — prevents dev config leaking into prod DB records.
+    if (this.publicUrl && !this.publicUrl.includes('localhost') && !this.publicUrl.includes('127.0.0.1')) {
       return `${this.publicUrl}/${key}`;
     }
     return `/uploads/${key}`;
