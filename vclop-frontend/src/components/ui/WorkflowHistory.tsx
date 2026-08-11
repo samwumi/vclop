@@ -1,14 +1,12 @@
 /**
- * WorkflowHistory — shows the full stage-by-stage audit trail for a loan
- * application. Used on LoanDetailPage (officer), ComplianceReviewPanel,
- * and InternalControlPage so every role can see what happened and why.
+ * WorkflowHistory — stage-by-stage audit trail for a loan application.
+ * Used on LoanDetailPage (officer sees feedback), ComplianceReviewPanel
+ * (compliance sees IC return reason), and InternalControlPage (IC sees all stages).
  */
 import { useQuery } from '@tanstack/react-query';
 import { workflowsService } from '@/services/workflows.service';
 import { formatDateTime } from '@/lib/utils';
-import {
-  CheckCircle2, XCircle, RotateCcw, AlertCircle, ChevronRight,
-} from 'lucide-react';
+import { CheckCircle2, XCircle, RotateCcw, AlertCircle } from 'lucide-react';
 
 interface TaskRecord {
   id: string;
@@ -19,7 +17,6 @@ interface TaskRecord {
   completedAt: string | null;
   createdAt: string;
   stage: { name: string; code: string };
-  completedBy?: { firstName: string; lastName: string } | null;
 }
 
 interface WorkflowInstance {
@@ -27,25 +24,18 @@ interface WorkflowInstance {
   tasks: TaskRecord[];
 }
 
-const ACTION_ICON: Record<string, typeof CheckCircle2> = {
-  APPROVE: CheckCircle2,
-  REJECT:  XCircle,
-  RETURN:  RotateCcw,
-  REQUEST_INFORMATION: AlertCircle,
-  ESCALATE: AlertCircle,
+const ACTION_META: Record<string, { icon: typeof CheckCircle2; color: string; ring: string; bg: string }> = {
+  APPROVE:             { icon: CheckCircle2, color: 'text-emerald-600', ring: 'border-emerald-400', bg: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+  REJECT:              { icon: XCircle,      color: 'text-red-600',     ring: 'border-red-400',     bg: 'bg-red-50 border-red-200 text-red-700' },
+  RETURN:              { icon: RotateCcw,    color: 'text-amber-600',   ring: 'border-amber-400',   bg: 'bg-amber-50 border-amber-200 text-amber-800' },
+  REQUEST_INFORMATION: { icon: AlertCircle,  color: 'text-blue-600',    ring: 'border-blue-400',    bg: 'bg-blue-50 border-blue-200 text-blue-800' },
+  ESCALATE:            { icon: AlertCircle,  color: 'text-violet-600',  ring: 'border-violet-400',  bg: 'bg-violet-50 border-violet-200 text-violet-800' },
 };
-
-const ACTION_COLOR: Record<string, string> = {
-  APPROVE: 'text-emerald-600',
-  REJECT:  'text-red-600',
-  RETURN:  'text-amber-600',
-  REQUEST_INFORMATION: 'text-blue-600',
-  ESCALATE: 'text-violet-600',
-};
+const DEFAULT_META = { icon: CheckCircle2, color: 'text-gray-500', ring: 'border-gray-300', bg: 'bg-gray-50 border-gray-200 text-gray-700' };
 
 interface Props {
   applicationId: string;
-  /** Highlight only the most recent return/rejection reason at the top */
+  /** showBannerOnly: show only the latest return/reject reason as a compact banner */
   showBannerOnly?: boolean;
 }
 
@@ -59,85 +49,65 @@ export function WorkflowHistory({ applicationId, showBannerOnly = false }: Props
   const wf = instance as WorkflowInstance | null | undefined;
   if (!wf?.tasks?.length) return null;
 
-  // Only completed tasks have meaningful feedback
   const completed = wf.tasks.filter((t) => t.status === 'COMPLETED' && t.action);
-
   if (completed.length === 0) return null;
 
-  // Latest task with a RETURN or REJECT action — the feedback the current user needs
   const latestFeedback = [...completed]
     .reverse()
     .find((t) => t.action === 'RETURN' || t.action === 'REJECT' || t.action === 'REQUEST_INFORMATION');
 
-  // Banner-only mode: just show the most recent feedback reason if any
+  // ── Banner-only mode ──────────────────────────────────────────────────────
   if (showBannerOnly) {
-    if (!latestFeedback?.reason && !latestFeedback?.notes) return null;
-    const Icon = ACTION_ICON[latestFeedback.action ?? ''] ?? AlertCircle;
-    const color = ACTION_COLOR[latestFeedback.action ?? ''] ?? 'text-gray-600';
-    const bgColor =
-      latestFeedback.action === 'REJECT' ? 'bg-red-50 border-red-200' :
-      latestFeedback.action === 'RETURN' ? 'bg-amber-50 border-amber-200' :
-      'bg-blue-50 border-blue-200';
+    if (!latestFeedback || (!latestFeedback.reason && !latestFeedback.notes)) return null;
+    const meta = ACTION_META[latestFeedback.action ?? ''] ?? DEFAULT_META;
+    const Icon = meta.icon;
     return (
-      <div className={`p-3 rounded-lg border ${bgColor} flex items-start gap-2`}>
-        <Icon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${color}`} />
-        <div className="text-xs space-y-0.5">
-          <p className={`font-semibold ${color}`}>
-            {latestFeedback.action?.replace(/_/g, ' ')} by {latestFeedback.stage.name}
+      <div className={`p-3 rounded-lg border ${meta.bg} flex items-start gap-2`}>
+        <Icon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${meta.color}`} />
+        <div className="space-y-0.5 text-xs">
+          <p className="font-semibold">
+            {latestFeedback.stage.name} — {latestFeedback.action?.replace(/_/g, ' ')}
             {latestFeedback.completedAt && (
-              <span className="font-normal text-gray-400 ml-2">{formatDateTime(latestFeedback.completedAt)}</span>
+              <span className="font-normal opacity-60 ml-2">{formatDateTime(latestFeedback.completedAt)}</span>
             )}
           </p>
-          {latestFeedback.reason && <p className="text-gray-700">{latestFeedback.reason}</p>}
-          {latestFeedback.notes  && <p className="text-gray-500 italic">{latestFeedback.notes}</p>}
+          {latestFeedback.reason && <p>{latestFeedback.reason}</p>}
+          {latestFeedback.notes  && <p className="opacity-70 italic">{latestFeedback.notes}</p>}
         </div>
       </div>
     );
   }
 
-  // Full history view
+  // ── Full history timeline ────────────────────────────────────────────────
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Workflow History</p>
-      <div className="relative">
-        {/* vertical line */}
-        <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gray-100" />
-        <div className="space-y-3">
-          {completed.map((task) => {
-            const Icon = ACTION_ICON[task.action ?? ''] ?? CheckCircle2;
-            const color = ACTION_COLOR[task.action ?? ''] ?? 'text-gray-500';
-            return (
-              <div key={task.id} className="flex items-start gap-3 pl-1.5">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 bg-white border-2 ${
-                  task.action === 'APPROVE' ? 'border-emerald-400' :
-                  task.action === 'REJECT'  ? 'border-red-400' :
-                  task.action === 'RETURN'  ? 'border-amber-400' :
-                  'border-blue-400'
-                } z-10`}>
-                  <Icon className={`w-2.5 h-2.5 ${color}`} />
-                </div>
-                <div className="flex-1 pb-2 border-b border-gray-50 last:border-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-gray-700">{task.stage.name}</span>
-                    <ChevronRight className="w-3 h-3 text-gray-300" />
-                    <span className={`text-xs font-medium ${color}`}>
-                      {task.action?.replace(/_/g, ' ')}
-                    </span>
-                    {task.completedAt && (
-                      <span className="text-xs text-gray-400 ml-auto">{formatDateTime(task.completedAt)}</span>
-                    )}
-                  </div>
-                  {task.reason && (
-                    <p className="text-xs text-gray-600 mt-0.5 ml-0.5">{task.reason}</p>
-                  )}
-                  {task.notes && (
-                    <p className="text-xs text-gray-400 italic mt-0.5 ml-0.5">{task.notes}</p>
-                  )}
-                </div>
+    <div>
+      <p className="section-title mb-3">Workflow History</p>
+      <div className="relative space-y-3">
+        <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-gray-100" />
+        {completed.map((task) => {
+          const meta = ACTION_META[task.action ?? ''] ?? DEFAULT_META;
+          const Icon = meta.icon;
+          return (
+            <div key={task.id} className="flex items-start gap-3">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 bg-white border-2 ${meta.ring} z-10 mt-0.5`}>
+                <Icon className={`w-2.5 h-2.5 ${meta.color}`} />
               </div>
-            );
-          })}
-        </div>
+              <div className="flex-1 pb-2 border-b border-gray-50 last:border-0">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span className="text-xs font-semibold text-gray-700">{task.stage.name}</span>
+                  <span className={`text-xs font-medium ${meta.color}`}>
+                    {task.action?.replace(/_/g, ' ')}
+                  </span>
+                  {task.completedAt && (
+                    <span className="text-[10px] text-gray-400 ml-auto">{formatDateTime(task.completedAt)}</span>
+                  )}
+                </div>
+                {task.reason && <p className="text-xs text-gray-600 mt-0.5">{task.reason}</p>}
+                {task.notes  && <p className="text-xs text-gray-400 italic mt-0.5">{task.notes}</p>}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

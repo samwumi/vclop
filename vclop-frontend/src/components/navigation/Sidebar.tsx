@@ -42,7 +42,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center flex-shrink-0">
           <Briefcase className="w-4 h-4 text-white" />
         </div>
-        <span className="text-base font-bold text-gray-900 tracking-tight truncate">VCLOP</span>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-gray-900 leading-tight truncate">Vertical Capital</p>
+          <p className="text-[10px] text-gray-400 leading-tight truncate">Lending & Operations</p>
+        </div>
       </div>
 
       {/* Nav */}

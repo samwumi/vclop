@@ -247,12 +247,12 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
   const customer = application.customer;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative ml-auto w-full max-w-lg bg-white h-full shadow-2xl flex flex-col">
+    <div className="panel-overlay">
+      <div className="panel-backdrop" onClick={onClose} />
+      <div className="panel-sheet">
 
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="panel-header">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-gray-900 font-mono">{application.applicationNumber}</h2>
@@ -263,7 +263,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                 </p>
               )}
             </div>
-            <button onClick={onClose} className="btn-ghost btn-icon w-8 h-8 text-gray-400 text-lg">✕</button>
+            <button onClick={onClose} className="btn-ghost btn-icon w-8 h-8 text-gray-400">✕</button>
           </div>
           <div className="flex gap-3 mt-2 text-xs text-gray-500">
             <span>₦{Number(application.amount).toLocaleString()}</span>
@@ -279,12 +279,12 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100 overflow-x-auto">
+        <div className="panel-tabs">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors ${tab === id ? 'border-b-2 border-brand-600 text-brand-700' : 'text-gray-500 hover:text-gray-700'}`}
+              className={tab === id ? 'panel-tab-active' : 'panel-tab'}
             >
               <Icon className="w-3.5 h-3.5" />{label}
             </button>
@@ -292,7 +292,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
         </div>
 
         {/* Tab bodies */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="panel-body">
 
           {/* ── Documents ─────────────────────────────────────────────────── */}
           {tab === 'documents' && (
@@ -421,7 +421,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
               <div className="space-y-4">
                 {/* Identity */}
                 <div className="card p-4">
-                  <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Identity</p>
+                  <p className="section-title">Identity</p>
                   <Row label="Full Name"    value={c ? `${c.firstName ?? ''} ${c.middleName ?? ''} ${c.lastName ?? ''}`.trim() : ''} />
                   <Row label="Customer No." value={c?.customerNumber} />
                   <Row label="Type"         value={c?.type} />
@@ -478,7 +478,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
 
                 {/* Contact */}
                 <div className="card p-4">
-                  <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Contact & IDs</p>
+                  <p className="section-title">Contact & IDs</p>
                   <Row label="Phone"         value={c?.phone} />
                   <Row label="Alt. Phone"    value={c?.alternatePhone} />
                   <Row label="Email"         value={c?.email} />
@@ -488,7 +488,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
 
                 {/* Address */}
                 <div className="card p-4">
-                  <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Address</p>
+                  <p className="section-title">Address</p>
                   <Row label="Residential" value={c?.residentialAddress} />
                   <Row label="Business"    value={c?.businessAddress} />
                 </div>
@@ -496,7 +496,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                 {/* Employment from form data */}
                 {fd && (
                   <div className="card p-4">
-                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Employment</p>
+                    <p className="section-title">Employment</p>
                     <Row label="Employer"         value={fd.employer_name} />
                     <Row label="Employment Type"  value={fd.employment_type} />
                     <Row label="Job Title"        value={fd.job_title} />
@@ -509,7 +509,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                 {/* Next of Kin from form data */}
                 {fd && (fd.nok_name || fd.nok_phone) && (
                   <div className="card p-4">
-                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Next of Kin</p>
+                    <p className="section-title">Next of Kin</p>
                     <Row label="Full Name"     value={fd.nok_name} />
                     <Row label="Relationship"  value={fd.nok_relationship} />
                     <Row label="Phone"         value={fd.nok_phone} />
@@ -577,7 +577,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
           {/* ── Verifications ─────────────────────────────────────────────── */}
           {tab === 'verification' && (
             <div className="card p-4 space-y-0.5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Identity & Background</p>
+              <p className="section-title">Identity & Background</p>
               <VerifyRow label="BVN Verified"        verifiedAt={assessment?.bvnVerifiedAt}        field="bvnVerifiedAt" />
               <VerifyRow label="NIN Verified"        verifiedAt={assessment?.ninVerifiedAt}        field="ninVerifiedAt" />
               <VerifyRow label="Phone Verified"      verifiedAt={assessment?.phoneVerifiedAt}      field="phoneVerifiedAt" />
@@ -748,7 +748,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <p className="text-xs font-semibold text-gray-600">Visit History ({visits.length})</p>
                   {visits.map((v) => (
-                    <div key={v.id} className="p-3 bg-gray-50 rounded-lg text-xs space-y-1.5">
+                    <div key={v.id} className="detail-block">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-gray-700 uppercase tracking-wide">{v.visitType}</span>
                         <span className="text-gray-400">{formatDateTime(v.createdAt)}</span>
@@ -888,7 +888,7 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
               <WorkflowHistory applicationId={application.id} showBannerOnly />
 
               {assessment?.recommendation && (
-                <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-sm">
+                <div className="banner-info">
                   <p className="font-medium text-blue-800">Saved recommendation: {assessment.recommendation.replace(/_/g, ' ')}</p>
                   {assessment.recommendationNotes && (
                     <p className="text-blue-600 mt-1 text-xs">{assessment.recommendationNotes}</p>
@@ -980,10 +980,10 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
             </div>
           )}
 
-        </div>{/* end scroll area */}
+        </div>{/* end panel-body */}
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+        <div className="panel-footer">
           {tab === 'assessment' && (
             <button
               onClick={() => saveMutation.mutate()}

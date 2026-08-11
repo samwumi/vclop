@@ -92,12 +92,12 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative ml-auto w-full max-w-lg bg-white h-full shadow-2xl flex flex-col">
+    <div className="panel-overlay">
+      <div className="panel-backdrop" onClick={onClose} />
+      <div className="panel-sheet">
 
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="panel-header">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-gray-900 font-mono">{application.applicationNumber}</h2>
@@ -108,7 +108,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                 </p>
               )}
             </div>
-            <button onClick={onClose} className="btn-ghost btn-icon w-8 h-8 text-gray-400 text-lg">✕</button>
+            <button onClick={onClose} className="btn-ghost btn-icon w-8 h-8 text-gray-400">✕</button>
           </div>
           <div className="flex gap-3 mt-1.5 text-xs text-gray-500">
             <span>₦{Number(application.amount).toLocaleString()}</span>
@@ -120,12 +120,12 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100 overflow-x-auto">
+        <div className="panel-tabs">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors ${tab === id ? 'border-b-2 border-brand-600 text-brand-700' : 'text-gray-500 hover:text-gray-700'}`}
+              className={tab === id ? 'panel-tab-active' : 'panel-tab'}
             >
               <Icon className="w-3.5 h-3.5" />{label}
             </button>
@@ -133,7 +133,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="panel-body">
 
           {/* ── Documents ─────────────────────────────────────────────── */}
           {tab === 'documents' && (
@@ -185,7 +185,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
           {/* ── Application Details ────────────────────────────────────── */}
           {tab === 'details' && (
             <div className="space-y-3">
-              <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+              <div className="detail-block">
                 <p className="font-semibold text-gray-700 mb-2">Loan Request</p>
                 <div className="grid grid-cols-2 gap-y-1.5 text-gray-600">
                   <span className="text-gray-400">Product</span><span className="font-medium">{application.loanProduct?.name ?? '—'}</span>
@@ -198,7 +198,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
 
               {/* Guarantors */}
               {(application.guarantors?.length ?? 0) > 0 && (
-                <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                <div className="detail-block">
                   <p className="font-semibold text-gray-700 mb-2">Guarantors ({application.guarantors!.length})</p>
                   {application.guarantors!.map((g) => (
                     <div key={g.id} className="mb-1.5">
@@ -211,7 +211,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
 
               {/* Collateral */}
               {(application.collaterals?.length ?? 0) > 0 && (
-                <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                <div className="detail-block">
                   <p className="font-semibold text-gray-700 mb-2">Collateral ({application.collaterals!.length})</p>
                   {application.collaterals!.map((c) => (
                     <div key={c.id} className="mb-1.5">
@@ -270,20 +270,20 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                     )}
                   </div>
                   {assessment.bankStatementNotes && (
-                    <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                    <div className="detail-block">
                       <p className="font-semibold text-gray-600 mb-1">Bank Statement Notes</p>
                       <p className="text-gray-700 whitespace-pre-wrap">{assessment.bankStatementNotes}</p>
                     </div>
                   )}
                   {assessment.incomeAssessment && (
-                    <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                    <div className="detail-block">
                       <p className="font-semibold text-gray-600 mb-1">Income Assessment</p>
                       <p className="text-gray-700 whitespace-pre-wrap">{assessment.incomeAssessment}</p>
                     </div>
                   )}
                   {/* Verifications */}
-                  <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
-                    <p className="font-semibold text-gray-600 mb-2">Verification Checklist</p>
+                  <div className="detail-block">
+                    <p className="section-title">Verification Checklist</p>
                     {[
                       { label: 'BVN',        v: assessment.bvnVerifiedAt },
                       { label: 'NIN',        v: assessment.ninVerifiedAt },
@@ -292,20 +292,20 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                       { label: 'Business',   v: assessment.businessVerifiedAt },
                       { label: 'Residence',  v: assessment.residenceVerifiedAt },
                     ].map(({ label, v }) => (
-                      <div key={label} className="flex justify-between py-1 border-b border-gray-100 last:border-0">
+                      <div key={label} className="stat-row">
                         <span className="text-gray-600">{label}</span>
                         {v ? (
-                          <span className="text-emerald-600 font-medium">✓ Verified {formatDate(v)}</span>
+                          <span className="check-verified">✓ Verified {formatDate(v)}</span>
                         ) : (
-                          <span className="text-gray-400">Not verified</span>
+                          <span className="check-pending">Not verified</span>
                         )}
                       </div>
                     ))}
                   </div>
                   {/* Field visits */}
                   {allVisits.length > 0 && (
-                    <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
-                      <p className="font-semibold text-gray-600 mb-2">Field Visits ({allVisits.length})</p>
+                    <div className="detail-block">
+                      <p className="section-title">Field Visits ({allVisits.length})</p>
                       {allVisits.map((v) => (
                         <div key={v.id} className="mb-2 pb-2 border-b border-gray-100 last:border-0">
                           <p className="font-medium text-gray-700 uppercase">{v.visitType}</p>
@@ -337,7 +337,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
 
                   {/* Transport requests — what compliance requested to do the field work */}
                   {transportRequests.length > 0 && (
-                    <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                    <div className="detail-block">
                       <div className="flex items-center gap-1.5 mb-2">
                         <Car className="w-3.5 h-3.5 text-gray-500" />
                         <p className="font-semibold text-gray-600">Transport Requests ({transportRequests.length})</p>
@@ -361,7 +361,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                     </div>
                   )}
                   {/* Workflow stage history — compliance decision notes, return reasons */}
-                  <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                  <div className="detail-block">
                     <WorkflowHistory applicationId={application.id} />
                   </div>
                 </>
@@ -426,7 +426,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+        <div className="panel-footer">
           {tab === 'decision' && (
             <button
               onClick={() => mutation.mutate()}

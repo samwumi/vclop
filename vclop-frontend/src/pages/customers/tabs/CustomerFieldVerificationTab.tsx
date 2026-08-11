@@ -129,7 +129,7 @@ export function CustomerFieldVerificationTab({ customerId, canLog }: Props) {
 
             {/* No loan application yet — show info instead of broken form */}
             {!hasLoanApp ? (
-              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-2">
+              <div className="banner-warning flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-700">
                   A loan application must exist for this customer before field visits can be logged here.

@@ -137,9 +137,9 @@ export function Customer360Page() {
                   return (
                     <div key={st} className="flex items-center gap-1">
                       <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        done   ? 'bg-emerald-100 text-emerald-700' :
-                        active ? 'bg-brand-100 text-brand-700 ring-1 ring-brand-400' :
-                                 'bg-gray-100 text-gray-400'
+                        done   ? 'kyc-step-done' :
+                        active ? 'kyc-step-active' :
+                                 'kyc-step-pending'
                       }`}>
                         {done && '✓ '}{STATUS_BADGE[st]?.label ?? st}
                       </span>
@@ -179,7 +179,7 @@ export function Customer360Page() {
 
           {/* Alerts */}
           {missingDocs > 0 && (
-            <div className="mt-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-2">
+            <div className="mt-3 banner-warning flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700">
                 <strong>{missingDocs} document(s)</strong> still pending / rejected.{' '}
@@ -190,7 +190,7 @@ export function Customer360Page() {
 
           {/* Compliance nudge to do field visit before marking eligible */}
           {canVerify && c.status === 'KYC_PENDING' && (
-            <div className="mt-3 p-2.5 rounded-lg bg-blue-50 border border-blue-200 flex items-start gap-2">
+            <div className="mt-3 banner-info flex items-start gap-2">
               <Navigation className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-blue-700">
                 Log a field visit with GPS &amp; photos, then mark the customer{' '}

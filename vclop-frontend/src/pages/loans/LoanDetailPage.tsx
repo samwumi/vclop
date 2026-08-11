@@ -184,7 +184,7 @@ export function LoanDetailPage() {
           </div>
 
           {application.rejectionReason && (
-            <div className="mt-3 p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+            <div className="mt-3 banner-danger">
               <strong>Rejected:</strong> {application.rejectionReason}
             </div>
           )}
