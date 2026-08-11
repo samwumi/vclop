@@ -150,6 +150,11 @@ export function NewCustomerPage() {
         <p className="text-sm text-gray-500">Core identity details. Additional information can be added from the customer's profile after registration.</p>
       </div>
 
+      <div className="banner-info mb-4 text-xs">
+        <strong>Required for loan applications:</strong> BVN or NIN · Gender · Date of birth · Residential address · Next of kin (name &amp; phone).
+        You can register now with basic info and complete the rest from the customer profile.
+      </div>
+
       <form onSubmit={handleSubmit} className="card">
         <div className="card-body space-y-5">
           <div>

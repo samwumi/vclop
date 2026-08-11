@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Zap, Copy, Receipt, Car, User, ChevronDown, ChevronUp, FileText as FileIcon, Eye } from 'lucide-react';
+import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Zap, Copy, Receipt, Car, User, ChevronDown, ChevronUp, FileText as FileIcon, Eye, AlertTriangle } from 'lucide-react';
 import { loansService } from '@/services/loans.service';
 import { virtualAccountsService } from '@/services/virtual-accounts.service';
 import { receiptsService } from '@/services/receipts.service';
@@ -150,6 +150,27 @@ export function LoanDetailPage() {
     onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to submit transport request'),
   });
 
+  // ── Customer completeness for DRAFT submit gate ───────────────────────────
+  const { data: customer360ForSubmit } = useQuery({
+    queryKey: ['customer360-submit-check', application?.customer?.id],
+    queryFn: () => customersService.get(application!.customer!.id),
+    enabled: !!application?.customer?.id && application?.status === 'DRAFT',
+  });
+
+  const submitChecks = (() => {
+    if (!customer360ForSubmit) return [];
+    const c = customer360ForSubmit.profile as Customer & Record<string, unknown>;
+    const docCount = customer360ForSubmit.documents?.length ?? 0;
+    return [
+      { label: 'BVN or NIN',                      ok: !!(c.bvn || c.nin) },
+      { label: 'Residential address',             ok: !!c.residentialAddress },
+      { label: 'Business address',                ok: !!c.businessAddress },
+      { label: 'Next of kin (name & phone)',       ok: !!(c.nokName && c.nokPhone) },
+      { label: 'At least 1 document uploaded',    ok: docCount > 0 },
+    ];
+  })();
+  const submitBlocked = submitChecks.some((c) => !c.ok);
+
   if (isLoading) return <PageLoader />;
   if (!application) return null;
 
@@ -198,9 +219,39 @@ export function LoanDetailPage() {
         {/* Action bar based on status */}
         <div className="border-t border-gray-100 px-6 py-3 flex flex-wrap gap-2">
           {application.status === 'DRAFT' && hasPermission('loan_applications:submit') && (
-            <button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending} className="btn-primary btn-sm gap-1.5">
-              <Send className="w-3.5 h-3.5" /> Submit for Review
-            </button>
+            <div className="w-full space-y-2">
+              {submitChecks.length > 0 && submitBlocked && (
+                <div className="rounded-lg border bg-amber-50 border-amber-200 p-3 text-xs space-y-1.5">
+                  <p className="font-semibold text-amber-800 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    Complete the customer profile before submitting:
+                  </p>
+                  <ul className="space-y-0.5">
+                    {submitChecks.filter(c => !c.ok).map(c => (
+                      <li key={c.label} className="flex items-center gap-1.5 text-amber-700">
+                        <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {c.label}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href={`/customers/${application.customer?.id}?tab=details`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber-700 underline font-medium"
+                  >
+                    Open customer profile →
+                  </a>
+                </div>
+              )}
+              <button
+                onClick={() => submitMutation.mutate()}
+                disabled={submitMutation.isPending || submitBlocked || !customer360ForSubmit}
+                className="btn-primary btn-sm gap-1.5 disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                {submitMutation.isPending ? 'Submitting…' : 'Submit for Review'}
+              </button>
+            </div>
           )}
           {application.status === 'COMPLIANCE_REVIEW' && hasPermission('loan_applications:compliance_review') && !showReject && (
             <div className="w-full space-y-2">

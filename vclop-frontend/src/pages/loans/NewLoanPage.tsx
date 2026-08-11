@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { FileText } from 'lucide-react';
+import { FileText, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { loansService } from '@/services/loans.service';
 import { adminService } from '@/services/admin.service';
 import { customersService } from '@/services/customers.service';
@@ -23,12 +23,31 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
+// ── Profile completeness check ─────────────────────────────────────────────
+
+type CheckResult = { label: string; ok: boolean };
+
+function profileChecks(c: Customer & Record<string, unknown>, docCount: number): CheckResult[] {
+  return [
+    { label: 'BVN or NIN provided',              ok: !!(c.bvn || c.nin) },
+    { label: 'Gender filled in',                 ok: !!c.gender },
+    { label: 'Date of birth filled in',          ok: !!c.dateOfBirth },
+    { label: 'Residential address filled in',    ok: !!c.residentialAddress },
+    { label: 'Business address filled in',       ok: !!c.businessAddress },
+    { label: 'Next of kin name & phone provided',ok: !!(c.nokName && c.nokPhone) },
+    { label: 'At least 1 document uploaded',     ok: docCount > 0 },
+  ];
+}
+
+const LOAN_BLOCKED_STATUSES = ['INELIGIBLE', 'BLACKLISTED', 'SUSPENDED', 'PROSPECT'];
+
 export function NewLoanPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const qc = useQueryClient();
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [docCount, setDocCount] = useState<number | null>(null);
 
   const { data: products } = useQuery({
     queryKey: ['admin', 'loan-products', 'active'],
@@ -53,10 +72,28 @@ export function NewLoanPage() {
   useEffect(() => {
     const cid = searchParams.get('customerId');
     if (cid && !selectedCustomer) {
-      customersService.get(cid).then((c) => { setSelectedCustomer(c.profile); setValue('customerId', c.profile.id); }).catch(() => {});
+      customersService.get(cid).then((c360) => {
+        setSelectedCustomer(c360.profile as Customer);
+        setDocCount(c360.documents?.length ?? 0);
+        setValue('customerId', c360.profile.id);
+      }).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function selectCustomer(c: Customer) {
+    setSelectedCustomer(c);
+    setValue('customerId', c.id);
+    setCustomerSearch('');
+    setDocCount(null);
+    // Load full 360 to get document count and detailed fields
+    customersService.get(c.id)
+      .then((c360) => {
+        setSelectedCustomer(c360.profile as Customer);
+        setDocCount(c360.documents?.length ?? 0);
+      })
+      .catch(() => setDocCount(0));
+  }
 
   const mutation = useMutation({
     mutationFn: (values: FormValues) => loansService.create(values),
@@ -65,8 +102,18 @@ export function NewLoanPage() {
       qc.invalidateQueries({ queryKey: ['loans'] });
       navigate(`/loans/${loan.id}`);
     },
-    onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to create application'),
+    onError: (e: unknown) =>
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to create application'),
   });
+
+  // Compute checks
+  const checks = selectedCustomer && docCount !== null
+    ? profileChecks(selectedCustomer as Customer & Record<string, unknown>, docCount)
+    : [];
+  const failedChecks = checks.filter((c) => !c.ok);
+  const isBlocked =
+    (selectedCustomer && LOAN_BLOCKED_STATUSES.includes(selectedCustomer.status)) ||
+    failedChecks.length > 0;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -84,32 +131,103 @@ export function NewLoanPage() {
           <div className="card-body space-y-3">
             {selectedCustomer ? (
               <>
+                {/* Selected customer badge */}
                 <div className="flex items-center justify-between p-3 bg-brand-50 rounded-lg border border-brand-200">
                   <div>
-                    <p className="text-sm font-semibold text-brand-800">{selectedCustomer.firstName} {selectedCustomer.lastName}</p>
-                    <p className="text-xs text-brand-600">{selectedCustomer.customerNumber} · {selectedCustomer.phone ?? ''}</p>
+                    <p className="text-sm font-semibold text-brand-800">
+                      {selectedCustomer.firstName} {selectedCustomer.lastName}
+                    </p>
+                    <p className="text-xs text-brand-600">
+                      {selectedCustomer.customerNumber} · {selectedCustomer.phone ?? ''}
+                    </p>
                   </div>
-                  <button type="button" onClick={() => { setSelectedCustomer(null); setValue('customerId', ''); }} className="text-xs text-red-500 hover:underline">Change</button>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedCustomer(null); setDocCount(null); setValue('customerId', ''); }}
+                    className="text-xs text-red-500 hover:underline"
+                  >
+                    Change
+                  </button>
                 </div>
-                {selectedCustomer.status !== 'ELIGIBLE' && selectedCustomer.status !== 'KYC_VERIFIED' && selectedCustomer.status !== 'KYC_PENDING' && selectedCustomer.status !== 'REGISTERED' && (
-                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-800">
-                    ⚠ This customer is <strong>{selectedCustomer.status}</strong> and cannot apply for a loan.
+
+                {/* Blocked status */}
+                {selectedCustomer && LOAN_BLOCKED_STATUSES.includes(selectedCustomer.status) && (
+                  <div className="banner-danger flex items-start gap-2">
+                    <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>
+                      Customer is <strong>{selectedCustomer.status}</strong> and cannot apply for a loan.
+                    </span>
                   </div>
                 )}
+
+                {/* KYC info note */}
                 {(selectedCustomer.status === 'REGISTERED' || selectedCustomer.status === 'KYC_PENDING') && (
-                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-800">
-                    ℹ Customer is <strong>{selectedCustomer.status.replace(/_/g, ' ')}</strong>. Compliance will verify KYC and mark Eligible during their review.
+                  <div className="banner-info">
+                    ℹ Customer is <strong>{selectedCustomer.status.replace(/_/g, ' ')}</strong>.
+                    Compliance will complete KYC verification during their review.
                   </div>
+                )}
+
+                {/* Profile completeness checklist */}
+                {docCount !== null && checks.length > 0 && (
+                  <div className={`rounded-lg border p-3 space-y-2 text-xs ${
+                    failedChecks.length > 0
+                      ? 'bg-amber-50 border-amber-200'
+                      : 'bg-emerald-50 border-emerald-200'
+                  }`}>
+                    <p className={`font-semibold flex items-center gap-1.5 ${
+                      failedChecks.length > 0 ? 'text-amber-800' : 'text-emerald-800'
+                    }`}>
+                      {failedChecks.length > 0
+                        ? <><AlertTriangle className="w-3.5 h-3.5" /> {failedChecks.length} item{failedChecks.length > 1 ? 's' : ''} required before submission</>
+                        : <><CheckCircle2 className="w-3.5 h-3.5" /> Customer profile complete — ready to apply</>
+                      }
+                    </p>
+                    <ul className="space-y-1">
+                      {checks.map((chk) => (
+                        <li key={chk.label} className={`flex items-center gap-2 ${chk.ok ? 'text-emerald-700' : 'text-amber-800 font-medium'}`}>
+                          {chk.ok
+                            ? <CheckCircle2 className="w-3 h-3 flex-shrink-0 text-emerald-500" />
+                            : <AlertTriangle className="w-3 h-3 flex-shrink-0 text-amber-500" />
+                          }
+                          {chk.label}
+                        </li>
+                      ))}
+                    </ul>
+                    {failedChecks.length > 0 && (
+                      <a
+                        href={`/customers/${selectedCustomer.id}?tab=details`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block mt-1 font-medium text-amber-700 underline"
+                      >
+                        Open customer profile to complete missing fields →
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Loading state while fetching 360 */}
+                {docCount === null && (
+                  <p className="text-xs text-gray-400 flex items-center gap-1.5">
+                    <LoadingSpinner className="w-3 h-3" /> Checking profile completeness…
+                  </p>
                 )}
               </>
-            ) : (              <div className="relative">
-                <SearchBar value={customerSearch} onChange={setCustomerSearch} placeholder="Search by name, phone, customer #…" />
+            ) : (
+              <div className="relative">
+                <SearchBar
+                  value={customerSearch}
+                  onChange={setCustomerSearch}
+                  placeholder="Search by name, phone, customer #…"
+                />
                 {(searchResults ?? []).length > 0 && (
                   <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
                     {(searchResults ?? []).map((c) => (
                       <button
-                        key={c.id} type="button"
-                        onClick={() => { setSelectedCustomer(c); setValue('customerId', c.id); setCustomerSearch(''); }}
+                        key={c.id}
+                        type="button"
+                        onClick={() => selectCustomer(c)}
                         className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0"
                       >
                         <p className="font-medium text-gray-800">{c.firstName} {c.lastName}</p>
@@ -172,7 +290,11 @@ export function NewLoanPage() {
 
         <div className="flex justify-end gap-3 pb-6">
           <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
-          <button type="submit" disabled={mutation.isPending || (!!selectedCustomer && !['REGISTERED','KYC_PENDING','KYC_VERIFIED','ELIGIBLE'].includes(selectedCustomer.status))} className="btn-primary gap-2 disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={mutation.isPending || !selectedCustomer || isBlocked || docCount === null}
+            className="btn-primary gap-2 disabled:opacity-50"
+          >
             {mutation.isPending ? <LoadingSpinner className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
             {mutation.isPending ? 'Creating…' : 'Create Application'}
           </button>

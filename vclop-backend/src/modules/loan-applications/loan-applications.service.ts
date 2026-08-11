@@ -80,6 +80,20 @@ export class LoanApplicationsService {
       throw new BusinessException(`Customer status is ${customer.status} — cannot apply for a loan. Customer must be REGISTERED or KYC-verified.`);
     }
 
+    // ── Minimum profile requirements before a loan application ─────────────────
+    const missing: string[] = [];
+    if (!customer.bvn && !customer.nin)        missing.push('BVN or NIN (government ID)');
+    if (!customer.gender)                      missing.push('Gender');
+    if (!customer.dateOfBirth)                 missing.push('Date of birth');
+    if (!customer.residentialAddress)          missing.push('Residential address');
+    if (!customer.nokName || !customer.nokPhone) missing.push('Next of kin (name and phone)');
+
+    if (missing.length > 0) {
+      throw new BusinessException(
+        `Customer profile is incomplete. Please fill in the following before applying: ${missing.join(', ')}.`,
+      );
+    }
+
     const product = await this.prisma.loanProduct.findFirst({ where: { id: dto.loanProductId, deletedAt: null, isActive: true } });
     if (!product) throw new ResourceNotFoundException('Loan product', dto.loanProductId);
 
@@ -165,7 +179,7 @@ export class LoanApplicationsService {
     return this.findOne(applicationId);
   }
 
-  /** DRAFT -> SUBMITTED. Checks the product's guarantor/collateral requirements and its required-document checklist against the customer. */
+  /** DRAFT -> SUBMITTED. Checks customer profile completeness, document upload, guarantor/collateral and document checklist. */
   async submit(applicationId: string, actorId: string): Promise<unknown> {
     const application = await this.prisma.loanApplication.findFirst({
       where: { id: applicationId, deletedAt: null },
@@ -176,6 +190,32 @@ export class LoanApplicationsService {
       throw new BusinessException(`Only DRAFT applications can be submitted (currently ${application.status})`);
     }
 
+    // ── Customer profile completeness check ───────────────────────────────
+    const customer = await this.prisma.customer.findUnique({ where: { id: application.customerId } });
+    if (!customer) throw new ResourceNotFoundException('Customer', application.customerId);
+
+    const profileErrors: string[] = [];
+    if (!customer.bvn && !customer.nin)        profileErrors.push('Customer must have a BVN or NIN');
+    if (!customer.residentialAddress)          profileErrors.push('Residential address is required');
+    if (!customer.businessAddress)             profileErrors.push('Business address is required (business loan)');
+    if (!customer.nokName || !customer.nokPhone) profileErrors.push('Next of kin name and phone are required');
+    if (profileErrors.length > 0) {
+      throw new BusinessException(
+        `Customer profile incomplete — please update the customer before submitting:\n• ${profileErrors.join('\n• ')}`,
+      );
+    }
+
+    // ── At least 1 document uploaded ─────────────────────────────────────
+    const docCount = await this.prisma.customerDocument.count({
+      where: { customerId: application.customerId },
+    });
+    if (docCount === 0) {
+      throw new BusinessException(
+        'At least one document must be uploaded for the customer before submitting',
+      );
+    }
+
+    // ── Product-specific requirements ─────────────────────────────────────
     if (application.loanProduct.requiresGuarantor && application.guarantors.length === 0) {
       throw new BusinessException(`${application.loanProduct.name} requires at least one guarantor`);
     }
