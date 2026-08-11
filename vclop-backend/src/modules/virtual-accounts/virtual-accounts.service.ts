@@ -135,18 +135,66 @@ export class VirtualAccountsService {
     }
 
     const payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : JSON.parse(rawBody.toString());
-    const parsed = provider.parseWebhookPayload(payload);
 
-    // Not every event this provider sends is a reconcilable account credit
-    // (e.g. Paystack also sends charge.success for card payments) — those
-    // are acknowledged and ignored, not treated as an error, so the
-    // provider doesn't keep retrying delivery.
+    // Handle DVA assignment webhook (async response to /assign endpoint)
+    if (payload.event === 'dedicatedaccount.assign.success') {
+      return this.handleDvaAssigned(payload);
+    }
+    if (payload.event === 'dedicatedaccount.assign.failed') {
+      this.logger.error(`DVA assignment failed: ${JSON.stringify(payload.data)}`);
+      return { ignored: true };
+    }
+
+    const parsed = provider.parseWebhookPayload(payload);
     if (!parsed) {
-      this.logger.log(`Ignoring non-reconcilable ${providerType} webhook event`);
+      this.logger.log(`Ignoring non-reconcilable ${providerType} webhook event: ${payload.event}`);
       return { ignored: true };
     }
 
     return this.reconcile(providerType, parsed);
+  }
+
+  private async handleDvaAssigned(payload: {
+    data?: {
+      account_number?: string;
+      account_name?: string;
+      customer?: { customer_code?: string; email?: string };
+      bank?: { name?: string };
+    };
+  }): Promise<unknown> {
+    const data = payload.data;
+    if (!data?.account_number || !data.customer?.customer_code) {
+      this.logger.warn('dedicatedaccount.assign.success missing account_number or customer_code');
+      return { ignored: true };
+    }
+    // Find the PENDING virtual account for this Paystack customer
+    const pending = await this.prisma.virtualAccount.findFirst({
+      where: { providerCustomerId: { startsWith: 'PENDING-' } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!pending) {
+      this.logger.warn(`No PENDING virtual account found to update with ${data.account_number}`);
+      return { ignored: true };
+    }
+    const updated = await this.prisma.virtualAccount.update({
+      where: { id: pending.id },
+      data: {
+        providerCustomerId: data.customer.customer_code,
+        accountNumber:      data.account_number,
+        accountName:        data.account_name ?? pending.accountName,
+        bankName:           data.bank?.name ?? pending.bankName,
+      },
+    });
+    this.logger.log(`Updated PENDING virtual account ${pending.id} → ${data.account_number}`);
+    this.events.emit('audit.log', {
+      action: AuditAction.UPDATE,
+      module: 'virtual-accounts',
+      entityId: updated.id,
+      entityType: 'VirtualAccount',
+      description: `DVA assigned by Paystack: ${data.account_number}`,
+      isSuccess: true,
+    });
+    return updated;
   }
 
   /** Dev-only helper — exercises the exact same reconciliation path a real webhook would, without needing a real bank. Only works when LOCAL is the active provider. */

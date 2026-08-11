@@ -10,26 +10,21 @@ import {
 } from './virtual-account-provider.interface';
 
 /**
- * Implements Dedicated Virtual Accounts against the real Paystack API.
- * Verified against Paystack's current developer docs (as of this build):
- *   - https://paystack.com/docs/api/customer/
- *   - https://paystack.com/docs/api/dedicated-virtual-account/
- *   - https://paystack.com/docs/payments/dedicated-virtual-accounts/
- *   - https://paystack.com/docs/payments/webhooks/
+ * Paystack Dedicated Virtual Accounts — Financial Services flow.
  *
- * Flow used here is the "multi-step" one from their docs (create customer,
- * then create a DVA for that existing customer) rather than the single-step
- * `/dedicated_account/assign` endpoint — the multi-step flow returns the
- * account details synchronously in the response, so no webhook wait is
- * needed just to finish account creation. The `/assign` endpoint is async
- * and only reports success/failure via `dedicatedaccount.assign.*` webhook
- * events, which this provider doesn't currently listen for.
+ * For businesses classified as Financial Services, Paystack requires the
+ * single-step `/dedicated_account/assign` endpoint which includes BVN
+ * validation inline. This is async — Paystack responds immediately with
+ * "Assign dedicated account in progress" and delivers the actual account
+ * number via the `dedicatedaccount.assign.success` webhook.
  *
- * Required env vars: PAYSTACK_SECRET_KEY, PAYSTACK_BASE_URL (defaults to
- * https://api.paystack.co), PAYSTACK_PREFERRED_BANK (defaults to
- * "test-bank" — the docs' designated test-mode bank slug; set this to a
- * real bank slug such as "wema-bank" or "titan-paystack" for live mode,
- * from the Fetch Providers endpoint).
+ * We store a PENDING virtual account immediately and update it when the
+ * webhook arrives with the real account number.
+ *
+ * Required env vars:
+ *   PAYSTACK_SECRET_KEY       — live or test key
+ *   PAYSTACK_PREFERRED_BANK   — "titan-paystack" or "wema-bank" (live), "test-bank" (test)
+ *   PAYSTACK_BASE_URL         — defaults to https://api.paystack.co
  */
 @Injectable()
 export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
@@ -41,84 +36,115 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
   async createVirtualAccount(input: CreateVirtualAccountInput): Promise<CreateVirtualAccountResult> {
     const [firstName, ...rest] = input.customerName.trim().split(/\s+/);
     const lastName = rest.join(' ') || firstName;
-
     const email = input.customerEmail ?? `customer-${input.customerId}@no-email.vclop.local`;
-    if (!input.customerEmail) {
-      this.logger.warn(`No email for customer ${input.customerId} — using placeholder`);
+    const phone = this.normalizePhone(input.customerPhone);
+    const bank = this.preferredBank;
+    const isLive = this.secretKey.startsWith('sk_live_');
+
+    // ── Test mode: use multi-step (synchronous, no BVN needed) ───────────
+    if (!isLive || bank === 'test-bank') {
+      return this.createViaMultiStep(firstName, lastName, email, phone, input);
     }
 
-    // Normalize phone to international format (+234) as Paystack requires
-    const phone = this.normalizePhone(input.customerPhone);
+    // ── Live mode: use /assign endpoint (Financial Services requirement) ──
+    if (!input.customerBvn) {
+      throw new BusinessException(
+        'Customer BVN is required to create a virtual account with Titan Bank. ' +
+        'Please update the customer profile with a valid 11-digit BVN first.',
+      );
+    }
 
-    // Step 1: Create or fetch existing Paystack customer
-    let customerCode: string;
+    // The /assign endpoint validates BVN + bank account asynchronously.
+    // We submit and return a PENDING placeholder — the real account number
+    // arrives via the dedicatedaccount.assign.success webhook.
     try {
-      const customer = await this.request<{ customer_code: string; id: number }>('POST', '/customer', {
+      await this.request('POST', '/dedicated_account/assign', {
         email,
         first_name: firstName,
         last_name: lastName,
         phone,
+        preferred_bank: bank,
+        country: 'NG',
+        bvn: input.customerBvn,
+      });
+      this.logger.log(`DVA assignment submitted for ${email} — awaiting dedicatedaccount.assign.success webhook`);
+    } catch (err) {
+      const msg = (err as Error).message ?? '';
+      if (msg.includes('not identified') || msg.includes('Customer has not been identified')) {
+        throw new BusinessException(
+          'BVN validation failed with Paystack. Please verify that the customer\'s BVN is correct ' +
+          'and matches their registered details with their bank (name, date of birth).',
+        );
+      }
+      if (msg.includes('generate account number') || msg.includes('Could not generate')) {
+        throw new BusinessException(
+          'Paystack could not generate an account number. The customer\'s BVN may not be linked ' +
+          'to a valid bank account. Please confirm the BVN is correct and try again.',
+        );
+      }
+      throw err;
+    }
+
+    // Return a pending placeholder — overwritten when webhook arrives
+    return {
+      providerCustomerId: `PENDING-${input.customerId}`,
+      providerAccountId:  `PENDING-${Date.now()}`,
+      accountNumber:      'PENDING',
+      accountName:        `${firstName} ${lastName}`,
+      bankName:           bank === 'titan-paystack' ? 'Titan Paystack' : 'Wema Bank',
+    };
+  }
+
+  // ── Multi-step (test mode or Wema fallback) ───────────────────────────────
+
+  private async createViaMultiStep(
+    firstName: string,
+    lastName: string,
+    email: string,
+    phone: string,
+    input: CreateVirtualAccountInput,
+  ): Promise<CreateVirtualAccountResult> {
+    // Step 1: Create or fetch Paystack customer
+    let customerCode: string;
+    try {
+      const customer = await this.request<{ customer_code: string }>('POST', '/customer', {
+        email, first_name: firstName, last_name: lastName, phone,
       });
       customerCode = customer.customer_code;
-    } catch (err) {
-      // Customer may already exist — try fetching by email
+    } catch {
       try {
         const existing = await this.request<{ customer_code: string }>('GET', `/customer/${encodeURIComponent(email)}`);
         customerCode = existing.customer_code;
-        this.logger.log(`Reusing existing Paystack customer ${customerCode} for ${email}`);
-      } catch {
-        throw err; // rethrow original error
-      }
+        this.logger.log(`Reusing existing Paystack customer ${customerCode}`);
+      } catch (inner) { throw inner; }
     }
 
-    // Step 2: Validate customer with BVN (REQUIRED for Titan Bank live DVA)
+    // Step 2: BVN identification (best-effort — test mode may skip this)
     if (input.customerBvn) {
       try {
         await this.request('POST', `/customer/${customerCode}/identification`, {
-          country: 'NG',
-          type: 'bvn',
-          value: input.customerBvn,
-          first_name: firstName,
-          last_name: lastName,
+          country: 'NG', type: 'bvn', value: input.customerBvn,
+          first_name: firstName, last_name: lastName,
         });
-        this.logger.log(`BVN submitted for Paystack customer ${customerCode}`);
-
-        // Wait for BVN validation to complete (Paystack validates async with NIBSS)
-        // Poll up to 10 times with 3 second intervals
-        let validated = false;
+        // Poll up to 10 × 3s for validation
         for (let i = 0; i < 10; i++) {
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(r => setTimeout(r, 3000));
           try {
-            const customerData = await this.request<{
-              identified: boolean;
-              identifications?: Array<{ status: string }>;
-            }>('GET', `/customer/${customerCode}`);
-            if (customerData.identified) {
-              validated = true;
-              this.logger.log(`BVN validated for customer ${customerCode} after ${i + 1} attempt(s)`);
-              break;
-            }
-          } catch {
-            // Keep polling
-          }
-        }
-
-        if (!validated) {
-          this.logger.warn(`BVN not yet validated for ${customerCode} after polling — attempting DVA creation anyway`);
+            const cData = await this.request<{ identified: boolean }>('GET', `/customer/${customerCode}`);
+            if (cData.identified) { this.logger.log(`BVN validated after ${i + 1} poll(s)`); break; }
+          } catch { /* keep polling */ }
         }
       } catch (bvnErr) {
-        this.logger.warn(`BVN validation for ${customerCode}: ${(bvnErr as Error).message}`);
+        this.logger.warn(`BVN identification skipped: ${(bvnErr as Error).message}`);
       }
-    } else {
-      this.logger.warn(`Customer ${input.customerId} has no BVN — Titan Bank DVA requires BVN validation`);
     }
 
-    // Step 3: Create Dedicated Virtual Account
+    // Step 3: Create DVA
     const dva = await this.request<{
       id: number;
       account_number: string;
       account_name: string;
-      bank: { name: string; slug: string; id: number };
+      bank: { name: string; slug: string };
     }>('POST', '/dedicated_account', {
       customer: customerCode,
       preferred_bank: this.preferredBank,
@@ -126,20 +152,17 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
 
     return {
       providerCustomerId: customerCode,
-      providerAccountId: String(dva.id),
-      accountNumber: dva.account_number,
-      accountName: dva.account_name,
-      bankName: dva.bank?.name ?? this.preferredBank,
+      providerAccountId:  String(dva.id),
+      accountNumber:      dva.account_number,
+      accountName:        dva.account_name,
+      bankName:           dva.bank?.name ?? this.preferredBank,
     };
   }
 
   verifyWebhookSignature(rawBody: string | Buffer, headers: Record<string, string>): boolean {
-    // Header names arrive lowercased in Express/Node by convention, but check both just in case.
     const signature = headers['x-paystack-signature'] ?? headers['X-Paystack-Signature'];
     if (!signature) return false;
-
     const hash = crypto.createHmac('sha512', this.secretKey).update(rawBody).digest('hex');
-    // Constant-time comparison to avoid leaking timing information about the expected signature.
     const a = Buffer.from(hash, 'hex');
     const b = Buffer.from(signature, 'hex');
     if (a.length !== b.length) return false;
@@ -150,10 +173,7 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
     const body = payload as {
       event?: string;
       data?: {
-        reference?: string;
-        amount?: number;
-        currency?: string;
-        paid_at?: string;
+        reference?: string; amount?: number; currency?: string; paid_at?: string;
         authorization?: {
           channel?: string;
           receiver_bank_account_number?: string;
@@ -161,13 +181,26 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
           sender_bank_account_number?: string;
           narration?: string;
         };
+        // DVA assign success fields
+        account_number?: string;
+        account_name?: string;
+        customer?: { customer_code?: string; email?: string };
+        bank?: { name?: string };
       };
     };
 
-    // Paystack sends charge.success for every successful charge, not just
-    // dedicated-account transfers (e.g. card payments too) — only a
-    // dedicated_nuban-channel charge is a virtual-account credit we should
-    // reconcile against a loan.
+    // DVA assignment completed — update the PENDING virtual account
+    if (body.event === 'dedicatedaccount.assign.success' && body.data?.account_number) {
+      this.logger.log(`DVA assigned: ${body.data.account_number} for customer ${body.data.customer?.customer_code}`);
+      // This is handled by the webhook controller separately — return null to skip repayment reconciliation
+      return null;
+    }
+
+    if (body.event === 'dedicatedaccount.assign.failed') {
+      this.logger.error(`DVA assignment failed for customer ${body.data?.customer?.customer_code}`);
+      return null;
+    }
+
     if (body.event !== 'charge.success') return null;
     const data = body.data;
     if (!data?.authorization || data.authorization.channel !== 'dedicated_nuban') return null;
@@ -175,21 +208,20 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
 
     return {
       providerReference: data.reference,
-      accountNumber: data.authorization.receiver_bank_account_number,
-      amount: Number(data.amount) / 100, // Paystack amounts are always in kobo (subunits)
-      currency: data.currency ?? 'NGN',
-      payerName: data.authorization.sender_name,
+      accountNumber:     data.authorization.receiver_bank_account_number,
+      amount:            Number(data.amount) / 100,
+      currency:          data.currency ?? 'NGN',
+      payerName:         data.authorization.sender_name,
       payerAccountNumber: data.authorization.sender_bank_account_number,
-      narration: data.authorization.narration,
-      receivedAt: data.paid_at ? new Date(data.paid_at) : new Date(),
+      narration:         data.authorization.narration,
+      receivedAt:        data.paid_at ? new Date(data.paid_at) : new Date(),
     };
   }
 
   private normalizePhone(phone: string): string {
-    // Convert 080xxxxxxxx → +234xxxxxxxxx
     const digits = phone.replace(/\D/g, '');
     if (digits.startsWith('234')) return `+${digits}`;
-    if (digits.startsWith('0')) return `+234${digits.slice(1)}`;
+    if (digits.startsWith('0'))   return `+234${digits.slice(1)}`;
     return `+234${digits}`;
   }
 
@@ -201,8 +233,7 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
     const bank = this.config.get<string>('PAYSTACK_PREFERRED_BANK') ?? 'test-bank';
     if (this.secretKey.startsWith('sk_live_') && bank === 'test-bank') {
       throw new BusinessException(
-        'PAYSTACK_PREFERRED_BANK is still set to "test-bank" (or unset) while PAYSTACK_SECRET_KEY is a live key. ' +
-        'Set PAYSTACK_PREFERRED_BANK to a real bank slug — "wema-bank" or "titan-paystack" — those are the only two Paystack currently supports for live Dedicated Virtual Accounts.',
+        'PAYSTACK_PREFERRED_BANK must be set to "wema-bank" or "titan-paystack" when using a live key.',
       );
     }
     return bank;
@@ -217,20 +248,14 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
   private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
-      headers: {
-        Authorization: `Bearer ${this.secretKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { Authorization: `Bearer ${this.secretKey}`, 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
     });
-
     const json = (await response.json()) as { status: boolean; message: string; data: T };
-
     if (!response.ok || json.status === false) {
-      this.logger.error(`Paystack API error on ${method} ${path}: ${json.message ?? response.statusText}`);
+      this.logger.error(`Paystack ${method} ${path}: ${json.message}`);
       throw new BusinessException(`Paystack error: ${json.message ?? 'request failed'}`);
     }
-
     return json.data;
   }
 }
