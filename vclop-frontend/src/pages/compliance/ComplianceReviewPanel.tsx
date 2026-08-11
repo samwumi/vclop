@@ -16,6 +16,7 @@ import {
 import { workflowsService } from '@/services/workflows.service';
 import { customersService } from '@/services/customers.service';
 import { transportService } from '@/services/transport.service';
+import { WorkflowHistory } from '@/components/ui/WorkflowHistory';
 import type { ComplianceQueueItem } from '@/services/compliance.service';
 import type { TransportRequest } from '@/services/transport.service';
 import type { CustomerStatus } from '@/types/domain.types';
@@ -883,6 +884,9 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
           {/* ── Decision / Workflow Action ────────────────────────────────── */}
           {tab === 'action' && (
             <div className="space-y-4">
+              {/* IC feedback banner — shows when IC returned the application to compliance */}
+              <WorkflowHistory applicationId={application.id} showBannerOnly />
+
               {assessment?.recommendation && (
                 <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-sm">
                   <p className="font-medium text-blue-800">Saved recommendation: {assessment.recommendation.replace(/_/g, ' ')}</p>

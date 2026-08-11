@@ -10,6 +10,9 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { ok } from '../../common/utils/response.util';
 import { ComplianceService } from './compliance.service';
 
+// Permission used for READ-ONLY access — compliance officers AND internal control
+const READ_PERM = 'loan_applications:read';
+
 class AssessmentDto {
   @IsOptional() @IsString() bankStatementNotes?: string;
   @IsOptional() @IsString() incomeAssessment?: string;
@@ -40,33 +43,54 @@ class FieldVisitDto {
 @Controller({ path: 'compliance', version: '1' })
 export class ComplianceController {
   constructor(private readonly service: ComplianceService) {}
+
   @Get('queue') @RequirePermissions('loan_applications:compliance_review')
   async queue(@CurrentUser() user: RequestUser) {
-    // Build list of all branches this compliance officer covers:
-    // - Their primary branchId
-    // - All additional branches from UserBranch table (managedBranchIds)
     const allBranchIds = [
       ...(user.branchId ? [user.branchId] : []),
       ...(user.managedBranchIds ?? []),
     ];
-    // Unique, deduplicated
     const uniqueBranchIds = [...new Set(allBranchIds)];
-    // If no branches assigned → HQ/non-location role → see everything
     const isHQ = uniqueBranchIds.length === 0;
     return this.service.queue(uniqueBranchIds, isHQ);
   }
-  @Get('applications/:id/assessment') @RequirePermissions('loan_applications:compliance_review') assessment(@Param('id', ParseUUIDPipe) id: string) { return this.service.assessment(id); }
-  @Put('applications/:id/assessment') @RequirePermissions('loan_applications:compliance_review') async save(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AssessmentDto, @CurrentUser() user: RequestUser) { return ok(await this.service.saveAssessment(id, dto, user.id)); }
-  @Get('applications/:id/field-visits') @RequirePermissions('loan_applications:compliance_review') visits(@Param('id', ParseUUIDPipe) id: string) { return this.service.listVisits(id); }
-  @Post('applications/:id/field-visits') @RequirePermissions('loan_applications:compliance_review') async addVisit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: FieldVisitDto, @CurrentUser() user: RequestUser) { return ok(await this.service.addVisit(id, dto, user.id)); }
 
-  // ── Customer-level KYC field visits ───────────────────────────────────────
-  @Get('customers/:customerId/field-visits') @RequirePermissions('loan_applications:compliance_review')
+  // ── READ endpoints: accessible by compliance AND IC (and admin via loan_applications:read) ──
+
+  @Get('applications/:id/assessment')
+  @RequirePermissions(READ_PERM)
+  assessment(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.assessment(id);
+  }
+
+  @Get('applications/:id/field-visits')
+  @RequirePermissions(READ_PERM)
+  visits(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.listVisits(id);
+  }
+
+  @Get('customers/:customerId/field-visits')
+  @RequirePermissions(READ_PERM)
   customerVisits(@Param('customerId', ParseUUIDPipe) customerId: string) {
     return this.service.listCustomerVisits(customerId);
   }
 
-  @Post('customers/:customerId/field-visits') @RequirePermissions('loan_applications:compliance_review')
+  // ── WRITE endpoints: compliance only ──────────────────────────────────────
+
+  @Put('applications/:id/assessment')
+  @RequirePermissions('loan_applications:compliance_review')
+  async save(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AssessmentDto, @CurrentUser() user: RequestUser) {
+    return ok(await this.service.saveAssessment(id, dto, user.id));
+  }
+
+  @Post('applications/:id/field-visits')
+  @RequirePermissions('loan_applications:compliance_review')
+  async addVisit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: FieldVisitDto, @CurrentUser() user: RequestUser) {
+    return ok(await this.service.addVisit(id, dto, user.id));
+  }
+
+  @Post('customers/:customerId/field-visits')
+  @RequirePermissions('loan_applications:compliance_review')
   async addCustomerVisit(
     @Param('customerId', ParseUUIDPipe) customerId: string,
     @Body() dto: FieldVisitDto,

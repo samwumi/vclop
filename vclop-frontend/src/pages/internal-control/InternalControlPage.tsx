@@ -12,6 +12,7 @@ import { api } from '@/lib/axios';
 import { workflowsService, type WorkflowAction } from '@/services/workflows.service';
 import { complianceService } from '@/services/compliance.service';
 import { transportService } from '@/services/transport.service';
+import { WorkflowHistory } from '@/components/ui/WorkflowHistory';
 import type { TransportRequest } from '@/services/transport.service';
 import type { ApiResponse } from '@/types/api.types';
 import type { LoanApplication } from '@/types/domain.types';
@@ -359,6 +360,10 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                       ))}
                     </div>
                   )}
+                  {/* Workflow stage history — compliance decision notes, return reasons */}
+                  <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs">
+                    <WorkflowHistory applicationId={application.id} />
+                  </div>
                 </>
               )}
             </div>

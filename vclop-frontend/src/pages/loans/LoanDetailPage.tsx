@@ -12,6 +12,7 @@ import { customersService } from '@/services/customers.service';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Badge } from '@/components/ui/Badge';
 import { PageLoader } from '@/components/ui/LoadingScreen';
+import { WorkflowHistory } from '@/components/ui/WorkflowHistory';
 import { useAuthStore } from '@/stores/auth.store';
 import { formatDate, formatDateTime, normalizeFileUrl } from '@/lib/utils';
 import type { LoanApplicationStatus, Customer } from '@/types/domain.types';
@@ -187,6 +188,11 @@ export function LoanDetailPage() {
               <strong>Rejected:</strong> {application.rejectionReason}
             </div>
           )}
+
+          {/* Workflow stage feedback — shows compliance/IC return reasons to the officer */}
+          <div className="mt-3">
+            <WorkflowHistory applicationId={application.id} showBannerOnly />
+          </div>
         </div>
 
         {/* Action bar based on status */}
