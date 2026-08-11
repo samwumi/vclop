@@ -151,4 +151,22 @@ export class LoanApplicationsController {
     });
     res.send(csv);
   }
+
+  // ── IC / reviewer read endpoints ─────────────────────────────────────────
+  // These sit under loan_applications:read so every reviewer role (IC, compliance,
+  // AcctHead, admin) can fetch compliance data without needing compliance_review perm.
+
+  @Get(':id/compliance-assessment')
+  @RequirePermissions('loan_applications:read')
+  @ApiOperation({ summary: 'Get compliance assessment for a loan application (readable by IC and above)' })
+  async getComplianceAssessment(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.getComplianceAssessment(id);
+  }
+
+  @Get(':id/field-visits')
+  @RequirePermissions('loan_applications:read')
+  @ApiOperation({ summary: 'Get all field visits for a loan application (readable by IC and above)' })
+  async getFieldVisits(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.getFieldVisitsForApplication(id);
+  }
 }

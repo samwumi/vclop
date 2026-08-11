@@ -431,6 +431,29 @@ export class LoanApplicationsService {
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
+  // ── Compliance data readable by IC and above ────────────────────────────
+
+  async getComplianceAssessment(applicationId: string) {
+    const application = await this.prisma.loanApplication.findFirst({ where: { id: applicationId, deletedAt: null } });
+    if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
+    return this.prisma.complianceAssessment.findUnique({ where: { loanApplicationId: applicationId } });
+  }
+
+  async getFieldVisitsForApplication(applicationId: string) {
+    const application = await this.prisma.loanApplication.findFirst({ where: { id: applicationId, deletedAt: null } });
+    if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
+    // Return all visits for this application AND for any visit on this customer's applications
+    const customerVisitApps = await this.prisma.loanApplication.findMany({
+      where: { customerId: application.customerId, deletedAt: null },
+      select: { id: true },
+    });
+    const appIds = [...new Set([applicationId, ...customerVisitApps.map((a) => a.id)])];
+    return this.prisma.fieldVisit.findMany({
+      where: { loanApplicationId: { in: appIds } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async exportCsv(query: QueryLoanApplicationsDto & PaginationDto): Promise<string> {
     const where = {
       deletedAt: null,

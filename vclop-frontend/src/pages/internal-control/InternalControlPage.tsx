@@ -10,7 +10,7 @@ import { ModulePage } from '@/components/ui/ModulePage';
 import { formatDate, formatDateTime, normalizeFileUrl } from '@/lib/utils';
 import { api } from '@/lib/axios';
 import { workflowsService, type WorkflowAction } from '@/services/workflows.service';
-import { complianceService } from '@/services/compliance.service';
+import { complianceService, type ComplianceAssessment, type FieldVisit } from '@/services/compliance.service';
 import { transportService } from '@/services/transport.service';
 import { WorkflowHistory } from '@/components/ui/WorkflowHistory';
 import type { TransportRequest } from '@/services/transport.service';
@@ -29,9 +29,12 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
   const qc = useQueryClient();
   const navigate = useNavigate();
 
-  const { data: assessment } = useQuery({
+  const { data: assessment, isError: assessmentError } = useQuery({
     queryKey: ['ic-assessment', application.id],
-    queryFn: () => complianceService.getAssessment(application.id),
+    queryFn: async (): Promise<ComplianceAssessment | null> => {
+      const { data } = await api.get<ApiResponse<ComplianceAssessment | null>>(`/loan-applications/${application.id}/compliance-assessment`);
+      return data.data ?? null;
+    },
   });
 
   const { data: documents = [] } = useQuery({
@@ -40,22 +43,13 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
     enabled: !!application.customerId,
   });
 
-  const { data: visits = [] } = useQuery({
-    queryKey: ['ic-visits', application.id],
-    queryFn: () => complianceService.getFieldVisits(application.id),
+  const { data: allVisits = [] } = useQuery({
+    queryKey: ['ic-visits-all', application.id],
+    queryFn: async (): Promise<FieldVisit[]> => {
+      const { data } = await api.get<ApiResponse<FieldVisit[]>>(`/loan-applications/${application.id}/field-visits`);
+      return data.data ?? [];
+    },
   });
-
-  // Also load customer-level KYC field visits so IC sees everything compliance logged
-  const { data: customerVisits = [] } = useQuery({
-    queryKey: ['ic-customer-visits', application.customerId],
-    queryFn: () => complianceService.getCustomerFieldVisits(application.customerId),
-    enabled: !!application.customerId,
-  });
-
-  // Combine both for display — deduplicate by id
-  const allVisits = [...visits, ...customerVisits].filter(
-    (v, i, arr) => arr.findIndex((x) => x.id === v.id) === i,
-  );
 
   // Transport requests for this application — IC needs to see what compliance requested
   const { data: transportRequests = [] } = useQuery({
@@ -231,7 +225,11 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
           {/* ── Compliance Assessment ──────────────────────────────────── */}
           {tab === 'assessment' && (
             <div className="space-y-3">
-              {!assessment ? (
+              {assessmentError ? (
+                <div className="banner-danger">
+                  Could not load compliance assessment. Please refresh and try again.
+                </div>
+              ) : !assessment ? (
                 <div className="py-6 text-center border border-dashed border-gray-200 rounded-lg">
                   <ShieldAlert className="w-7 h-7 text-gray-300 mx-auto mb-1" />
                   <p className="text-sm text-gray-400">No compliance assessment recorded yet.</p>
