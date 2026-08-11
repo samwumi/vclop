@@ -22,7 +22,7 @@ type ReviewTab = 'documents' | 'details' | 'assessment' | 'decision';
 // ── Review panel ──────────────────────────────────────────────────────────────
 
 function ReviewPanel({ application, onClose }: { application: LoanApplication; onClose: () => void }) {
-  const [tab, setTab] = useState<ReviewTab>('documents');
+  const [tab, setTab] = useState<ReviewTab>('assessment');  // default to Compliance Report
   const [action, setAction] = useState<WorkflowAction | null>(null);
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
@@ -227,16 +227,17 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
             <div className="space-y-3">
               {assessmentError ? (
                 <div className="banner-danger">
-                  Could not load compliance assessment. Please refresh and try again.
+                  Could not load compliance data. Please close and reopen the panel, or refresh the page.
                 </div>
-              ) : !assessment ? (
+              ) : !assessment && allVisits.length === 0 && transportRequests.length === 0 ? (
                 <div className="py-6 text-center border border-dashed border-gray-200 rounded-lg">
                   <ShieldAlert className="w-7 h-7 text-gray-300 mx-auto mb-1" />
-                  <p className="text-sm text-gray-400">No compliance assessment recorded yet.</p>
+                  <p className="text-sm text-gray-500">Compliance report not yet submitted.</p>
+                  <p className="text-xs text-gray-400 mt-1">This application is pending compliance review.</p>
                 </div>
               ) : (
                 <>
-                  {assessment.recommendation && (
+                  {assessment?.recommendation && (
                     <div className={`p-3 rounded-lg border text-sm font-medium ${
                       assessment.recommendation === 'APPROVE' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
                       assessment.recommendation === 'REJECT'  ? 'bg-red-50 border-red-200 text-red-800' :
@@ -245,20 +246,20 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                       Compliance Recommendation: {assessment.recommendation.replace(/_/g, ' ')}
                     </div>
                   )}
-                  {assessment.recommendationNotes && (
+                  {assessment?.recommendationNotes && (
                     <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-xs text-gray-700">
                       <p className="font-semibold text-gray-600 mb-1">Recommendation Notes</p>
                       {assessment.recommendationNotes}
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-3 text-xs">
-                    {assessment.affordabilityScore != null && (
+                    {assessment?.affordabilityScore != null && (
                       <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
                         <p className="text-gray-400 mb-0.5">Affordability Score</p>
                         <p className="text-xl font-bold text-gray-900">{assessment.affordabilityScore}</p>
                       </div>
                     )}
-                    {assessment.riskScore != null && (
+                    {assessment?.riskScore != null && (
                       <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
                         <p className="text-gray-400 mb-0.5">Risk Score</p>
                         <p className={`text-xl font-bold ${Number(assessment.riskScore) > 60 ? 'text-red-600' : Number(assessment.riskScore) > 35 ? 'text-amber-600' : 'text-emerald-600'}`}>
@@ -267,39 +268,41 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                       </div>
                     )}
                   </div>
-                  {assessment.bankStatementNotes && (
+                  {assessment?.bankStatementNotes && (
                     <div className="detail-block">
                       <p className="font-semibold text-gray-600 mb-1">Bank Statement Notes</p>
                       <p className="text-gray-700 whitespace-pre-wrap">{assessment.bankStatementNotes}</p>
                     </div>
                   )}
-                  {assessment.incomeAssessment && (
+                  {assessment?.incomeAssessment && (
                     <div className="detail-block">
                       <p className="font-semibold text-gray-600 mb-1">Income Assessment</p>
                       <p className="text-gray-700 whitespace-pre-wrap">{assessment.incomeAssessment}</p>
                     </div>
                   )}
-                  {/* Verifications */}
-                  <div className="detail-block">
-                    <p className="section-title">Verification Checklist</p>
-                    {[
-                      { label: 'BVN',        v: assessment.bvnVerifiedAt },
-                      { label: 'NIN',        v: assessment.ninVerifiedAt },
-                      { label: 'Phone',      v: assessment.phoneVerifiedAt },
-                      { label: 'Employer',   v: assessment.employerVerifiedAt },
-                      { label: 'Business',   v: assessment.businessVerifiedAt },
-                      { label: 'Residence',  v: assessment.residenceVerifiedAt },
-                    ].map(({ label, v }) => (
-                      <div key={label} className="stat-row">
-                        <span className="text-gray-600">{label}</span>
-                        {v ? (
-                          <span className="check-verified">✓ Verified {formatDate(v)}</span>
-                        ) : (
-                          <span className="check-pending">Not verified</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  {/* Verifications — show only if assessment exists */}
+                  {assessment && (
+                    <div className="detail-block">
+                      <p className="section-title">Verification Checklist</p>
+                      {[
+                        { label: 'BVN',        v: assessment.bvnVerifiedAt },
+                        { label: 'NIN',        v: assessment.ninVerifiedAt },
+                        { label: 'Phone',      v: assessment.phoneVerifiedAt },
+                        { label: 'Employer',   v: assessment.employerVerifiedAt },
+                        { label: 'Business',   v: assessment.businessVerifiedAt },
+                        { label: 'Residence',  v: assessment.residenceVerifiedAt },
+                      ].map(({ label, v }) => (
+                        <div key={label} className="stat-row">
+                          <span className="text-gray-600">{label}</span>
+                          {v ? (
+                            <span className="check-verified">✓ Verified {formatDate(v)}</span>
+                          ) : (
+                            <span className="check-pending">Not verified</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {/* Field visits */}
                   {allVisits.length > 0 && (
                     <div className="detail-block">
