@@ -56,10 +56,10 @@ function ReviewPanel({ requestId, onClose }: ReviewPanelProps) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+    <div className="panel-overlay">
+      <div className="panel-backdrop" onClick={onClose} />
       <div className="relative ml-auto w-full max-w-sm bg-white h-full shadow-2xl flex flex-col">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="panel-header flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-800">Review Transport Request</h2>
           <button onClick={onClose} className="btn-ghost btn-icon w-8 h-8 text-gray-400">✕</button>
         </div>
@@ -105,7 +105,7 @@ function ReviewPanel({ requestId, onClose }: ReviewPanelProps) {
           </div>
         </div>
 
-        <div className="px-5 py-4 border-t border-gray-100">
+        <div className="panel-footer">
           <button
             onClick={() => reviewMutation.mutate()}
             disabled={approved === null || (approved === false && !reason) || reviewMutation.isPending}

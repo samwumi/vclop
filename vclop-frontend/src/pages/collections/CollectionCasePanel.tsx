@@ -95,12 +95,12 @@ export function CollectionCasePanel({ collectionCase: caseData, onClose }: Props
     : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+    <div className="panel-overlay">
+      <div className="panel-backdrop" onClick={onClose} />
       <div className="relative ml-auto w-full max-w-md bg-white h-full shadow-2xl flex flex-col">
 
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="panel-header">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-sm font-semibold text-gray-800 font-mono">
               {caseData.loan?.loanNumber ?? 'Collection Case'}
@@ -283,7 +283,7 @@ export function CollectionCasePanel({ collectionCase: caseData, onClose }: Props
 
         {/* Footer */}
         {activeTab === 'status' && (
-          <div className="px-5 py-4 border-t border-gray-100">
+          <div className="panel-footer">
             <button
               onClick={() => updateMutation.mutate()}
               disabled={(newStatus === 'WRITTEN_OFF' && !writeOffReason) || updateMutation.isPending}
