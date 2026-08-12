@@ -54,6 +54,13 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
       );
     }
 
+    if (!input.customerBankAccountNumber || !input.customerBankCode) {
+      throw new BusinessException(
+        'Customer bank account number and bank code are required to create a virtual account. ' +
+        'Please open the customer profile → Additional Details tab and fill in the Bank Account section.',
+      );
+    }
+
     // The /assign endpoint validates BVN + bank account asynchronously.
     // We submit and return a PENDING placeholder — the real account number
     // arrives via the dedicatedaccount.assign.success webhook.
@@ -66,6 +73,8 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
         preferred_bank: bank,
         country: 'NG',
         bvn: input.customerBvn,
+        bank_code: input.customerBankCode,
+        account_number: input.customerBankAccountNumber,
       });
       this.logger.log(`DVA assignment submitted for ${email} — awaiting dedicatedaccount.assign.success webhook`);
     } catch (err) {

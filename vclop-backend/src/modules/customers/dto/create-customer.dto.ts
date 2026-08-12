@@ -68,6 +68,18 @@ export class CreateCustomerDto {
   @Matches(/^\d{11}$/, { message: 'nin must be 11 digits' })
   nin?: string;
 
+  @ApiPropertyOptional({ description: "Customer's bank account number (10 digits) — used for Paystack BVN validation", maxLength: 20 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  bankAccountNumber?: string;
+
+  @ApiPropertyOptional({ description: "Customer's bank CBN code (3 digits, e.g. 044 for Access Bank)", maxLength: 10 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  bankCode?: string;
+
   @ApiPropertyOptional({ maxLength: 500 })
   @IsOptional()
   @IsString()

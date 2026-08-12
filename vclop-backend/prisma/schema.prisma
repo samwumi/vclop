@@ -574,6 +574,8 @@ model Customer {
   email              String?            @unique @db.VarChar(150)
   bvn                String?            @unique @db.VarChar(11)
   nin                String?            @unique @db.VarChar(11)
+  bankAccountNumber  String?            @db.VarChar(20)
+  bankCode           String?            @db.VarChar(10)
   residentialAddress String?            @db.VarChar(500)
   businessAddress    String?            @db.VarChar(500)
   gpsLat             Float?

@@ -171,6 +171,8 @@ export class CustomersService {
         ...(dto.nokRelationship !== undefined && { nokRelationship: dto.nokRelationship }),
         ...(dto.nokPhone !== undefined && { nokPhone: dto.nokPhone }),
         ...(dto.nokAddress !== undefined && { nokAddress: dto.nokAddress }),
+        ...(dto.bankAccountNumber !== undefined && { bankAccountNumber: dto.bankAccountNumber }),
+        ...(dto.bankCode !== undefined && { bankCode: dto.bankCode }),
         updatedById: actorId,
       },
     });

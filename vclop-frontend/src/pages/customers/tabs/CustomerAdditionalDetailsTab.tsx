@@ -49,6 +49,8 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
     nokAddress:         (p?.nokAddress         as string) ?? (existingValues?.nok_address       as string) ?? '',
     residentialAddress: p?.residentialAddress ?? '',
     businessAddress:    p?.businessAddress    ?? '',
+    bankAccountNumber:  (p?.bankAccountNumber  as string) ?? '',
+    bankCode:           (p?.bankCode           as string) ?? '',
   });
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
@@ -69,6 +71,8 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
       nokAddress:         (p2?.nokAddress         as string) ?? (existingValues?.nok_address       as string) ?? '',
       residentialAddress: p2?.residentialAddress ?? '',
       businessAddress:    p2?.businessAddress    ?? '',
+      bankAccountNumber:  (p2?.bankAccountNumber  as string) ?? '',
+      bankCode:           (p2?.bankCode           as string) ?? '',
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingValues, profile]);
@@ -100,6 +104,8 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
         nokRelationship:    form.nokRelationship    || undefined,
         nokPhone:           form.nokPhone           || undefined,
         nokAddress:         form.nokAddress         || undefined,
+        bankAccountNumber:  form.bankAccountNumber  || undefined,
+        bankCode:           form.bankCode           || undefined,
       });
     },
     onSuccess: () => {
@@ -177,6 +183,28 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
               <p className="text-sm text-gray-400 italic col-span-2">
                 No next of kin recorded yet.
                 {canEdit && ' Click "Add Details" above to fill in.'}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Bank Account — for virtual account creation */}
+        <div className="card">
+          <div className="card-header flex items-center gap-2">
+            <Briefcase className="w-4 h-4 text-brand-600" />
+            <h3 className="text-sm font-semibold text-gray-800">Bank Account</h3>
+            <span className="text-xs text-gray-400 ml-1">(required for virtual account)</span>
+          </div>
+          <div className="card-body grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {form.bankAccountNumber ? (
+              <>
+                <Field label="Account Number" value={form.bankAccountNumber} />
+                <Field label="Bank Code (CBN)" value={form.bankCode} />
+              </>
+            ) : (
+              <p className="text-sm text-gray-400 italic col-span-2">
+                No bank account recorded yet.
+                {canEdit && ' Click "Edit" above to fill in.'}
               </p>
             )}
           </div>
@@ -303,6 +331,44 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
               <label className="form-label text-xs">Address</label>
               <input className="form-input" value={form.nokAddress}
                 onChange={e => set('nokAddress', e.target.value)} placeholder="Next of kin address" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bank Account — required for Paystack virtual account creation */}
+      <div className="card">
+        <div className="card-header flex items-center gap-2">
+          <Briefcase className="w-4 h-4 text-brand-600" />
+          <h3 className="text-sm font-semibold text-gray-800">Bank Account</h3>
+          <span className="text-xs text-gray-400 ml-1">— required for virtual account creation</span>
+        </div>
+        <div className="card-body">
+          <p className="text-xs text-gray-500 mb-3">
+            The customer's own bank account number and bank code are used to verify their BVN with
+            Paystack before assigning a dedicated virtual account for loan repayment.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label text-xs">Account Number (10 digits)</label>
+              <input
+                className="form-input"
+                value={form.bankAccountNumber}
+                onChange={e => set('bankAccountNumber', e.target.value)}
+                placeholder="e.g. 0123456789"
+                maxLength={10}
+              />
+            </div>
+            <div>
+              <label className="form-label text-xs">Bank Code (CBN code)</label>
+              <input
+                className="form-input"
+                value={form.bankCode}
+                onChange={e => set('bankCode', e.target.value)}
+                placeholder="e.g. 044 (Access), 011 (First Bank)"
+                maxLength={6}
+              />
+              <p className="form-hint">3–6 digit CBN bank code. Common: Access=044, GTB=058, Zenith=057, UBA=033, First=011, Wema=035</p>
             </div>
           </div>
         </div>
