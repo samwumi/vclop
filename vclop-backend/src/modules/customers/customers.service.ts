@@ -117,6 +117,8 @@ export class CustomersService {
         email: dto.email,
         bvn: dto.bvn,
         nin: dto.nin,
+        bankAccountNumber: dto.bankAccountNumber,
+        bankCode: dto.bankCode,
         residentialAddress: dto.residentialAddress,
         businessAddress: dto.businessAddress,
         gpsLat: dto.gpsLat,

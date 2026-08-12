@@ -14,9 +14,7 @@ export interface CreateVirtualAccountInput {
   customerEmail?: string;
   customerPhone: string;
   customerBvn?: string;
-  /** Customer's own bank account number — required for Paystack BVN validation (Financial Services) */
-  customerBankAccountNumber?: string;
-  /** Customer's bank CBN code — required alongside bankAccountNumber for Paystack BVN validation */
+  customerBankAccount?: string;
   customerBankCode?: string;
 }
 

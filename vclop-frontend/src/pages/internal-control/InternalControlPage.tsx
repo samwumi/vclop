@@ -29,7 +29,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
   const qc = useQueryClient();
   const navigate = useNavigate();
 
-  const { data: assessment, isError: assessmentError } = useQuery({
+  const { data: assessment, isError: assessmentError, isLoading: assessmentLoading } = useQuery({
     queryKey: ['ic-assessment', application.id],
     queryFn: async (): Promise<ComplianceAssessment | null> => {
       const { data } = await api.get<ApiResponse<ComplianceAssessment | null>>(`/loan-applications/${application.id}/compliance-assessment`);
@@ -43,10 +43,10 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
     enabled: !!application.customerId,
   });
 
-  const { data: allVisits = [] } = useQuery({
+  const { data: allVisits = [], isLoading: visitsLoading } = useQuery({
     queryKey: ['ic-visits-all', application.id],
     queryFn: async (): Promise<FieldVisit[]> => {
-      const { data } = await api.get<ApiResponse<FieldVisit[]>>(`/loan-applications/${application.id}/field-visits`);
+      const { data} = await api.get<ApiResponse<FieldVisit[]>>(`/loan-applications/${application.id}/field-visits`);
       return data.data ?? [];
     },
   });
@@ -225,7 +225,11 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
           {/* ── Compliance Assessment ──────────────────────────────────── */}
           {tab === 'assessment' && (
             <div className="space-y-3">
-              {assessmentError ? (
+              {assessmentLoading || visitsLoading ? (
+                <div className="py-6 text-center">
+                  <p className="text-sm text-gray-500">Loading compliance report...</p>
+                </div>
+              ) : assessmentError ? (
                 <div className="banner-danger">
                   Could not load compliance data. Please close and reopen the panel, or refresh the page.
                 </div>
@@ -233,7 +237,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                 <div className="py-6 text-center border border-dashed border-gray-200 rounded-lg">
                   <ShieldAlert className="w-7 h-7 text-gray-300 mx-auto mb-1" />
                   <p className="text-sm text-gray-500">Compliance report not yet submitted.</p>
-                  <p className="text-xs text-gray-400 mt-1">This application is pending compliance review.</p>
+                  <p className="text-xs text-gray-400 mt-1">Waiting for compliance to complete assessment and field visits.</p>
                 </div>
               ) : (
                 <>

@@ -49,52 +49,52 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
     // ── Live mode: use /assign endpoint (Financial Services requirement) ──
     if (!input.customerBvn) {
       throw new BusinessException(
-        'Customer BVN is required to create a virtual account with Titan Bank. ' +
+        'Customer BVN is required to create a virtual account. ' +
         'Please update the customer profile with a valid 11-digit BVN first.',
       );
     }
 
-    if (!input.customerBankAccountNumber || !input.customerBankCode) {
-      throw new BusinessException(
-        'Customer bank account number and bank code are required to create a virtual account. ' +
-        'Please open the customer profile → Additional Details tab and fill in the Bank Account section.',
-      );
+    // The /assign endpoint validates BVN + bank account asynchronously.
+    // bank_code and account_number improve validation accuracy and are REQUIRED for live mode.
+    const payload: Record<string, string> = {
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      phone,
+      preferred_bank: bank,
+      country: 'NG',
+      bvn: input.customerBvn,
+    };
+
+    // Include bank details if available — improves validation accuracy
+    if (input.customerBankAccount) {
+      payload.account_number = input.customerBankAccount;
+    }
+    if (input.customerBankCode) {
+      payload.bank_code = input.customerBankCode;
     }
 
-    // The /assign endpoint validates BVN + bank account asynchronously.
-    // We submit and return a PENDING placeholder — the real account number
-    // arrives via the dedicatedaccount.assign.success webhook.
     try {
-      await this.request('POST', '/dedicated_account/assign', {
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        phone,
-        preferred_bank: bank,
-        country: 'NG',
-        bvn: input.customerBvn,
-        bank_code: input.customerBankCode,
-        account_number: input.customerBankAccountNumber,
-      });
+      await this.request('POST', '/dedicated_account/assign', payload);
       this.logger.log(`DVA assignment submitted for ${email} — awaiting dedicatedaccount.assign.success webhook`);
     } catch (err) {
       const msg = (err as Error).message ?? '';
       if (msg.includes('not identified') || msg.includes('Customer has not been identified')) {
         throw new BusinessException(
-          'BVN validation failed with Paystack. Please verify that the customer\'s BVN is correct ' +
-          'and matches their registered details with their bank (name, date of birth).',
+          'BVN validation failed — the customer\'s BVN does not match NIBSS records. ' +
+          'Verify the BVN is the correct 11-digit number for this customer.',
         );
       }
       if (msg.includes('generate account number') || msg.includes('Could not generate')) {
         throw new BusinessException(
-          'Paystack could not generate an account number. The customer\'s BVN may not be linked ' +
-          'to a valid bank account. Please confirm the BVN is correct and try again.',
+          'Paystack could not generate an account number. ' +
+          'Confirm the customer\'s BVN is correct and try again.',
         );
       }
       throw err;
     }
 
-    // Return a pending placeholder — overwritten when webhook arrives
+    // Return a pending placeholder — overwritten when dedicatedaccount.assign.success webhook arrives
     return {
       providerCustomerId: `PENDING-${input.customerId}`,
       providerAccountId:  `PENDING-${Date.now()}`,
@@ -103,8 +103,6 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
       bankName:           bank === 'titan-paystack' ? 'Titan Paystack' : 'Wema Bank',
     };
   }
-
-  // ── Multi-step (test mode or Wema fallback) ───────────────────────────────
 
   private async createViaMultiStep(
     firstName: string,
