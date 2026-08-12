@@ -437,32 +437,27 @@ export class VirtualAccountsService {
     if (!secretKey) throw new BusinessException('PAYSTACK_SECRET_KEY not configured');
 
     try {
-      // Fetch transactions for this dedicated account from Paystack
+      // Use the dedicated account transactions endpoint
+      // This is the correct endpoint for DVA transactions
       const response = await fetch(
-        `https://api.paystack.co/transaction?perPage=100`,
+        `https://api.paystack.co/dedicated_account/transactions?account_number=${account.accountNumber}&page=1&perPage=100`,
         { headers: { Authorization: `Bearer ${secretKey}` } }
       );
       const json = await response.json() as any;
 
       if (!response.ok || !json.status) {
+        this.logger.error(`Paystack DVA transaction fetch failed: ${json.message}`);
         throw new BusinessException(`Paystack transaction fetch failed: ${json.message}`);
       }
 
       const transactions = json.data as any[];
       
-      // Filter for charge.success events on this dedicated account
-      const accountPayments = transactions.filter((tx: any) => 
-        tx.status === 'success' &&
-        tx.channel === 'dedicated_nuban' &&
-        tx.authorization?.receiver_bank_account_number === account.accountNumber
-      );
-
-      this.logger.log(`Found ${accountPayments.length} payments for account ${account.accountNumber}`);
+      this.logger.log(`Found ${transactions.length} DVA transactions for account ${account.accountNumber}`);
 
       let reconciledCount = 0;
       const reconciledTransactions = [];
 
-      for (const payment of accountPayments) {
+      for (const payment of transactions) {
         // Check if already reconciled
         const existing = await this.prisma.virtualAccountTransaction.findUnique({
           where: { providerReference: payment.reference }
@@ -479,10 +474,10 @@ export class VirtualAccountsService {
           accountNumber: account.accountNumber,
           amount: Number(payment.amount) / 100, // Paystack stores in kobo
           currency: payment.currency ?? 'NGN',
-          payerName: payment.authorization?.sender_name,
-          payerAccountNumber: payment.authorization?.sender_bank_account_number,
-          narration: payment.authorization?.narration,
-          receivedAt: payment.paid_at ? new Date(payment.paid_at) : new Date(payment.transaction_date),
+          payerName: payment.sender_name,
+          payerAccountNumber: payment.sender_account_number,
+          narration: payment.narration,
+          receivedAt: new Date(payment.created_at),
         };
 
         const reconciled = await this.reconcile('PAYSTACK', parsed);
