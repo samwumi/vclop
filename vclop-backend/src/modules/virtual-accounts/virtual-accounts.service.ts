@@ -436,54 +436,41 @@ export class VirtualAccountsService {
     const secretKey = this.config.get<string>('PAYSTACK_SECRET_KEY');
     if (!secretKey) throw new BusinessException('PAYSTACK_SECRET_KEY not configured');
 
-    const loan = await this.prisma.loan.findUnique({ 
-      where: { id: account.loanId }, 
-      include: { loanApplication: { include: { customer: true } } } 
-    });
-    if (!loan) throw new ResourceNotFoundException('Loan', account.loanId);
-
-    const customer = loan.loanApplication.customer;
-    const email = customer.email ?? `customer-${customer.id}@no-email.vclop.local`;
-
     try {
-      // First, fetch customer from Paystack to get the dedicated account ID
-      const customerResponse = await fetch(
-        `https://api.paystack.co/customer/${encodeURIComponent(email)}`,
-        { headers: { Authorization: `Bearer ${secretKey}` } }
-      );
-      const customerJson = await customerResponse.json() as any;
-
-      if (!customerResponse.ok || !customerJson.status) {
-        throw new BusinessException(`Paystack customer lookup failed: ${customerJson.message}`);
-      }
-
-      const customerData = customerJson.data;
-      const dedicatedAccountId = customerData.dedicated_account?.id;
-
-      if (!dedicatedAccountId) {
-        throw new BusinessException('No dedicated account ID found for this customer on Paystack');
-      }
-
-      // Now fetch transactions for this dedicated account using the ID
+      // Fetch all recent transactions and filter for this account
+      // Paystack doesn't have a reliable dedicated account transaction endpoint
       const response = await fetch(
-        `https://api.paystack.co/dedicated_account/${dedicatedAccountId}/transactions?page=1&perPage=100`,
+        `https://api.paystack.co/transaction?perPage=100&status=success`,
         { headers: { Authorization: `Bearer ${secretKey}` } }
       );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error(`Paystack transaction fetch failed: ${errorText}`);
+        throw new BusinessException(`Paystack transaction fetch failed: ${errorText}`);
+      }
+
       const json = await response.json() as any;
 
-      if (!response.ok || !json.status) {
-        this.logger.error(`Paystack DVA transaction fetch failed: ${json.message}`);
-        throw new BusinessException(`Paystack transaction fetch failed: ${json.message}`);
+      if (!json.status) {
+        throw new BusinessException(`Paystack error: ${json.message}`);
       }
 
       const transactions = json.data as any[];
       
-      this.logger.log(`Found ${transactions.length} DVA transactions for account ${account.accountNumber}`);
+      // Filter for payments to this specific dedicated account
+      const accountPayments = transactions.filter((tx: any) => {
+        // Check if this is a dedicated_nuban transaction to our account
+        return tx.channel === 'dedicated_nuban' && 
+               tx.authorization?.receiver_bank_account_number === account.accountNumber;
+      });
+
+      this.logger.log(`Found ${accountPayments.length} DVA payments for account ${account.accountNumber} out of ${transactions.length} total transactions`);
 
       let reconciledCount = 0;
       const reconciledTransactions = [];
 
-      for (const payment of transactions) {
+      for (const payment of accountPayments) {
         // Check if already reconciled
         const existing = await this.prisma.virtualAccountTransaction.findUnique({
           where: { providerReference: payment.reference }
@@ -500,17 +487,17 @@ export class VirtualAccountsService {
           accountNumber: account.accountNumber,
           amount: Number(payment.amount) / 100, // Paystack stores in kobo
           currency: payment.currency ?? 'NGN',
-          payerName: payment.sender_name,
-          payerAccountNumber: payment.sender_account_number,
-          narration: payment.narration,
-          receivedAt: new Date(payment.created_at),
+          payerName: payment.authorization?.sender_name ?? payment.customer?.first_name,
+          payerAccountNumber: payment.authorization?.sender_bank_account_number,
+          narration: payment.authorization?.narration ?? payment.message,
+          receivedAt: payment.paid_at ? new Date(payment.paid_at) : new Date(payment.transaction_date ?? payment.created_at),
         };
 
         const reconciled = await this.reconcile('PAYSTACK', parsed);
         reconciledCount++;
         reconciledTransactions.push(reconciled);
 
-        this.logger.log(`Manually reconciled ${parsed.amount} from ${payment.reference}`);
+        this.logger.log(`Manually reconciled ₦${parsed.amount} from ${payment.reference}`);
       }
 
       this.events.emit('audit.log', {
