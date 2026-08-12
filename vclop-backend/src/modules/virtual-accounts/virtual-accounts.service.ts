@@ -416,4 +416,98 @@ export class VirtualAccountsService {
       throw err;
     }
   }
+
+  /**
+   * Manually fetch recent transactions from Paystack and reconcile them.
+   * Use when webhooks fail but payments were received on Paystack.
+   */
+  async fetchPaystackTransactions(virtualAccountId: string): Promise<{ reconciled: number; transactions: unknown[] }> {
+    const account = await this.prisma.virtualAccount.findUnique({ where: { id: virtualAccountId } });
+    if (!account) throw new ResourceNotFoundException('Virtual account', virtualAccountId);
+
+    if (account.provider !== 'PAYSTACK') {
+      throw new BusinessException('Transaction fetching is only supported for Paystack virtual accounts');
+    }
+
+    if (account.accountNumber.startsWith('PENDING-')) {
+      throw new BusinessException('Cannot fetch transactions for PENDING account. Sync the account number first.');
+    }
+
+    const secretKey = this.config.get<string>('PAYSTACK_SECRET_KEY');
+    if (!secretKey) throw new BusinessException('PAYSTACK_SECRET_KEY not configured');
+
+    try {
+      // Fetch transactions for this dedicated account from Paystack
+      const response = await fetch(
+        `https://api.paystack.co/transaction?perPage=100`,
+        { headers: { Authorization: `Bearer ${secretKey}` } }
+      );
+      const json = await response.json() as any;
+
+      if (!response.ok || !json.status) {
+        throw new BusinessException(`Paystack transaction fetch failed: ${json.message}`);
+      }
+
+      const transactions = json.data as any[];
+      
+      // Filter for charge.success events on this dedicated account
+      const accountPayments = transactions.filter((tx: any) => 
+        tx.status === 'success' &&
+        tx.channel === 'dedicated_nuban' &&
+        tx.authorization?.receiver_bank_account_number === account.accountNumber
+      );
+
+      this.logger.log(`Found ${accountPayments.length} payments for account ${account.accountNumber}`);
+
+      let reconciledCount = 0;
+      const reconciledTransactions = [];
+
+      for (const payment of accountPayments) {
+        // Check if already reconciled
+        const existing = await this.prisma.virtualAccountTransaction.findUnique({
+          where: { providerReference: payment.reference }
+        });
+
+        if (existing) {
+          this.logger.log(`Transaction ${payment.reference} already reconciled`);
+          continue;
+        }
+
+        // Reconcile this payment
+        const parsed = {
+          providerReference: payment.reference,
+          accountNumber: account.accountNumber,
+          amount: Number(payment.amount) / 100, // Paystack stores in kobo
+          currency: payment.currency ?? 'NGN',
+          payerName: payment.authorization?.sender_name,
+          payerAccountNumber: payment.authorization?.sender_bank_account_number,
+          narration: payment.authorization?.narration,
+          receivedAt: payment.paid_at ? new Date(payment.paid_at) : new Date(payment.transaction_date),
+        };
+
+        const reconciled = await this.reconcile('PAYSTACK', parsed);
+        reconciledCount++;
+        reconciledTransactions.push(reconciled);
+
+        this.logger.log(`Manually reconciled ${parsed.amount} from ${payment.reference}`);
+      }
+
+      this.events.emit('audit.log', {
+        action: AuditAction.UPDATE,
+        module: 'virtual-accounts',
+        entityId: virtualAccountId,
+        entityType: 'VirtualAccount',
+        description: `Manually fetched and reconciled ${reconciledCount} payment(s) from Paystack`,
+        isSuccess: true,
+      });
+
+      return {
+        reconciled: reconciledCount,
+        transactions: reconciledTransactions,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to fetch transactions from Paystack: ${(err as Error).message}`);
+      throw err;
+    }
+  }
 }

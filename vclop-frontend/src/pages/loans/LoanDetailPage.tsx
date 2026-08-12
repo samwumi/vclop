@@ -60,6 +60,20 @@ export function LoanDetailPage() {
     onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Sync failed'),
   });
 
+  const fetchTransactionsMutation = useMutation({
+    mutationFn: () => virtualAccountsService.fetchPaystackTransactions(virtualAccount!.id),
+    onSuccess: (result: { reconciled: number }) => {
+      if (result.reconciled === 0) {
+        toast.info('No new transactions found on Paystack');
+      } else {
+        toast.success(`${result.reconciled} payment(s) fetched and reconciled`);
+      }
+      qc.invalidateQueries({ queryKey: ['loan-application', id] });
+      qc.invalidateQueries({ queryKey: ['virtual-account', 'loan', application?.loan?.id] });
+    },
+    onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to fetch transactions'),
+  });
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ['loan-application', id] });
 
   // Full customer 360 — loaded lazily when compliance/IC opens the section
@@ -631,6 +645,24 @@ export function LoanDetailPage() {
                           </button>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {!virtualAccount.accountNumber.startsWith('PENDING-') && virtualAccount.provider === 'PAYSTACK' && hasPermission('virtual_accounts:read') && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-gray-600">Missing payments?</p>
+                        <p className="text-xs text-gray-500 mt-0.5">If a payment was made but not showing here, fetch transactions from Paystack</p>
+                      </div>
+                      <button
+                        onClick={() => fetchTransactionsMutation.mutate()}
+                        disabled={fetchTransactionsMutation.isPending}
+                        className="btn-secondary btn-sm gap-1.5 disabled:opacity-50"
+                      >
+                        <Wallet className="w-3.5 h-3.5" /> {fetchTransactionsMutation.isPending ? 'Fetching…' : 'Fetch Payments'}
+                      </button>
                     </div>
                   </div>
                 )}

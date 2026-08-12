@@ -99,6 +99,19 @@ export class VirtualAccountsController {
   }
 
   /**
+   * Manually fetch recent transactions from Paystack and reconcile them.
+   * Use when webhooks fail but payments were received on Paystack.
+   */
+  @Post(':id/fetch-paystack-transactions')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('virtual_accounts:read')
+  @ApiOperation({ summary: 'Manually fetch and reconcile recent transactions from Paystack' })
+  async fetchPaystackTransactions(@Param('id', ParseUUIDPipe) id: string) {
+    return ok(await this.service.fetchPaystackTransactions(id), 'Transactions fetched and reconciled');
+  }
+
+  /**
    * Real bank webhook endpoint — intentionally has no JWT guard, since the
    * bank's servers can't authenticate with our app's JWTs. Protected instead
    * by the provider's own signature verification inside the service.

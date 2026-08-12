@@ -30,4 +30,10 @@ export const virtualAccountsService = {
     const { data } = await api.post<ApiResponse<VirtualAccount>>(`/virtual-accounts/${virtualAccountId}/sync-from-paystack`);
     return data.data!;
   },
+
+  /** Manually fetch recent transactions from Paystack and reconcile them */
+  async fetchPaystackTransactions(virtualAccountId: string): Promise<{ reconciled: number; transactions: VirtualAccountTransaction[] }> {
+    const { data } = await api.post<ApiResponse<{ reconciled: number; transactions: VirtualAccountTransaction[] }>>(`/virtual-accounts/${virtualAccountId}/fetch-paystack-transactions`);
+    return data.data!;
+  },
 };
