@@ -98,7 +98,7 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
     return {
       providerCustomerId: `PENDING-${input.customerId}`,
       providerAccountId:  `PENDING-${Date.now()}`,
-      accountNumber:      'PENDING',
+      accountNumber:      `PENDING-${input.customerId}-${Date.now()}`,
       accountName:        `${firstName} ${lastName}`,
       bankName:           bank === 'titan-paystack' ? 'Titan Paystack' : 'Wema Bank',
     };

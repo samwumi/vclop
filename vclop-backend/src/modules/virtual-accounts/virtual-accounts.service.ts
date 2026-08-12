@@ -171,7 +171,12 @@ export class VirtualAccountsService {
     }
     // Find the PENDING virtual account for this Paystack customer
     const pending = await this.prisma.virtualAccount.findFirst({
-      where: { providerCustomerId: { startsWith: 'PENDING-' } },
+      where: { 
+        OR: [
+          { providerCustomerId: { startsWith: 'PENDING-' } },
+          { accountNumber: { startsWith: 'PENDING-' } }
+        ]
+      },
       orderBy: { createdAt: 'desc' },
     });
     if (!pending) {
