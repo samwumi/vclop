@@ -436,11 +436,37 @@ export class VirtualAccountsService {
     const secretKey = this.config.get<string>('PAYSTACK_SECRET_KEY');
     if (!secretKey) throw new BusinessException('PAYSTACK_SECRET_KEY not configured');
 
+    const loan = await this.prisma.loan.findUnique({ 
+      where: { id: account.loanId }, 
+      include: { loanApplication: { include: { customer: true } } } 
+    });
+    if (!loan) throw new ResourceNotFoundException('Loan', account.loanId);
+
+    const customer = loan.loanApplication.customer;
+    const email = customer.email ?? `customer-${customer.id}@no-email.vclop.local`;
+
     try {
-      // Use the dedicated account transactions endpoint
-      // This is the correct endpoint for DVA transactions
+      // First, fetch customer from Paystack to get the dedicated account ID
+      const customerResponse = await fetch(
+        `https://api.paystack.co/customer/${encodeURIComponent(email)}`,
+        { headers: { Authorization: `Bearer ${secretKey}` } }
+      );
+      const customerJson = await customerResponse.json() as any;
+
+      if (!customerResponse.ok || !customerJson.status) {
+        throw new BusinessException(`Paystack customer lookup failed: ${customerJson.message}`);
+      }
+
+      const customerData = customerJson.data;
+      const dedicatedAccountId = customerData.dedicated_account?.id;
+
+      if (!dedicatedAccountId) {
+        throw new BusinessException('No dedicated account ID found for this customer on Paystack');
+      }
+
+      // Now fetch transactions for this dedicated account using the ID
       const response = await fetch(
-        `https://api.paystack.co/dedicated_account/transactions?account_number=${account.accountNumber}&page=1&perPage=100`,
+        `https://api.paystack.co/dedicated_account/${dedicatedAccountId}/transactions?page=1&perPage=100`,
         { headers: { Authorization: `Bearer ${secretKey}` } }
       );
       const json = await response.json() as any;
