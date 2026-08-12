@@ -86,6 +86,19 @@ export class VirtualAccountsController {
   }
 
   /**
+   * Manually sync a PENDING virtual account with Paystack to fetch the actual account number.
+   * Use when webhook delivery failed but account was assigned on Paystack side.
+   */
+  @Post(':id/sync-from-paystack')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('virtual_accounts:read')
+  @ApiOperation({ summary: 'Manually fetch account number from Paystack for a PENDING virtual account' })
+  async syncFromPaystack(@Param('id', ParseUUIDPipe) id: string) {
+    return ok(await this.service.syncFromPaystack(id), 'Virtual account synced from Paystack');
+  }
+
+  /**
    * Real bank webhook endpoint — intentionally has no JWT guard, since the
    * bank's servers can't authenticate with our app's JWTs. Protected instead
    * by the provider's own signature verification inside the service.

@@ -336,4 +336,84 @@ export class VirtualAccountsService {
 
     return this.prisma.virtualAccountTransaction.findUnique({ where: { id: transactionId } });
   }
+
+  /**
+   * Manually fetch account number from Paystack for a PENDING virtual account.
+   * Use when webhook delivery failed but account was assigned on Paystack side.
+   */
+  async syncFromPaystack(virtualAccountId: string): Promise<unknown> {
+    const account = await this.prisma.virtualAccount.findUnique({ where: { id: virtualAccountId } });
+    if (!account) throw new ResourceNotFoundException('Virtual account', virtualAccountId);
+
+    if (account.provider !== 'PAYSTACK') {
+      throw new BusinessException('Sync is only supported for Paystack virtual accounts');
+    }
+
+    if (!account.accountNumber.startsWith('PENDING-')) {
+      throw new BusinessException('Account number is already assigned');
+    }
+
+    // Fetch customer from Paystack to get their dedicated account
+    const secretKey = this.config.get<string>('PAYSTACK_SECRET_KEY');
+    if (!secretKey) throw new BusinessException('PAYSTACK_SECRET_KEY not configured');
+
+    const loan = await this.prisma.loan.findUnique({ 
+      where: { id: account.loanId }, 
+      include: { loanApplication: { include: { customer: true } } } 
+    });
+    if (!loan) throw new ResourceNotFoundException('Loan', account.loanId);
+
+    const customer = loan.loanApplication.customer;
+    const email = customer.email ?? `customer-${customer.id}@no-email.vclop.local`;
+
+    try {
+      // Fetch customer from Paystack
+      const response = await fetch(
+        `https://api.paystack.co/customer/${encodeURIComponent(email)}`,
+        { headers: { Authorization: `Bearer ${secretKey}` } }
+      );
+      const json = await response.json() as any;
+
+      if (!response.ok || !json.status) {
+        throw new BusinessException(`Paystack customer lookup failed: ${json.message}`);
+      }
+
+      const customerData = json.data;
+      
+      // Check if customer has dedicated accounts
+      if (!customerData.dedicated_account || !customerData.dedicated_account.account_number) {
+        throw new BusinessException('No dedicated account found for this customer on Paystack. The account may still be pending assignment.');
+      }
+
+      const dva = customerData.dedicated_account;
+
+      // Update the PENDING virtual account with the real account number
+      const updated = await this.prisma.virtualAccount.update({
+        where: { id: virtualAccountId },
+        data: {
+          providerCustomerId: customerData.customer_code,
+          providerAccountId: String(dva.id ?? ''),
+          accountNumber: dva.account_number,
+          accountName: dva.account_name ?? account.accountName,
+          bankName: dva.bank?.name ?? account.bankName,
+        },
+      });
+
+      this.logger.log(`Manually synced PENDING virtual account ${virtualAccountId} → ${dva.account_number}`);
+
+      this.events.emit('audit.log', {
+        action: AuditAction.UPDATE,
+        module: 'virtual-accounts',
+        entityId: virtualAccountId,
+        entityType: 'VirtualAccount',
+        description: `Manually synced from Paystack: ${dva.account_number}`,
+        isSuccess: true,
+      });
+
+      return updated;
+    } catch (err) {
+      this.logger.error(`Failed to sync from Paystack: ${(err as Error).message}`);
+      throw err;
+    }
+  }
 }
