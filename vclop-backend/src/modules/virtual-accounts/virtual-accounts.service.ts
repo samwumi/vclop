@@ -86,6 +86,20 @@ export class VirtualAccountsService {
     const customer = await this.prisma.customer.findUnique({ where: { id: customerId } });
     if (!customer) throw new ResourceNotFoundException('Customer', customerId);
 
+    // Read bank account fields safely — columns may not exist yet if migration is pending
+    let bankAccountNumber: string | undefined;
+    let bankCode: string | undefined;
+    try {
+      const raw = await this.prisma.$queryRaw<Array<{ bankAccountNumber: string | null; bankCode: string | null }>>`
+        SELECT bankAccountNumber, bankCode FROM customers WHERE id = ${customerId}
+      `;
+      bankAccountNumber = raw[0]?.bankAccountNumber ?? undefined;
+      bankCode = raw[0]?.bankCode ?? undefined;
+    } catch {
+      // Columns don't exist yet — migration pending, proceed without them
+      this.logger.warn(`Bank account columns not yet in DB for customer ${customerId} — migration may be pending`);
+    }
+
     const provider = this.providerFactory.getActiveProvider();
     const result = await provider.createVirtualAccount({
       loanId,
@@ -94,8 +108,8 @@ export class VirtualAccountsService {
       customerEmail: customer.email ?? undefined,
       customerPhone: customer.phone,
       customerBvn: customer.bvn ?? undefined,
-      customerBankAccountNumber: (customer as typeof customer & { bankAccountNumber?: string | null }).bankAccountNumber ?? undefined,
-      customerBankCode: (customer as typeof customer & { bankCode?: string | null }).bankCode ?? undefined,
+      customerBankAccountNumber: bankAccountNumber,
+      customerBankCode: bankCode,
     });
 
     const account = await this.prisma.virtualAccount.create({
