@@ -25,9 +25,9 @@ export const virtualAccountsService = {
     return data.data!;
   },
 
-  /** Dev/testing only — only works while the LOCAL provider is active on the backend. */
-  async simulatePayment(virtualAccountId: string, payload: { amount: number; payerName?: string; narration?: string }): Promise<VirtualAccountTransaction> {
-    const { data } = await api.post<ApiResponse<VirtualAccountTransaction>>(`/virtual-accounts/${virtualAccountId}/simulate-payment`, payload);
+  /** Manually sync PENDING virtual account from Paystack when webhook delivery failed */
+  async syncFromPaystack(virtualAccountId: string): Promise<VirtualAccount> {
+    const { data } = await api.post<ApiResponse<VirtualAccount>>(`/virtual-accounts/${virtualAccountId}/sync-from-paystack`);
     return data.data!;
   },
 };

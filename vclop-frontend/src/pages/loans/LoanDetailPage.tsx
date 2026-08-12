@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Zap, Copy, Receipt, Car, User, ChevronDown, ChevronUp, FileText as FileIcon, Eye, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Copy, Receipt, Car, User, ChevronDown, ChevronUp, FileText as FileIcon, Eye, AlertTriangle } from 'lucide-react';
 import { loansService } from '@/services/loans.service';
 import { virtualAccountsService } from '@/services/virtual-accounts.service';
 import { receiptsService } from '@/services/receipts.service';
@@ -32,7 +32,6 @@ export function LoanDetailPage() {
   const [editingGuarantor, setEditingGuarantor] = useState<{ id: string; firstName: string; lastName: string; phone: string; relationship: string } | null>(null);
   const [collateralForm, setCollateralForm] = useState({ description: '', estimatedValue: '' });
   const [repaymentAmount, setRepaymentAmount] = useState('');
-  const [simulateAmount, setSimulateAmount] = useState('');
   const [transportForm, setTransportForm] = useState({
     purpose: '', location: '', customerCount: '', distanceKm: '', estimatedCost: '', suggestedAmount: '',
   });
@@ -52,15 +51,13 @@ export function LoanDetailPage() {
     retry: false, // a 404 here just means the account hasn't been auto-created yet — not an error to retry
   });
 
-  const simulatePaymentMutation = useMutation({
-    mutationFn: () => virtualAccountsService.simulatePayment(virtualAccount!.id, { amount: Number(simulateAmount) }),
+  const syncFromPaystackMutation = useMutation({
+    mutationFn: () => virtualAccountsService.syncFromPaystack(virtualAccount!.id),
     onSuccess: () => {
-      toast.success('Payment simulated and reconciled');
-      setSimulateAmount('');
-      qc.invalidateQueries({ queryKey: ['loan-application', id] });
+      toast.success('Account number synced from Paystack');
       qc.invalidateQueries({ queryKey: ['virtual-account', 'loan', application?.loan?.id] });
     },
-    onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Simulation failed — only works while the LOCAL provider is active'),
+    onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Sync failed'),
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['loan-application', id] });
@@ -584,13 +581,18 @@ export function LoanDetailPage() {
                     <p className="text-xs text-gray-500">Account Number</p>
                     <div className="flex items-center gap-1.5">
                       <p className="text-lg font-bold text-gray-900 font-mono">{virtualAccount.accountNumber}</p>
-                      <button
-                        onClick={() => { navigator.clipboard.writeText(virtualAccount.accountNumber); toast.success('Account number copied'); }}
-                        className="btn-ghost btn-icon w-6 h-6"
-                      >
-                        <Copy className="w-3 h-3 text-gray-400" />
-                      </button>
+                      {!virtualAccount.accountNumber.startsWith('PENDING-') && (
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(virtualAccount.accountNumber); toast.success('Account number copied'); }}
+                          className="btn-ghost btn-icon w-6 h-6"
+                        >
+                          <Copy className="w-3 h-3 text-gray-400" />
+                        </button>
+                      )}
                     </div>
+                    {virtualAccount.accountNumber.startsWith('PENDING-') && (
+                      <p className="text-xs text-amber-600 mt-1">⏳ Awaiting Paystack webhook</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Bank</p>
@@ -610,19 +612,26 @@ export function LoanDetailPage() {
                   </div>
                 </div>
 
-                {(virtualAccount.provider === 'LOCAL' || virtualAccount.provider === 'PAYSTACK') && hasPermission('virtual_accounts:simulate') && application.loan.status === 'ACTIVE' && (
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex items-end gap-2">
-                    <div>
-                      <label className="form-label text-xs">Simulate incoming payment (testing only)</label>
-                      <input type="number" className="form-input h-9 w-40" placeholder="Amount" value={simulateAmount} onChange={(e) => setSimulateAmount(e.target.value)} />
+                {virtualAccount.accountNumber.startsWith('PENDING-') && virtualAccount.provider === 'PAYSTACK' && hasPermission('virtual_accounts:read') && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-amber-900">Account number pending</p>
+                          <p className="text-xs text-amber-700 mt-1">
+                            Paystack is processing the account assignment. If the account was already created on Paystack but the webhook didn't arrive, you can manually sync it.
+                          </p>
+                          <button
+                            onClick={() => syncFromPaystackMutation.mutate()}
+                            disabled={syncFromPaystackMutation.isPending}
+                            className="btn-secondary btn-sm gap-1.5 mt-3 disabled:opacity-50"
+                          >
+                            <Wallet className="w-3.5 h-3.5" /> {syncFromPaystackMutation.isPending ? 'Syncing…' : 'Sync from Paystack'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => simulatePaymentMutation.mutate()}
-                      disabled={!simulateAmount || simulatePaymentMutation.isPending}
-                      className="btn-secondary btn-sm gap-1.5 disabled:opacity-50"
-                    >
-                      <Zap className="w-3.5 h-3.5" /> {simulatePaymentMutation.isPending ? 'Simulating…' : 'Simulate Payment'}
-                    </button>
                   </div>
                 )}
 
