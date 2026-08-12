@@ -117,8 +117,8 @@ export class CustomersService {
         email: dto.email,
         bvn: dto.bvn,
         nin: dto.nin,
-        // bankAccountNumber: dto.bankAccountNumber,  // Migration pending
-        // bankCode: dto.bankCode,  // Migration pending
+        bankAccountNumber: dto.bankAccountNumber,
+        bankCode: dto.bankCode,
         residentialAddress: dto.residentialAddress,
         businessAddress: dto.businessAddress,
         gpsLat: dto.gpsLat,
@@ -173,8 +173,8 @@ export class CustomersService {
         ...(dto.nokRelationship !== undefined && { nokRelationship: dto.nokRelationship }),
         ...(dto.nokPhone !== undefined && { nokPhone: dto.nokPhone }),
         ...(dto.nokAddress !== undefined && { nokAddress: dto.nokAddress }),
-        // ...(dto.bankAccountNumber !== undefined && { bankAccountNumber: dto.bankAccountNumber }),  // Migration pending
-        // ...(dto.bankCode !== undefined && { bankCode: dto.bankCode }),  // Migration pending
+        ...(dto.bankAccountNumber !== undefined && { bankAccountNumber: dto.bankAccountNumber }),
+        ...(dto.bankCode !== undefined && { bankCode: dto.bankCode }),
         updatedById: actorId,
       },
     });
