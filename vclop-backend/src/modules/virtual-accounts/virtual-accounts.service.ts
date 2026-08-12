@@ -132,14 +132,22 @@ export class VirtualAccountsService {
   async handleWebhook(providerType: VirtualAccountProviderType, rawBody: string | Buffer, headers: Record<string, string>): Promise<unknown> {
     const provider = this.providerFactory.getProvider(providerType);
 
+    this.logger.log(`Received ${providerType} webhook`);
+    
     if (!provider.verifyWebhookSignature(rawBody, headers)) {
+      this.logger.error('Webhook signature verification failed');
       throw new BusinessException('Webhook signature verification failed');
     }
 
+    this.logger.log('Webhook signature verified');
+
     const payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : JSON.parse(rawBody.toString());
+    
+    this.logger.log(`Webhook event: ${payload.event}`);
 
     // Handle DVA assignment webhook (async response to /assign endpoint)
     if (payload.event === 'dedicatedaccount.assign.success') {
+      this.logger.log('Processing dedicatedaccount.assign.success');
       return this.handleDvaAssigned(payload);
     }
     if (payload.event === 'dedicatedaccount.assign.failed') {
