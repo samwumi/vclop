@@ -94,8 +94,8 @@ export class VirtualAccountsService {
       customerEmail: customer.email ?? undefined,
       customerPhone: customer.phone,
       customerBvn: customer.bvn ?? undefined,
-      customerBankAccount: customer.bankAccountNumber ?? undefined,
-      customerBankCode: customer.bankCode ?? undefined,
+      // customerBankAccount: customer.bankAccountNumber ?? undefined,  // Migration pending
+      // customerBankCode: customer.bankCode ?? undefined,  // Migration pending
     });
 
     const account = await this.prisma.virtualAccount.create({
