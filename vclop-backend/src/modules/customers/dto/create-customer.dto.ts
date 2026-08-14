@@ -56,17 +56,15 @@ export class CreateCustomerDto {
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ description: '11-digit Bank Verification Number' })
-  @IsOptional()
+  @ApiProperty({ description: '11-digit Bank Verification Number - REQUIRED' })
   @IsString()
   @Matches(/^\d{11}$/, { message: 'bvn must be 11 digits' })
-  bvn?: string;
+  bvn!: string;
 
-  @ApiPropertyOptional({ description: '11-digit National Identification Number' })
-  @IsOptional()
+  @ApiProperty({ description: '11-digit National Identification Number - REQUIRED' })
   @IsString()
   @Matches(/^\d{11}$/, { message: 'nin must be 11 digits' })
-  nin?: string;
+  nin!: string;
 
   @ApiPropertyOptional({ description: "Customer's bank account number (10 digits) — used for Paystack BVN validation", maxLength: 20 })
   @IsOptional()

@@ -151,8 +151,8 @@ export function NewCustomerPage() {
       </div>
 
       <div className="banner-info mb-4 text-xs">
-        <strong>Required for loan applications:</strong> BVN or NIN · Gender · Date of birth · Residential address · Next of kin (name &amp; phone).
-        You can register now with basic info and complete the rest from the customer profile.
+        <strong>Required fields:</strong> First name · Last name · Phone · BVN · NIN · Location.
+        Additional details (employment, next of kin) can be completed from the customer profile after registration.
       </div>
 
       <form onSubmit={handleSubmit} className="card">
@@ -186,8 +186,8 @@ export function NewCustomerPage() {
             <FormField label="Phone" field="phone" required value={form.phone} error={errors.phone} onChange={handleFieldChange} />
             <FormField label="Alternate Phone" field="alternatePhone" value={form.alternatePhone} error={errors.alternatePhone} onChange={handleFieldChange} />
             <FormField label="Email" field="email" type="email" value={form.email} error={errors.email} onChange={handleFieldChange} />
-            <FormField label="BVN" field="bvn" value={form.bvn} error={errors.bvn} onChange={handleFieldChange} />
-            <FormField label="NIN" field="nin" value={form.nin} error={errors.nin} onChange={handleFieldChange} />
+            <FormField label="BVN (11 digits)" field="bvn" required value={form.bvn} error={errors.bvn} onChange={handleFieldChange} />
+            <FormField label="NIN (11 digits)" field="nin" required value={form.nin} error={errors.nin} onChange={handleFieldChange} />
           </div>
 
           <div className="grid grid-cols-1 gap-4">
