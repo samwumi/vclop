@@ -65,6 +65,14 @@ export class RolesController {
     return ok(null, 'Role deleted');
   }
 
+  @Get(':id/permissions')
+  @RequirePermissions('roles:read')
+  @ApiOperation({ summary: 'Get permission IDs for a role' })
+  async getPermissions(@Param('id', ParseUUIDPipe) id: string) {
+    const permissionIds = await this.service.getPermissions(id);
+    return ok(permissionIds, 'Role permissions retrieved');
+  }
+
   @Post(':id/permissions/sync')
   @RequirePermissions('roles:manage_permissions')
   @HttpCode(HttpStatus.OK)

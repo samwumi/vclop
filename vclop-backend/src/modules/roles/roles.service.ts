@@ -147,6 +147,17 @@ export class RolesService {
   // PERMISSION SYNC  (full replace — this is the safe way to manage role perms)
   // ────────────────────────────────────────────────────────────────────────────
 
+  async getPermissions(roleId: string): Promise<string[]> {
+    await this.assertExists(roleId);
+
+    const rolePerms = await this.prisma.rolePermission.findMany({
+      where: { roleId },
+      select: { permissionId: true },
+    });
+
+    return rolePerms.map((rp) => rp.permissionId);
+  }
+
   async syncPermissions(roleId: string, dto: SyncPermissionsDto, updatedById: string): Promise<void> {
     await this.assertExists(roleId);
 
