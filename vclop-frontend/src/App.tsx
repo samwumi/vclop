@@ -6,9 +6,10 @@ import { authService } from '@/services/auth.service';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
 export default function App() {
-  const { isAuthenticated, accessToken, setAuth, logout } = useAuthStore();
+  const { accessToken, setAuth, logout } = useAuthStore();
 
-  // On mount, rehydrate user profile if we have a token stored
+  // On mount, always fetch fresh user profile and permissions if we have a token
+  // This ensures permissions are up-to-date even if admin changed them
   const { isLoading } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
@@ -18,8 +19,10 @@ export default function App() {
       setAuth(user, store.accessToken!, store.refreshToken!);
       return user;
     },
-    enabled: !!accessToken && !isAuthenticated,
+    enabled: !!accessToken,
     retry: false,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
   });
 
   // Auto-logout on storage events from other tabs
