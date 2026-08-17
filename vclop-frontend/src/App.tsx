@@ -13,10 +13,18 @@ export default function App() {
   const { isLoading } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
+      console.log('[App] Fetching user profile and permissions...');
       const user = await authService.me();
+      console.log('[App] Received user:', { 
+        id: user.id, 
+        email: user.email, 
+        permissionCount: user.permissions.length,
+        permissions: user.permissions 
+      });
       // Tokens already in store — just update the user profile
       const store = useAuthStore.getState();
       setAuth(user, store.accessToken!, store.refreshToken!);
+      console.log('[App] User permissions updated in store');
       return user;
     },
     enabled: !!accessToken,

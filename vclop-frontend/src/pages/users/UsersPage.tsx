@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Download, Users, MoreHorizontal, KeyRound, Trash2, ShieldOff, ShieldCheck, Unlock } from 'lucide-react';
+import { Plus, Download, Users, MoreHorizontal, KeyRound, Trash2, ShieldOff, ShieldCheck, Unlock, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import { ModulePage } from '@/components/ui/ModulePage';
@@ -13,6 +13,7 @@ import type { Role, User } from '@/types/domain.types';
 interface Branch { id: string; code: string; name: string; }
 interface Department { id: string; code: string; name: string; }
 interface UsersResponse { data: User[]; meta: PaginationMeta; }
+interface Permission { id: string; code: string; name: string; category: string; isActive: boolean; }
 
 const EMPTY_FORM = {
   firstName: '', lastName: '', email: '', username: '',
@@ -34,6 +35,7 @@ export function UsersPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [resetPwdUserId, setResetPwdUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
+  const [permissionsUserId, setPermissionsUserId] = useState<string | null>(null);
   const { hasPermission, user: currentUser } = useAuthStore();
   const qc = useQueryClient();
 
@@ -216,6 +218,15 @@ export function UsersPage() {
                 </button>
                 {openMenuId === user.id && (
                   <div className="absolute right-0 top-8 w-52 bg-white rounded-xl shadow-lg border border-gray-200 z-50 py-1 overflow-hidden">
+                    {/* Manage Permissions */}
+                    {hasPermission('users:manage_permissions') && (
+                      <button
+                        onClick={() => { setPermissionsUserId(user.id); setOpenMenuId(null); }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Key className="w-4 h-4 text-gray-400" /> Manage Permissions
+                      </button>
+                    )}
                     {/* Reset password */}
                     {hasPermission('users:reset_password') && (
                       <button
@@ -405,6 +416,228 @@ export function UsersPage() {
         </div>
       </div>
     )}
+
+    {/* Manage Permissions Modal */}
+    {permissionsUserId && <UserPermissionsModal userId={permissionsUserId} onClose={() => setPermissionsUserId(null)} />}
   </>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// User Permissions Modal Component
+// ──────────────────────────────────────────────────────────────────────────────
+function UserPermissionsModal({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [selectedPermissions, setSelectedPermissions] = useState<Record<string, boolean>>({});
+
+  // Fetch all permissions
+  const { data: allPermissions = [] } = useQuery<Permission[]>({
+    queryKey: ['permissions', 'all'],
+    queryFn: async () => {
+      const res = await api.get('/permissions?limit=500');
+      const d = res.data?.data;
+      return (Array.isArray(d) ? d : d?.data ?? []) as Permission[];
+    },
+  });
+
+  // Fetch user's current permission overrides
+  const { data: userPermissionsData = [], isLoading } = useQuery<Array<{ permissionId: string; granted: boolean }>>({
+    queryKey: ['users', userId, 'permissions'],
+    queryFn: async () => {
+      const res = await api.get(`/users/${userId}/permissions`);
+      return res.data?.data ?? [];
+    },
+  });
+
+  // Initialize selected permissions when data loads
+  useEffect(() => {
+    const initial: Record<string, boolean> = {};
+    userPermissionsData.forEach((p) => {
+      initial[p.permissionId] = p.granted;
+    });
+    setSelectedPermissions(initial);
+  }, [userPermissionsData]);
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      // Build the permissions array with granted/revoked status
+      const permissions = Object.entries(selectedPermissions).map(([permissionId, granted]) => ({
+        permissionId,
+        granted,
+      }));
+      await api.post(`/users/${userId}/permissions`, { permissions });
+    },
+    onSuccess: () => {
+      toast.success('User permissions updated');
+      qc.invalidateQueries({ queryKey: ['users', userId, 'permissions'] });
+      qc.invalidateQueries({ queryKey: ['users'] });
+      onClose();
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Failed to update permissions');
+    },
+  });
+
+  // Group permissions by category
+  const groupedPermissions = allPermissions.reduce<Record<string, Permission[]>>((acc, perm) => {
+    if (!acc[perm.category]) acc[perm.category] = [];
+    acc[perm.category].push(perm);
+    return acc;
+  }, {});
+
+  const togglePermission = (permissionId: string, currentState: boolean | undefined) => {
+    setSelectedPermissions(prev => {
+      const newState = { ...prev };
+      if (currentState === undefined) {
+        // Not set yet - grant it
+        newState[permissionId] = true;
+      } else if (currentState === true) {
+        // Currently granted - revoke it (explicit deny)
+        newState[permissionId] = false;
+      } else {
+        // Currently revoked - remove override (inherit from role)
+        delete newState[permissionId];
+      }
+      return newState;
+    });
+  };
+
+  const getPermissionState = (permissionId: string): 'granted' | 'revoked' | 'inherit' => {
+    const state = selectedPermissions[permissionId];
+    if (state === true) return 'granted';
+    if (state === false) return 'revoked';
+    return 'inherit';
+  };
+
+  const selectAllInCategory = (category: string, granted: boolean) => {
+    setSelectedPermissions(prev => {
+      const newState = { ...prev };
+      groupedPermissions[category]?.forEach(p => {
+        newState[p.id] = granted;
+      });
+      return newState;
+    });
+  };
+
+  const clearAllInCategory = (category: string) => {
+    setSelectedPermissions(prev => {
+      const newState = { ...prev };
+      groupedPermissions[category]?.forEach(p => {
+        delete newState[p.id];
+      });
+      return newState;
+    });
+  };
+
+  const user = qc.getQueryData<UsersResponse>(['users'])?.data?.find(u => u.id === userId);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Key className="w-5 h-5 text-brand-600" /> Manage Permissions
+            </h3>
+            {user && <p className="text-sm text-gray-500">{user.firstName} {user.lastName}</p>}
+          </div>
+          <button onClick={onClose} className="btn-ghost btn-icon">
+            <span className="text-gray-400 text-xl">×</span>
+          </button>
+        </div>
+
+        {/* Info banner */}
+        <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
+          <p className="text-xs text-blue-700">
+            💡 <strong>Grant</strong> = Give permission directly. <strong>Revoke</strong> = Explicitly deny (overrides role). <strong>Inherit</strong> = Use role permissions (default).
+          </p>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-400">Loading permissions...</div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(groupedPermissions).map(([category, perms]) => (
+                <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Category header */}
+                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-gray-700">{category}</h4>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => selectAllInCategory(category, true)}
+                        className="text-xs text-emerald-600 hover:text-emerald-700"
+                      >
+                        Grant All
+                      </button>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        onClick={() => selectAllInCategory(category, false)}
+                        className="text-xs text-red-600 hover:text-red-700"
+                      >
+                        Revoke All
+                      </button>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        onClick={() => clearAllInCategory(category)}
+                        className="text-xs text-gray-600 hover:text-gray-700"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Permissions list */}
+                  <div className="p-3 space-y-2">
+                    {perms.map((perm) => {
+                      const state = getPermissionState(perm.id);
+                      return (
+                        <div
+                          key={perm.id}
+                          className="flex items-center justify-between py-2 px-3 rounded hover:bg-gray-50"
+                        >
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-800">{perm.name}</p>
+                            <p className="text-xs text-gray-400">{perm.code}</p>
+                          </div>
+                          <button
+                            onClick={() => togglePermission(perm.id, selectedPermissions[perm.id])}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                              state === 'granted'
+                                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                : state === 'revoked'
+                                ? 'bg-red-100 text-red-700 border border-red-200'
+                                : 'bg-gray-100 text-gray-600 border border-gray-200'
+                            }`}
+                          >
+                            {state === 'granted' ? '✓ Granted' : state === 'revoked' ? '✗ Revoked' : 'Inherit'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+          <button onClick={onClose} className="btn-secondary">Cancel</button>
+          <button
+            onClick={() => updateMutation.mutate()}
+            disabled={updateMutation.isPending}
+            className="btn-primary disabled:opacity-50"
+          >
+            {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
