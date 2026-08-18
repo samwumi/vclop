@@ -26,12 +26,18 @@ type FormState = {
   residentialAddress: string;
   businessAddress: string;
   branchId: string;
+  // NDPA Consent
+  dataProcessingConsent: boolean;
+  marketingConsent: boolean;
+  creditBureauConsent: boolean;
+  thirdPartyDataSharingConsent: boolean;
 };
 
 const EMPTY: FormState = {
   type: 'INDIVIDUAL', firstName: '', lastName: '', middleName: '', businessName: '',
   gender: '', dateOfBirth: '', phone: '', alternatePhone: '', email: '',
   bvn: '', nin: '', residentialAddress: '', businessAddress: '', branchId: '',
+  dataProcessingConsent: false, marketingConsent: false, creditBureauConsent: false, thirdPartyDataSharingConsent: false,
 };
 
 // FormField is defined OUTSIDE the component so its reference is stable
@@ -107,6 +113,9 @@ export function NewCustomerPage() {
         firstName: form.firstName,
         lastName: form.lastName,
         phone: form.phone,
+        // NDPA Consent (required)
+        dataProcessingConsent: form.dataProcessingConsent,
+        creditBureauConsent: form.creditBureauConsent,
       };
       if (form.middleName) payload.middleName = form.middleName;
       if (form.type === 'BUSINESS' && form.businessName) payload.businessName = form.businessName;
@@ -119,6 +128,9 @@ export function NewCustomerPage() {
       if (form.residentialAddress) payload.residentialAddress = form.residentialAddress;
       if (form.businessAddress) payload.businessAddress = form.businessAddress;
       if (form.branchId) payload.branchId = form.branchId;
+      // Optional consent
+      if (form.marketingConsent) payload.marketingConsent = form.marketingConsent;
+      if (form.thirdPartyDataSharingConsent) payload.thirdPartyDataSharingConsent = form.thirdPartyDataSharingConsent;
       return customersService.create(payload);
     },
     onSuccess: (customer) => {
@@ -151,7 +163,7 @@ export function NewCustomerPage() {
       </div>
 
       <div className="banner-info mb-4 text-xs">
-        <strong>Required fields:</strong> First name · Last name · Phone · BVN · NIN · Location.
+        <strong>Required fields:</strong> First name · Last name · Phone · BVN · NIN · Location · Data Processing Consent · Credit Bureau Consent.
         Additional details (employment, next of kin) can be completed from the customer profile after registration.
       </div>
 
@@ -208,6 +220,74 @@ export function NewCustomerPage() {
               </select>
               {errors.branchId && <p className="text-xs text-red-500 mt-0.5">{errors.branchId}</p>}
             </div>
+          </div>
+
+          {/* NDPA Consent Section */}
+          <div className="border-t border-gray-200 pt-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Data Privacy & Consent (NDPA)</h3>
+            <p className="text-xs text-gray-600 mb-4">
+              In compliance with the Nigerian Data Protection Act (NDPA) 2023, customer consent is required for data processing.
+            </p>
+            
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="dataProcessingConsent"
+                  checked={form.dataProcessingConsent}
+                  onChange={(e) => handleFieldChange('dataProcessingConsent', e.target.checked)}
+                  className="mt-1"
+                  required
+                />
+                <label htmlFor="dataProcessingConsent" className="text-xs text-gray-700 cursor-pointer">
+                  <span className="font-semibold text-red-600">*</span> I consent to Vertical Capital processing my personal data (name, phone, email, BVN, NIN, address, employment, financial information) for loan application assessment, customer relationship management, and regulatory compliance as outlined in the Privacy Policy.
+                </label>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="creditBureauConsent"
+                  checked={form.creditBureauConsent}
+                  onChange={(e) => handleFieldChange('creditBureauConsent', e.target.checked)}
+                  className="mt-1"
+                  required
+                />
+                <label htmlFor="creditBureauConsent" className="text-xs text-gray-700 cursor-pointer">
+                  <span className="font-semibold text-red-600">*</span> I consent to credit bureau checks (CRC Credit Bureau, FirstCentral, etc.) to verify my credit history and assess loan eligibility.
+                </label>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="marketingConsent"
+                  checked={form.marketingConsent}
+                  onChange={(e) => handleFieldChange('marketingConsent', e.target.checked)}
+                  className="mt-1"
+                />
+                <label htmlFor="marketingConsent" className="text-xs text-gray-700 cursor-pointer">
+                  I consent to receive promotional communications (SMS, email, WhatsApp) about new loan products and special offers. (Optional)
+                </label>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="thirdPartyDataSharingConsent"
+                  checked={form.thirdPartyDataSharingConsent}
+                  onChange={(e) => handleFieldChange('thirdPartyDataSharingConsent', e.target.checked)}
+                  className="mt-1"
+                />
+                <label htmlFor="thirdPartyDataSharingConsent" className="text-xs text-gray-700 cursor-pointer">
+                  I consent to sharing my data with third-party service providers (payment processors, collection agents) as needed for loan servicing. (Optional)
+                </label>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 mt-4">
+              You have the right to withdraw consent, request data deletion, or access your data at any time. Contact compliance@verticalcapital.ng for data subject requests.
+            </p>
           </div>
 
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">

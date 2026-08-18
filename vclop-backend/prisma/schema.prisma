@@ -592,6 +592,17 @@ model Customer {
   nokRelationship    String?            @db.VarChar(100)
   nokPhone           String?            @db.VarChar(20)
   nokAddress         String?            @db.VarChar(500)
+  // NDPA Consent Fields
+  dataProcessingConsent           Boolean?   @default(false)
+  dataProcessingConsentDate       DateTime?
+  dataProcessingConsentIp         String?    @db.VarChar(50)
+  marketingConsent                Boolean?   @default(false)
+  marketingConsentDate            DateTime?
+  creditBureauConsent             Boolean?   @default(false)
+  creditBureauConsentDate         DateTime?
+  thirdPartyDataSharingConsent    Boolean?   @default(false)
+  thirdPartyDataSharingConsentDate DateTime?
+  consentVersion                  String?    @default("v1.0") @db.VarChar(20)
   branchId           String?            @db.VarChar(36)
   assignedOfficerId  String?            @db.VarChar(36)
   profileCompletion  Int                @default(0)

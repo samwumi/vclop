@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CustomerType, Gender } from '@prisma/client';
-import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+import { IsBoolean, IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
 
 export class CreateCustomerDto {
   @ApiPropertyOptional({ enum: CustomerType, default: CustomerType.INDIVIDUAL })
@@ -165,4 +165,23 @@ export class CreateCustomerDto {
   @IsString()
   @MaxLength(500)
   nokAddress?: string;
+
+  // NDPA Consent Fields
+  @ApiProperty({ description: 'Customer consents to data processing in line with NDPA - REQUIRED' })
+  @IsBoolean()
+  dataProcessingConsent!: boolean;
+
+  @ApiPropertyOptional({ description: 'Customer consents to marketing communications' })
+  @IsOptional()
+  @IsBoolean()
+  marketingConsent?: boolean;
+
+  @ApiProperty({ description: 'Customer consents to credit bureau check - REQUIRED' })
+  @IsBoolean()
+  creditBureauConsent!: boolean;
+
+  @ApiPropertyOptional({ description: 'Customer consents to third-party data sharing' })
+  @IsOptional()
+  @IsBoolean()
+  thirdPartyDataSharingConsent?: boolean;
 }
