@@ -34,6 +34,7 @@ export interface ComplianceAssessment {
   incomeAssessment: string | null;
   affordabilityScore: number | null;
   cashFlowAssessment: string | null;
+  creditBureauResult: string | null; // JSON string
   riskScore: number | null;
   recommendation: WorkflowRecommendation | null;
   recommendationNotes: string | null;
@@ -178,6 +179,46 @@ export const complianceService = {
       `/compliance/customers/${customerId}/field-visits`,
       payload,
     );
+    return data.data!;
+  },
+
+  /** POST /compliance/applications/:id/credit-report — Pull credit report from Mono */
+  async pullCreditReport(applicationId: string): Promise<{
+    creditReport: {
+      creditScore: number;
+      rating: string;
+      totalDebt: number;
+      activeLoans: Array<{ lender: string; amount: number; balance: number }>;
+      defaultedLoans: Array<{ lender: string; amount: number }>;
+      bureauName: string;
+      reportDate: string;
+    };
+    riskScore: number;
+    recommendation: {
+      recommendation: 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION';
+      reason: string;
+      suggestedAmount?: number;
+    };
+    assessment: ComplianceAssessment;
+  }> {
+    const { data } = await api.post<ApiResponse<{
+      creditReport: {
+        creditScore: number;
+        rating: string;
+        totalDebt: number;
+        activeLoans: Array<{ lender: string; amount: number; balance: number }>;
+        defaultedLoans: Array<{ lender: string; amount: number }>;
+        bureauName: string;
+        reportDate: string;
+      };
+      riskScore: number;
+      recommendation: {
+        recommendation: 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION';
+        reason: string;
+        suggestedAmount?: number;
+      };
+      assessment: ComplianceAssessment;
+    }>>(`/compliance/applications/${applicationId}/credit-report`);
     return data.data!;
   },
 };

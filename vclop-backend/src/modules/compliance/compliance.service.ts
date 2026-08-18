@@ -2,11 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { AuditAction, WorkflowAction } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
+import { ResourceNotFoundException, BusinessException } from '../../common/exceptions/app.exceptions';
+import { CreditBureauService } from './credit-bureau.service';
 
 @Injectable()
 export class ComplianceService {
-  constructor(private readonly prisma: PrismaService, private readonly events: EventEmitter2) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventEmitter2,
+    private readonly creditBureau: CreditBureauService,
+  ) {}
 
   async queue(branchIds: string[], isHQ: boolean) {
     // If HQ/non-location → see all. Otherwise filter by covered branches.
@@ -141,6 +146,91 @@ export class ComplianceService {
   async getBranchIsHQ(branchId: string): Promise<boolean> {
     const branch = await this.prisma.branch.findUnique({ where: { id: branchId }, select: { isHeadOffice: true } });
     return branch?.isHeadOffice ?? false;
+  }
+
+  /**
+   * Pull credit report from Mono Credit Bureau and store in compliance assessment
+   */
+  async pullCreditReport(applicationId: string, actorId: string) {
+    const application = await this.prisma.loanApplication.findFirst({
+      where: { id: applicationId, deletedAt: null },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            bvn: true,
+            creditBureauConsent: true,
+          },
+        },
+      },
+    });
+
+    if (!application) {
+      throw new ResourceNotFoundException('Loan application', applicationId);
+    }
+
+    // Validate customer has BVN
+    if (!application.customer.bvn) {
+      throw new BusinessException('Customer BVN is required to pull credit report');
+    }
+
+    // Validate customer gave consent
+    if (!application.customer.creditBureauConsent) {
+      throw new BusinessException('Customer has not consented to credit bureau check');
+    }
+
+    // Fetch credit report from Mono
+    const creditReport = await this.creditBureau.fetchCreditReport(
+      application.customer.bvn,
+      application.customer.firstName,
+      application.customer.lastName,
+    );
+
+    // Calculate risk score and generate recommendation
+    const riskScore = this.creditBureau.calculateRiskScore(creditReport);
+    const recommendation = this.creditBureau.generateRecommendation(
+      creditReport,
+      Number(application.amount),
+    );
+
+    // Store credit report in compliance assessment
+    const assessment = await this.prisma.complianceAssessment.upsert({
+      where: { loanApplicationId: applicationId },
+      create: {
+        loanApplicationId: applicationId,
+        assignedToId: actorId,
+        creditBureauResult: JSON.stringify(creditReport),
+        riskScore: riskScore,
+        recommendation: recommendation.recommendation === 'APPROVE' ? WorkflowAction.APPROVE :
+                       recommendation.recommendation === 'REJECT' ? WorkflowAction.REJECT :
+                       WorkflowAction.REQUEST_INFORMATION,
+        recommendationNotes: recommendation.reason,
+      },
+      update: {
+        creditBureauResult: JSON.stringify(creditReport),
+        riskScore: riskScore,
+        recommendation: recommendation.recommendation === 'APPROVE' ? WorkflowAction.APPROVE :
+                       recommendation.recommendation === 'REJECT' ? WorkflowAction.REJECT :
+                       WorkflowAction.REQUEST_INFORMATION,
+        recommendationNotes: recommendation.reason,
+      },
+    });
+
+    this.audit(
+      actorId,
+      AuditAction.CREATE,
+      applicationId,
+      `Pulled credit report: Score ${creditReport.creditScore}, Risk ${riskScore}/100`,
+    );
+
+    return {
+      creditReport,
+      riskScore,
+      recommendation,
+      assessment,
+    };
   }
 
   private async assertApplication(id: string) {

@@ -9,6 +9,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { ok } from '../../common/utils/response.util';
 import { ComplianceService } from './compliance.service';
+import { CreditBureauService } from './credit-bureau.service';
 
 // Permission used for READ-ONLY access — compliance officers AND internal control
 const READ_PERM = 'loan_applications:read';
@@ -42,7 +43,10 @@ class FieldVisitDto {
 @ApiTags('Compliance') @ApiBearerAuth('JWT-auth') @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller({ path: 'compliance', version: '1' })
 export class ComplianceController {
-  constructor(private readonly service: ComplianceService) {}
+  constructor(
+    private readonly service: ComplianceService,
+    private readonly creditBureau: CreditBureauService,
+  ) {}
 
   @Get('queue') @RequirePermissions('loan_applications:compliance_review')
   async queue(@CurrentUser() user: RequestUser) {
@@ -97,5 +101,19 @@ export class ComplianceController {
     @CurrentUser() user: RequestUser,
   ) {
     return ok(await this.service.addCustomerVisit(customerId, dto, user.id));
+  }
+
+  /**
+   * Pull credit report from Mono Credit Bureau
+   * Fetches customer's credit history and stores in compliance assessment
+   */
+  @Post('applications/:id/credit-report')
+  @RequirePermissions('loan_applications:compliance_review')
+  async pullCreditReport(
+    @Param('id', ParseUUIDPipe) loanApplicationId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const report = await this.service.pullCreditReport(loanApplicationId, user.id);
+    return ok(report);
   }
 }

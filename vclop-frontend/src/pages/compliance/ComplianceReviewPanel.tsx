@@ -530,7 +530,85 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
           })()}
 
           {/* ── Assessment ────────────────────────────────────────────────── */}
-          {tab === 'assessment' && (            <>
+          {tab === 'assessment' && (
+            <>
+              {/* Credit Report Section */}
+              <div className="p-4 rounded-lg border-2 border-brand-100 bg-brand-50/30">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-brand-600" />
+                    <p className="text-xs font-semibold text-brand-800 uppercase tracking-wide">
+                      Credit Bureau Report
+                    </p>
+                  </div>
+                  <CreditReportButton
+                    applicationId={application.id}
+                    onSuccess={() => {
+                      qc.invalidateQueries({ queryKey: ['compliance-assessment', application.id] });
+                      toast.success('Credit report fetched and saved');
+                    }}
+                  />
+                </div>
+                {assessment?.creditBureauResult && (() => {
+                  try {
+                    const report = JSON.parse(assessment.creditBureauResult) as {
+                      creditScore: number;
+                      rating: string;
+                      totalDebt: number;
+                      activeLoans: Array<{ lender: string; balance: number }>;
+                      defaultedLoans: Array<{ lender: string; amount: number }>;
+                      bureauName: string;
+                      reportDate: string;
+                    };
+                    return (
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center justify-between py-1.5 border-b border-brand-100">
+                          <span className="text-brand-700">Credit Score</span>
+                          <span className="font-bold text-brand-900">{report.creditScore}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-b border-brand-100">
+                          <span className="text-brand-700">Rating</span>
+                          <span className={`font-semibold px-2 py-0.5 rounded-full ${
+                            report.rating === 'EXCELLENT' || report.rating === 'GOOD' ? 'bg-emerald-100 text-emerald-700' :
+                            report.rating === 'FAIR' || report.rating === 'AVERAGE' ? 'bg-amber-100 text-amber-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>{report.rating}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-b border-brand-100">
+                          <span className="text-brand-700">Total Debt</span>
+                          <span className="font-medium text-brand-900">₦{report.totalDebt.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-b border-brand-100">
+                          <span className="text-brand-700">Active Loans</span>
+                          <span className="font-medium text-brand-900">{report.activeLoans.length}</span>
+                        </div>
+                        {report.defaultedLoans.length > 0 && (
+                          <div className="flex items-center justify-between py-1.5 border-b border-brand-100">
+                            <span className="text-red-700 font-semibold">⚠️ Defaulted Loans</span>
+                            <span className="font-bold text-red-700">{report.defaultedLoans.length}</span>
+                          </div>
+                        )}
+                        {assessment.riskScore != null && (
+                          <div className="flex items-center justify-between py-1.5 border-b border-brand-100">
+                            <span className="text-brand-700">Risk Score</span>
+                            <span className={`font-bold ${
+                              assessment.riskScore < 30 ? 'text-emerald-700' :
+                              assessment.riskScore < 60 ? 'text-amber-700' :
+                              'text-red-700'
+                            }`}>{assessment.riskScore}/100</span>
+                          </div>
+                        )}
+                        <p className="text-brand-600 pt-1">
+                          {report.bureauName} · {new Date(report.reportDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                    );
+                  } catch {
+                    return <p className="text-xs text-gray-500">Credit report data unavailable</p>;
+                  }
+                })()}
+              </div>
+
               <div>
                 <label className="form-label">Bank Statement Notes</label>
                 <textarea className="form-input" rows={3} placeholder="Summary of bank statement review — income patterns, outflows, salary credits…" value={form.bankStatementNotes} onChange={(e) => setForm(f => ({ ...f, bankStatementNotes: e.target.value }))} />
@@ -1011,5 +1089,34 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
 
       </div>
     </div>
+  );
+}
+
+// Credit Report Button Component
+function CreditReportButton({
+  applicationId,
+  onSuccess,
+}: {
+  applicationId: string;
+  onSuccess: () => void;
+}) {
+  const mutation = useMutation({
+    mutationFn: () => complianceService.pullCreditReport(applicationId),
+    onSuccess: () => onSuccess(),
+    onError: (e: unknown) => {
+      const error = e as { response?: { data?: { message?: string } } };
+      toast.error(error?.response?.data?.message ?? 'Failed to pull credit report');
+    },
+  });
+
+  return (
+    <button
+      onClick={() => mutation.mutate()}
+      disabled={mutation.isPending}
+      className="btn-primary btn-sm gap-1.5 disabled:opacity-50"
+    >
+      <ShieldCheck className="w-3.5 h-3.5" />
+      {mutation.isPending ? 'Pulling Report...' : 'Pull Credit Report'}
+    </button>
   );
 }
