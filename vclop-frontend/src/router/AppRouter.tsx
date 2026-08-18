@@ -19,6 +19,7 @@ import { BranchesPage } from '@/pages/branches/BranchesPage';
 import { DepartmentsPage } from '@/pages/departments/DepartmentsPage';
 import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { AuditPage } from '@/pages/audit/AuditPage';
+import { AuditCompliancePage } from '@/pages/audit/AuditCompliancePage';
 import { CompliancePage } from '@/pages/compliance/CompliancePage';
 import { CollectionsPage } from '@/pages/collections/CollectionsPage';
 import { AccountingPage } from '@/pages/accounting/AccountingPage';
@@ -100,6 +101,7 @@ export function AppRouter() {
         <Route path="/roles"       element={<ProtectedRoute permission="roles:read"><RolesPage /></ProtectedRoute>} />
         <Route path="/permissions" element={<ProtectedRoute permission="permissions:read"><PermissionsPage /></ProtectedRoute>} />
         <Route path="/audit"       element={<ProtectedRoute permission="audit:read"><AuditPage /></ProtectedRoute>} />
+        <Route path="/audit/compliance" element={<ProtectedRoute permission="audit:read"><AuditCompliancePage /></ProtectedRoute>} />
         <Route path="/settings"    element={<ProtectedRoute permission="settings:read"><SettingsPage /></ProtectedRoute>} />
 
         {/* Admin config */}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ScrollText, Download, CheckCircle2, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ScrollText, Download, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 import { api } from '@/lib/axios';
 import { ModulePage } from '@/components/ui/ModulePage';
 import { Badge } from '@/components/ui/Badge';
@@ -21,6 +22,7 @@ export function AuditPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const { hasPermission } = useAuthStore();
+  const navigate = useNavigate();
 
   const { data, isLoading } = useQuery({
     queryKey: ['audit', { page, search }],
@@ -52,6 +54,7 @@ export function AuditPage() {
       search={search}
       onSearchChange={(v) => { setSearch(v); setPage(1); }}
       actions={[
+        { label: 'Compliance Dashboard', icon: ShieldCheck, onClick: () => navigate('/audit/compliance'), variant: 'secondary', permission: hasPermission('audit:read') },
         { label: 'Export', icon: Download, onClick: () => {}, permission: hasPermission('audit:export') },
       ]}
       columns={COLUMNS}
