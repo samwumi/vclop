@@ -30,6 +30,15 @@ export function formatDateTime(date: string | Date | null | undefined): string {
   }).format(new Date(date));
 }
 
+export function formatCurrency(amount: number, currency = 'NGN'): string {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 export function truncate(str: string, max = 50): string {
   return str.length > max ? str.slice(0, max) + '…' : str;
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Banknote, Car, CheckCircle2, Eye, Send } from 'lucide-react';
+import { Banknote, Car, CheckCircle2, Eye, Send, Scale } from 'lucide-react';
 import { toast } from 'sonner';
 import { loansService } from '@/services/loans.service';
 import { transportService } from '@/services/transport.service';
@@ -74,6 +74,13 @@ export function AccountingPage() {
           </h1>
           <p className="page-description">Loan disbursements and transport allowance payments.</p>
         </div>
+        <button
+          onClick={() => navigate('/accounting/reconciliation')}
+          className="btn-secondary flex items-center gap-2"
+        >
+          <Scale className="w-4 h-4" />
+          Reconciliation
+        </button>
       </div>
 
       {/* Tabs */}

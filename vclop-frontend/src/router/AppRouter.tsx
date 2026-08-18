@@ -23,6 +23,7 @@ import { AuditCompliancePage } from '@/pages/audit/AuditCompliancePage';
 import { CompliancePage } from '@/pages/compliance/CompliancePage';
 import { CollectionsPage } from '@/pages/collections/CollectionsPage';
 import { AccountingPage } from '@/pages/accounting/AccountingPage';
+import { ReconciliationPage } from '@/pages/accounting/ReconciliationPage';
 import { ReportsPage } from '@/pages/reports/ReportsPage';
 
 // Phase 2 — customers
@@ -89,6 +90,7 @@ export function AppRouter() {
 
         {/* Finance */}
         <Route path="/accounting"   element={<ProtectedRoute permission="loan_applications:disburse"><AccountingPage /></ProtectedRoute>} />
+        <Route path="/accounting/reconciliation" element={<ProtectedRoute permission="loan_applications:disburse"><ReconciliationPage /></ProtectedRoute>} />
         <Route path="/reports"           element={<ProtectedRoute permission="reports:read"><ReportsPage /></ProtectedRoute>} />
         <Route path="/reports/location/:branchId" element={<ProtectedRoute permission="reports:read"><LocationDrilldownPage /></ProtectedRoute>} />
         <Route path="/performance"  element={<ProtectedRoute permission="dashboard:read"><PerformancePage /></ProtectedRoute>} />
