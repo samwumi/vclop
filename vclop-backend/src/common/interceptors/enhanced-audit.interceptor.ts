@@ -106,7 +106,7 @@ export class EnhancedAuditInterceptor implements NestInterceptor {
           userId,
           userEmail,
           userFullName,
-          action: AuditAction.ERROR,
+          action: AuditAction.SYSTEM, // Use SYSTEM for errors
           module: auditOptions.category,
           subModule: url,
           description: `${auditOptions.description} FAILED`,
@@ -158,7 +158,7 @@ export class EnhancedAuditInterceptor implements NestInterceptor {
       case 'GET':
         return AuditAction.READ;
       default:
-        return AuditAction.OTHER;
+        return AuditAction.SYSTEM; // Use SYSTEM for unknown methods
     }
   }
 }
