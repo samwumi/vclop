@@ -60,6 +60,7 @@
     "@types/pdfkit": "^0.13.4",
     "@types/ua-parser-js": "^0.7.39",
     "@types/uuid": "^9.0.7",
+    "axios": "^1.19.0",
     "bcryptjs": "^2.4.3",
     "cache-manager": "^5.4.0",
     "class-transformer": "^0.5.1",
