@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/Badge';
 import { PageLoader } from '@/components/ui/LoadingScreen';
 import { WorkflowHistory } from '@/components/ui/WorkflowHistory';
 import { useAuthStore } from '@/stores/auth.store';
-import { formatDate, formatDateTime, normalizeFileUrl } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/utils';
 import type { LoanApplicationStatus, Customer } from '@/types/domain.types';
 
 const STATUS_VARIANT: Record<LoanApplicationStatus, 'green' | 'red' | 'yellow' | 'blue' | 'gray'> = {
@@ -412,7 +412,7 @@ export function LoanDetailPage() {
                                   'bg-amber-50 text-amber-700'
                                 }`}>{doc.status}</span>
                                 <a
-                                  href={normalizeFileUrl((doc as { fileUrl?: string }).fileUrl)}
+                                  href={customersService.getDocumentDownloadUrl(c.id, doc.id)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="flex items-center gap-1 text-xs text-brand-600 hover:underline"

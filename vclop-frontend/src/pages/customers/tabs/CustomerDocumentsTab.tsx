@@ -7,7 +7,7 @@ import { PageLoader } from '@/components/ui/LoadingScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/auth.store';
-import { formatDateTime, normalizeFileUrl } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils';
 import type { CustomerDocument } from '@/types/domain.types';
 
 const STATUS_MAP = {
@@ -156,7 +156,7 @@ export function CustomerDocumentsTab({ customerId }: { customerId: string }) {
                           </>
                         )}
                         <a
-                          href={normalizeFileUrl(doc.fileUrl)}
+                          href={customersService.getDocumentDownloadUrl(customerId, doc.id)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn-ghost btn-icon w-7 h-7 text-brand-600"
