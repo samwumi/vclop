@@ -4,6 +4,7 @@ import { AppRouter } from '@/router/AppRouter';
 import { useAuthStore } from '@/stores/auth.store';
 import { authService } from '@/services/auth.service';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export default function App() {
   const { accessToken, setAuth, logout } = useAuthStore();
@@ -46,5 +47,9 @@ export default function App() {
 
   if (isLoading) return <LoadingScreen />;
 
-  return <AppRouter />;
+  return (
+    <ErrorBoundary>
+      <AppRouter />
+    </ErrorBoundary>
+  );
 }

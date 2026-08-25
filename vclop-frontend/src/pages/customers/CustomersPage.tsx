@@ -26,7 +26,7 @@ export function CustomersPage() {
   const { hasPermission } = useAuthStore();
   const navigate = useNavigate();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['customers', { page, search }],
     queryFn: () => customersService.list({ page, limit: 25, search }),
     placeholderData: (prev) => prev,
@@ -65,6 +65,9 @@ export function CustomersPage() {
       columns={COLUMNS}
       isLoading={isLoading}
       isEmpty={!isLoading && (data?.data?.length ?? 0) === 0}
+      isError={isError}
+      error={error as Error}
+      onRetry={() => refetch()}
       emptyIcon={Users}
       emptyTitle="No customers found"
       emptyDescription="Register your first customer to get started."

@@ -11,6 +11,7 @@ import { type LucideIcon } from 'lucide-react';
 import { Breadcrumbs } from './Breadcrumbs';
 import { SearchBar } from './SearchBar';
 import { EmptyState } from './EmptyState';
+import { ErrorState } from './ErrorState';
 import { TableSkeleton } from './LoadingScreen';
 import { Pagination } from './Pagination';
 import type { PaginationMeta } from '@/types/api.types';
@@ -41,6 +42,9 @@ interface ModulePageProps {
   rows: React.ReactNode;          // <tr> elements
   isLoading: boolean;
   isEmpty: boolean;
+  isError?: boolean;
+  error?: Error | string;
+  onRetry?: () => void;
   emptyIcon?: LucideIcon;
   emptyTitle?: string;
   emptyDescription?: string;
@@ -54,7 +58,8 @@ export function ModulePage({
   children,
   title, subtitle, icon: Icon, search, onSearchChange,
   actions = [], columns, rows,
-  isLoading, isEmpty, emptyIcon, emptyTitle, emptyDescription,
+  isLoading, isEmpty, isError, error, onRetry,
+  emptyIcon, emptyTitle, emptyDescription,
   meta, onPageChange, filters, headerRight,
 }: ModulePageProps) {
   const btnClass = (v: ActionButton['variant'] = 'secondary') =>
@@ -104,9 +109,18 @@ export function ModulePage({
         {filters && <div className="flex items-center gap-2">{filters}</div>}
       </div>
 
-      {/* Table */}
+      {/* Table with error handling */}
       {isLoading ? (
         <TableSkeleton rows={8} cols={columns.length} />
+      ) : isError ? (
+        <div className="table-container">
+          <ErrorState
+            title="Failed to load data"
+            description="An error occurred while fetching the data. Please try again."
+            error={error}
+            onRetry={onRetry}
+          />
+        </div>
       ) : isEmpty ? (
         <div className="table-container">
           <EmptyState

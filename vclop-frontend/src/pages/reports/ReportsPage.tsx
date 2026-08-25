@@ -174,16 +174,20 @@ export function ReportsPage() {
                       <h2 className="text-sm font-semibold text-gray-800">Portfolio by Location</h2>
                       <button onClick={() => setTab('locations')} className="text-xs text-brand-600 hover:underline">View all →</button>
                     </div>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={locations.data!.slice(0, 8)} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
-                        <XAxis dataKey="branchName" tick={{ fontSize: 11 }} />
-                        <YAxis tickFormatter={(v) => `₦${(v / 1_000_000).toFixed(1)}M`} tick={{ fontSize: 10 }} />
-                        <Tooltip formatter={(v: number) => money(v)} />
-                        <Bar dataKey="portfolioValue" name="Portfolio" radius={[4, 4, 0, 0]}>
-                          {locations.data!.slice(0, 8).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div className="overflow-x-auto -mx-2 px-2">
+                      <div style={{ minWidth: 320 }}>
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart data={locations.data!.slice(0, 8)} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+                            <XAxis dataKey="branchName" tick={{ fontSize: 11 }} />
+                            <YAxis tickFormatter={(v) => `₦${(v / 1_000_000).toFixed(1)}M`} tick={{ fontSize: 10 }} />
+                            <Tooltip formatter={(v: number) => money(v)} />
+                            <Bar dataKey="portfolioValue" name="Portfolio" radius={[4, 4, 0, 0]}>
+                              {locations.data!.slice(0, 8).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -224,40 +228,42 @@ export function ReportsPage() {
 
               {/* Full table */}
               <div className="card overflow-hidden">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Location</th>
-                      <th>Officers</th>
-                      <th>Customers</th>
-                      <th>Active Loans</th>
-                      <th>Portfolio (₦)</th>
-                      <th>Overdue (₦)</th>
-                      <th>PAR</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(locations.data ?? []).map((loc) => (
-                      <tr key={loc.branchId} className="cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/reports/location/${loc.branchId}`)}>
-                        <td className="font-medium text-gray-900 flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-brand-600" /> {loc.branchName}
-                        </td>
-                        <td>{loc.officers}</td>
-                        <td>{loc.customers}</td>
-                        <td>{loc.activeLoans}</td>
-                        <td className="font-medium">{money(loc.portfolioValue)}</td>
-                        <td className={loc.overdueValue > 0 ? 'text-red-600 font-medium' : ''}>{money(loc.overdueValue)}</td>
-                        <td>
-                          <Badge variant={loc.par > 10 ? 'red' : loc.par > 5 ? 'yellow' : 'green'}>
-                            {loc.par}%
-                          </Badge>
-                        </td>
-                        <td className="text-brand-600 text-xs">View →</td>
+                <div className="overflow-x-auto">
+                  <table className="table min-w-full">
+                    <thead>
+                      <tr>
+                        <th className="whitespace-nowrap">Location</th>
+                        <th className="whitespace-nowrap">Officers</th>
+                        <th className="whitespace-nowrap">Customers</th>
+                        <th className="whitespace-nowrap">Active Loans</th>
+                        <th className="whitespace-nowrap">Portfolio (₦)</th>
+                        <th className="whitespace-nowrap">Overdue (₦)</th>
+                        <th className="whitespace-nowrap">PAR</th>
+                        <th></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {(locations.data ?? []).map((loc) => (
+                        <tr key={loc.branchId} className="cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/reports/location/${loc.branchId}`)}>
+                          <td className="font-medium text-gray-900 flex items-center gap-1.5 whitespace-nowrap">
+                            <MapPin className="w-3.5 h-3.5 text-brand-600" /> {loc.branchName}
+                          </td>
+                          <td>{loc.officers}</td>
+                          <td>{loc.customers}</td>
+                          <td>{loc.activeLoans}</td>
+                          <td className="font-medium whitespace-nowrap">{money(loc.portfolioValue)}</td>
+                          <td className={`whitespace-nowrap ${loc.overdueValue > 0 ? 'text-red-600 font-medium' : ''}`}>{money(loc.overdueValue)}</td>
+                          <td>
+                            <Badge variant={loc.par > 10 ? 'red' : loc.par > 5 ? 'yellow' : 'green'}>
+                              {loc.par}%
+                            </Badge>
+                          </td>
+                          <td className="text-brand-600 text-xs whitespace-nowrap">View →</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </>
           )}

@@ -44,7 +44,7 @@ export function LoansPage() {
     !hasPermission('loan_applications:compliance_review') &&
     !hasPermission('loan_applications:disburse');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['loans', { page, search, status, userId: isLoanOfficer ? user?.id : undefined }],
     queryFn: () =>
       loansService.list({
@@ -100,6 +100,9 @@ export function LoansPage() {
       columns={COLUMNS}
       isLoading={isLoading}
       isEmpty={!isLoading && (data?.data?.length ?? 0) === 0}
+      isError={isError}
+      error={error as Error}
+      onRetry={() => refetch()}
       emptyIcon={FileText}
       emptyTitle={isLoanOfficer ? 'No applications yet' : 'No loan applications'}
       emptyDescription={
