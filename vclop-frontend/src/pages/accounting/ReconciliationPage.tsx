@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { DollarSign, AlertTriangle, CheckCircle2, RefreshCw, Download } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { DollarSign, AlertTriangle, CheckCircle2, RefreshCw, Download, Link2 } from 'lucide-react';
 import { api } from '@/lib/axios';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface ReconciliationSummary {
   date: string;
@@ -35,11 +36,14 @@ interface PaystackTransaction {
   date: string;
   matched: boolean;
   loanNumber?: string;
+  transactionId: string;
 }
 
 export function ReconciliationPage() {
+  const qc = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [view, setView] = useState<'summary' | 'discrepancies' | 'unmatched'>('summary');
+  const [matchingTxnId, setMatchingTxnId] = useState<string | null>(null);
 
   // Fetch reconciliation summary
   const { data: summary, refetch } = useQuery<ReconciliationSummary>({
@@ -77,6 +81,30 @@ export function ReconciliationPage() {
     },
     enabled: view === 'unmatched',
   });
+
+  // Manual match mutation
+  const matchMutation = useMutation({
+    mutationFn: async ({ transactionId, virtualAccountId }: { transactionId: string; virtualAccountId: string }) => {
+      const res = await api.patch(`/virtual-accounts/unmatched/${transactionId}/resolve`, { virtualAccountId });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Payment matched successfully');
+      setMatchingTxnId(null);
+      qc.invalidateQueries({ queryKey: ['reconciliation', 'unmatched'] });
+      qc.invalidateQueries({ queryKey: ['reconciliation', 'summary'] });
+    },
+    onError: () => {
+      toast.error('Failed to match payment');
+    },
+  });
+
+  const handleManualMatch = (txnId: string) => {
+    const virtualAccountId = window.prompt('Enter Virtual Account ID to match this payment to:');
+    if (virtualAccountId) {
+      matchMutation.mutate({ transactionId: txnId, virtualAccountId });
+    }
+  };
 
   const handleExport = async () => {
     // TODO: Export reconciliation report
@@ -346,7 +374,12 @@ export function ReconciliationPage() {
                       <p className="text-sm font-medium text-gray-900">
                         {formatCurrency(txn.amount)}
                       </p>
-                      <button className="text-xs text-brand-600 hover:text-brand-700 mt-2">
+                      <button
+                        onClick={() => handleManualMatch(txn.transactionId)}
+                        disabled={matchMutation.isPending}
+                        className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 mt-2 disabled:opacity-50"
+                      >
+                        <Link2 className="w-3 h-3" />
                         Match Manually
                       </button>
                     </div>

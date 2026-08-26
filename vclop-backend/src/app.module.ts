@@ -37,6 +37,7 @@ import { ComplianceModule } from './modules/compliance/compliance.module';
 import { TransportModule } from './modules/transport/transport.module';
 import { CollectionsModule } from './modules/collections/collections.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 import { PerformanceModule } from './modules/performance/performance.module';
 import { HealthModule } from './modules/health/health.module';
 
@@ -117,6 +118,7 @@ import { HealthModule } from './modules/health/health.module';
     TransportModule,
     CollectionsModule,
     ReportsModule,
+    ReconciliationModule,
     PerformanceModule,
     HealthModule,
   ],
