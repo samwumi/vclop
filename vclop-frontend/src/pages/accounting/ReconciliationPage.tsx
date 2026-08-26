@@ -43,7 +43,6 @@ export function ReconciliationPage() {
   const qc = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [view, setView] = useState<'summary' | 'discrepancies' | 'unmatched'>('summary');
-  const [matchingTxnId, setMatchingTxnId] = useState<string | null>(null);
 
   // Fetch reconciliation summary
   const { data: summary, refetch } = useQuery<ReconciliationSummary>({
@@ -90,7 +89,6 @@ export function ReconciliationPage() {
     },
     onSuccess: () => {
       toast.success('Payment matched successfully');
-      setMatchingTxnId(null);
       qc.invalidateQueries({ queryKey: ['reconciliation', 'unmatched'] });
       qc.invalidateQueries({ queryKey: ['reconciliation', 'summary'] });
     },
