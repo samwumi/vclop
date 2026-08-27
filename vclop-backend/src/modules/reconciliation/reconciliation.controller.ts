@@ -15,22 +15,32 @@ export class ReconciliationController {
 
   @Get('summary')
   @RequirePermissions('reports:read')
-  @ApiOperation({ summary: 'Get daily reconciliation summary for a given date' })
-  async summary(@Query('date') date?: string) {
-    return ok(await this.service.getSummary(date), 'Reconciliation summary retrieved');
+  @ApiOperation({ summary: 'Get reconciliation summary with optional date range and grouping' })
+  async summary(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('groupBy') groupBy?: 'day' | 'week' | 'month',
+  ) {
+    return ok(await this.service.getSummary(startDate, endDate, groupBy), 'Reconciliation summary retrieved');
   }
 
   @Get('discrepancies')
   @RequirePermissions('reports:read')
-  @ApiOperation({ summary: 'Get list of payment discrepancies for a given date' })
-  async discrepancies(@Query('date') date?: string) {
-    return ok(await this.service.getDiscrepancies(date), 'Discrepancies retrieved');
+  @ApiOperation({ summary: 'Get list of payment discrepancies for a date range' })
+  async discrepancies(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return ok(await this.service.getDiscrepancies(startDate, endDate), 'Discrepancies retrieved');
   }
 
   @Get('unmatched')
   @RequirePermissions('virtual_accounts:reconcile')
-  @ApiOperation({ summary: 'Get unmatched transactions (payments that could not be automatically linked to a loan)' })
-  async unmatched(@Query('date') date?: string) {
-    return ok(await this.service.getUnmatched(date), 'Unmatched transactions retrieved');
+  @ApiOperation({ summary: 'Get unmatched transactions for a date range' })
+  async unmatched(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return ok(await this.service.getUnmatched(startDate, endDate), 'Unmatched transactions retrieved');
   }
 }

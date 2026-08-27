@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { LoanApplicationStatus, VirtualAccountTransactionStatus, InstallmentStatus } from '@prisma/client';
+import { VirtualAccountTransactionStatus, InstallmentStatus } from '@prisma/client';
 import dayjs from 'dayjs';
+import isoWeek from 'dayjs/plugin/isoWeek';
+
+dayjs.extend(isoWeek);
 
 @Injectable()
 export class ReconciliationService {
@@ -10,50 +13,65 @@ export class ReconciliationService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Get daily reconciliation summary:
-   * - Total disbursed (loans disbursed on this date)
-   * - Total repayments received (actual payments on this date)
-   * - Expected repayments (repayment schedules due on this date)
+   * Get reconciliation summary with optional date range and grouping:
+   * - Total disbursed (loans disbursed in range)
+   * - Total repayments received (actual payments in range)
+   * - Expected repayments (repayment schedules due in range)
    * - Overdue amount
    * - Number of discrepancies
    * - Overall status (BALANCED, DISCREPANCY, PENDING)
+   * 
+   * Supports grouping by day, week, or month for trend analysis
    */
-  async getSummary(dateStr?: string) {
-    const date = dateStr ? dayjs(dateStr) : dayjs();
-    const startOfDay = date.startOf('day').toDate();
-    const endOfDay = date.endOf('day').toDate();
+  async getSummary(startDateStr?: string, endDateStr?: string, groupBy?: 'day' | 'week' | 'month') {
+    // Default to today if no dates provided
+    const startDate = startDateStr ? dayjs(startDateStr) : dayjs().startOf('day');
+    const endDate = endDateStr ? dayjs(endDateStr) : (startDateStr ? dayjs(startDateStr).endOf('day') : dayjs().endOf('day'));
+    
+    const startOfRange = startDate.startOf('day').toDate();
+    const endOfRange = endDate.endOf('day').toDate();
 
-    // Total disbursed on this date (loans table has disbursedAt)
+    // If grouping is requested, return grouped data
+    if (groupBy) {
+      return this.getGroupedSummary(startOfRange, endOfRange, groupBy);
+    }
+
+    // Single period summary
+    return this.getPeriodSummary(startOfRange, endOfRange, startDate.format('YYYY-MM-DD'));
+  }
+
+  private async getPeriodSummary(startOfRange: Date, endOfRange: Date, label: string) {
+    // Total disbursed in range (loans table has disbursedAt)
     const disbursedResult = await this.prisma.loan.aggregate({
       where: {
         disbursedAt: {
-          gte: startOfDay,
-          lte: endOfDay,
+          gte: startOfRange,
+          lte: endOfRange,
         },
       },
       _sum: { principal: true },
     });
     const totalDisbursed = Number(disbursedResult._sum?.principal || 0);
 
-    // Total repayments received on this date
+    // Total repayments received in range
     const repaymentsResult = await this.prisma.virtualAccountTransaction.aggregate({
       where: {
         status: VirtualAccountTransactionStatus.RECONCILED,
         receivedAt: {
-          gte: startOfDay,
-          lte: endOfDay,
+          gte: startOfRange,
+          lte: endOfRange,
         },
       },
       _sum: { amount: true },
     });
-    const totalRepayments = Number(repaymentsResult._sum.amount || 0);
+    const totalRepayments = Number(repaymentsResult._sum?.amount || 0);
 
-    // Expected repayments due on this date (from repayment installments)
+    // Expected repayments due in range (from repayment installments)
     const expectedResult = await this.prisma.repaymentInstallment.aggregate({
       where: {
         dueDate: {
-          gte: startOfDay,
-          lte: endOfDay,
+          gte: startOfRange,
+          lte: endOfRange,
         },
         status: { not: InstallmentStatus.PAID },
       },
@@ -64,20 +82,20 @@ export class ReconciliationService {
     // Overdue amount (past due date and not fully paid)
     const overdueResult = await this.prisma.repaymentInstallment.aggregate({
       where: {
-        dueDate: { lt: startOfDay },
+        dueDate: { lt: startOfRange },
         status: { notIn: [InstallmentStatus.PAID] },
       },
       _sum: { totalDue: true },
     });
     const overdueAmount = Number(overdueResult._sum?.totalDue || 0);
 
-    // Count discrepancies (unmatched transactions on this date)
+    // Count discrepancies (unmatched transactions in range)
     const discrepancyCount = await this.prisma.virtualAccountTransaction.count({
       where: {
         status: VirtualAccountTransactionStatus.UNMATCHED,
         receivedAt: {
-          gte: startOfDay,
-          lte: endOfDay,
+          gte: startOfRange,
+          lte: endOfRange,
         },
       },
     });
@@ -94,7 +112,7 @@ export class ReconciliationService {
     }
 
     return {
-      date: date.format('YYYY-MM-DD'),
+      date: label,
       totalDisbursed,
       totalRepayments,
       expectedRepayments,
@@ -105,15 +123,87 @@ export class ReconciliationService {
   }
 
   /**
-   * Get list of payment discrepancies:
-   * - Missing payments (expected but not received)
-   * - Unmatched payments (received but not linked to a loan)
-   * - Amount mismatches (payment amount differs from expected)
+   * Get grouped reconciliation summaries for trend analysis
    */
-  async getDiscrepancies(dateStr?: string) {
-    const date = dateStr ? dayjs(dateStr) : dayjs();
-    const startOfDay = date.startOf('day').toDate();
-    const endOfDay = date.endOf('day').toDate();
+  private async getGroupedSummary(startOfRange: Date, endOfRange: Date, groupBy: 'day' | 'week' | 'month') {
+    const periods: Array<{ start: Date; end: Date; label: string }> = [];
+    let current = dayjs(startOfRange);
+    const end = dayjs(endOfRange);
+
+    // Generate periods based on groupBy
+    while (current.isBefore(end) || current.isSame(end, 'day')) {
+      let periodStart: dayjs.Dayjs;
+      let periodEnd: dayjs.Dayjs;
+      let label: string;
+
+      if (groupBy === 'day') {
+        periodStart = current.startOf('day');
+        periodEnd = current.endOf('day');
+        label = current.format('YYYY-MM-DD');
+        current = current.add(1, 'day');
+      } else if (groupBy === 'week') {
+        periodStart = current.startOf('isoWeek');
+        periodEnd = current.endOf('isoWeek');
+        label = `Week of ${periodStart.format('MMM DD, YYYY')}`;
+        current = current.add(1, 'week');
+      } else {
+        // month
+        periodStart = current.startOf('month');
+        periodEnd = current.endOf('month');
+        label = current.format('MMMM YYYY');
+        current = current.add(1, 'month');
+      }
+
+      // Don't go beyond the end date
+      if (periodEnd.isAfter(end)) {
+        periodEnd = end;
+      }
+
+      periods.push({
+        start: periodStart.toDate(),
+        end: periodEnd.toDate(),
+        label,
+      });
+    }
+
+    // Get summary for each period
+    const summaries = await Promise.all(
+      periods.map((period) => this.getPeriodSummary(period.start, period.end, period.label))
+    );
+
+    // Calculate totals across all periods
+    const totals = summaries.reduce(
+      (acc, s) => ({
+        totalDisbursed: acc.totalDisbursed + s.totalDisbursed,
+        totalRepayments: acc.totalRepayments + s.totalRepayments,
+        expectedRepayments: acc.expectedRepayments + s.expectedRepayments,
+        overdueAmount: acc.overdueAmount + s.overdueAmount,
+        discrepancies: acc.discrepancies + s.discrepancies,
+      }),
+      { totalDisbursed: 0, totalRepayments: 0, expectedRepayments: 0, overdueAmount: 0, discrepancies: 0 }
+    );
+
+    return {
+      startDate: dayjs(startOfRange).format('YYYY-MM-DD'),
+      endDate: dayjs(endOfRange).format('YYYY-MM-DD'),
+      groupBy,
+      periods: summaries,
+      totals: {
+        ...totals,
+        date: `${dayjs(startOfRange).format('MMM DD')} - ${dayjs(endOfRange).format('MMM DD, YYYY')}`,
+        status: (totals.discrepancies > 0 ? 'DISCREPANCY' : Math.abs(totals.totalRepayments - totals.expectedRepayments) < 100 ? 'BALANCED' : 'PENDING') as 'BALANCED' | 'DISCREPANCY' | 'PENDING',
+      },
+    };
+  }
+
+  /**
+   * Get list of payment discrepancies for a date range
+   */
+  async getDiscrepancies(startDateStr?: string, endDateStr?: string) {
+    const startDate = startDateStr ? dayjs(startDateStr) : dayjs();
+    const endDate = endDateStr ? dayjs(endDateStr) : (startDateStr ? dayjs(startDateStr) : dayjs());
+    const startOfDay = startDate.startOf('day').toDate();
+    const endOfDay = endDate.endOf('day').toDate();
 
     const discrepancies = [];
 
@@ -207,15 +297,16 @@ export class ReconciliationService {
   /**
    * Get unmatched Paystack/bank transactions that need manual reconciliation
    */
-  async getUnmatched(dateStr?: string) {
-    const date = dateStr ? dayjs(dateStr) : dayjs();
-    const startOfDay = date.startOf('day').toDate();
-    const endOfDay = date.endOf('day').toDate();
+  async getUnmatched(startDateStr?: string, endDateStr?: string) {
+    const startDate = startDateStr ? dayjs(startDateStr) : dayjs();
+    const endDate = endDateStr ? dayjs(endDateStr) : (startDateStr ? dayjs(startDateStr) : dayjs());
+    const startOfDay = startDate.startOf('day').toDate();
+    const endOfDay = endDate.endOf('day').toDate();
 
     const transactions = await this.prisma.virtualAccountTransaction.findMany({
       where: {
         status: VirtualAccountTransactionStatus.UNMATCHED,
-        receivedAt: dateStr
+        receivedAt: startDateStr
           ? {
               gte: startOfDay,
               lte: endOfDay,
