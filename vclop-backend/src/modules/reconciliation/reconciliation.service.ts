@@ -124,7 +124,7 @@ export class ReconciliationService {
           gte: startOfDay,
           lte: endOfDay,
         },
-        status: { in: [InstallmentStatus.PENDING, InstallmentStatus.OVERDUE, InstallmentStatus.PARTIAL] },
+        status: { in: [InstallmentStatus.PENDING, InstallmentStatus.OVERDUE, InstallmentStatus.PARTIALLY_PAID] },
       },
       include: {
         loan: {
