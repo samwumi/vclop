@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { LoanStatus, VirtualAccountTransactionStatus } from '@prisma/client';
-import * as dayjs from 'dayjs';
+import { LoanApplicationStatus, VirtualAccountTransactionStatus, InstallmentStatus } from '@prisma/client';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class ReconciliationService {
@@ -23,18 +23,17 @@ export class ReconciliationService {
     const startOfDay = date.startOf('day').toDate();
     const endOfDay = date.endOf('day').toDate();
 
-    // Total disbursed on this date
-    const disbursedResult = await this.prisma.loanApplication.aggregate({
+    // Total disbursed on this date (loans table has disbursedAt)
+    const disbursedResult = await this.prisma.loan.aggregate({
       where: {
-        status: LoanStatus.DISBURSED,
         disbursedAt: {
           gte: startOfDay,
           lte: endOfDay,
         },
       },
-      _sum: { approvedAmount: true },
+      _sum: { principal: true },
     });
-    const totalDisbursed = Number(disbursedResult._sum.approvedAmount || 0);
+    const totalDisbursed = Number(disbursedResult._sum?.principal || 0);
 
     // Total repayments received on this date
     const repaymentsResult = await this.prisma.virtualAccountTransaction.aggregate({
@@ -49,33 +48,33 @@ export class ReconciliationService {
     });
     const totalRepayments = Number(repaymentsResult._sum.amount || 0);
 
-    // Expected repayments due on this date (from repayment schedules)
-    const expectedResult = await this.prisma.repaymentSchedule.aggregate({
+    // Expected repayments due on this date (from repayment installments)
+    const expectedResult = await this.prisma.repaymentInstallment.aggregate({
       where: {
         dueDate: {
           gte: startOfDay,
           lte: endOfDay,
         },
-        status: { not: 'PAID' },
+        status: { not: InstallmentStatus.PAID },
       },
-      _sum: { expectedAmount: true },
+      _sum: { totalDue: true },
     });
-    const expectedRepayments = Number(expectedResult._sum.expectedAmount || 0);
+    const expectedRepayments = Number(expectedResult._sum?.totalDue || 0);
 
     // Overdue amount (past due date and not fully paid)
-    const overdueResult = await this.prisma.repaymentSchedule.aggregate({
+    const overdueResult = await this.prisma.repaymentInstallment.aggregate({
       where: {
         dueDate: { lt: startOfDay },
-        status: { notIn: ['PAID', 'WAIVED'] },
+        status: { notIn: [InstallmentStatus.PAID] },
       },
-      _sum: { expectedAmount: true },
+      _sum: { totalDue: true },
     });
-    const overdueAmount = Number(overdueResult._sum.expectedAmount || 0);
+    const overdueAmount = Number(overdueResult._sum?.totalDue || 0);
 
     // Count discrepancies (unmatched transactions on this date)
     const discrepancyCount = await this.prisma.virtualAccountTransaction.count({
       where: {
-        status: { in: [VirtualAccountTransactionStatus.UNMATCHED, VirtualAccountTransactionStatus.PENDING] },
+        status: VirtualAccountTransactionStatus.UNMATCHED,
         receivedAt: {
           gte: startOfDay,
           lte: endOfDay,
@@ -118,22 +117,26 @@ export class ReconciliationService {
 
     const discrepancies = [];
 
-    // 1. Missing payments (schedules due but not paid)
-    const missingPayments = await this.prisma.repaymentSchedule.findMany({
+    // 1. Missing payments (installments due but not paid)
+    const missingPayments = await this.prisma.repaymentInstallment.findMany({
       where: {
         dueDate: {
           gte: startOfDay,
           lte: endOfDay,
         },
-        status: { in: ['PENDING', 'OVERDUE', 'PARTIAL'] },
+        status: { in: [InstallmentStatus.PENDING, InstallmentStatus.OVERDUE, InstallmentStatus.PARTIAL] },
       },
       include: {
-        loanApplication: {
+        loan: {
           include: {
-            customer: {
-              select: {
-                firstName: true,
-                lastName: true,
+            loanApplication: {
+              include: {
+                customer: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
               },
             },
           },
@@ -142,21 +145,21 @@ export class ReconciliationService {
       take: 100,
     });
 
-    for (const schedule of missingPayments) {
-      const expectedAmount = Number(schedule.expectedAmount);
-      const paidAmount = Number(schedule.paidAmount || 0);
+    for (const installment of missingPayments) {
+      const expectedAmount = Number(installment.totalDue);
+      const paidAmount = Number(installment.amountPaid || 0);
       const difference = expectedAmount - paidAmount;
 
       if (difference > 0) {
         discrepancies.push({
-          id: schedule.id,
+          id: installment.id,
           type: 'MISSING_PAYMENT',
-          loanNumber: schedule.loanApplication.loanNumber,
-          customerName: `${schedule.loanApplication.customer.firstName} ${schedule.loanApplication.customer.lastName}`,
+          loanNumber: installment.loan.loanNumber,
+          customerName: `${installment.loan.loanApplication.customer.firstName} ${installment.loan.loanApplication.customer.lastName}`,
           expectedAmount,
           actualAmount: paidAmount,
           difference,
-          paymentDate: schedule.dueDate.toISOString(),
+          paymentDate: installment.dueDate.toISOString(),
           description: `Payment of ₦${expectedAmount.toLocaleString()} was due but ${paidAmount > 0 ? 'only ₦' + paidAmount.toLocaleString() + ' received' : 'not received'}`,
           severity: difference > 50000 ? 'HIGH' : difference > 10000 ? 'MEDIUM' : 'LOW',
         });
@@ -183,16 +186,17 @@ export class ReconciliationService {
         actualAmount: Number(txn.amount),
         difference: Number(txn.amount),
         paymentDate: txn.receivedAt.toISOString(),
-        description: `Payment of ₦${Number(txn.amount).toLocaleString()} received but could not be matched to any loan (Ref: ${txn.reference})`,
+        description: `Payment of ₦${Number(txn.amount).toLocaleString()} received but could not be matched to any loan (Ref: ${txn.providerReference})`,
         severity: Number(txn.amount) > 50000 ? 'HIGH' : 'MEDIUM',
       });
     }
 
     // Sort by severity and amount
+    type Severity = 'HIGH' | 'MEDIUM' | 'LOW';
     discrepancies.sort((a, b) => {
-      const severityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-      if (severityOrder[a.severity] !== severityOrder[b.severity]) {
-        return severityOrder[a.severity] - severityOrder[b.severity];
+      const severityOrder: Record<Severity, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+      if (severityOrder[a.severity as Severity] !== severityOrder[b.severity as Severity]) {
+        return severityOrder[a.severity as Severity] - severityOrder[b.severity as Severity];
       }
       return b.difference - a.difference;
     });
@@ -210,7 +214,7 @@ export class ReconciliationService {
 
     const transactions = await this.prisma.virtualAccountTransaction.findMany({
       where: {
-        status: { in: [VirtualAccountTransactionStatus.UNMATCHED, VirtualAccountTransactionStatus.PENDING] },
+        status: VirtualAccountTransactionStatus.UNMATCHED,
         receivedAt: dateStr
           ? {
               gte: startOfDay,
@@ -223,10 +227,10 @@ export class ReconciliationService {
     });
 
     return transactions.map((txn) => ({
-      reference: txn.reference,
+      reference: txn.providerReference,
       amount: Number(txn.amount),
       customerName: txn.payerName || 'Unknown',
-      accountNumber: txn.payerAccount || 'N/A',
+      accountNumber: txn.payerAccountNumber || 'N/A',
       date: txn.receivedAt.toISOString(),
       matched: false,
       transactionId: txn.id,
