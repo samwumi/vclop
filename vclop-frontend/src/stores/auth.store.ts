@@ -44,8 +44,8 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
         // Only redirect if we're in the browser and not already on the login page
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
-          window.location.replace('/auth/login');
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/auth/')) {
+          window.location.replace('/login');
         }
       },
 

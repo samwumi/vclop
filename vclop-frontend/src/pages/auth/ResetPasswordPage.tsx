@@ -41,7 +41,7 @@ export function ResetPasswordPage() {
       authService.resetPassword(token, values.newPassword),
     onSuccess: () => {
       toast.success('Password reset successfully. Please sign in.');
-      navigate('/auth/login');
+      navigate('/login');
     },
     onError: (err: unknown) => {
       const msg =
@@ -116,7 +116,7 @@ export function ResetPasswordPage() {
       </form>
 
       <div className="mt-6 text-center">
-        <Link to="/auth/login" className="text-sm text-gray-500 hover:text-gray-700">
+        <Link to="/login" className="text-sm text-gray-500 hover:text-gray-700">
           Back to sign in
         </Link>
       </div>

@@ -36,7 +36,7 @@ export function ForgotPasswordPage() {
           If an account with that email exists, a password reset link has been sent.
           It expires in 60 minutes.
         </p>
-        <Link to="/auth/login" className="btn-primary w-full">
+        <Link to="/login" className="btn-primary w-full">
           Back to sign in
         </Link>
       </div>
@@ -76,7 +76,7 @@ export function ForgotPasswordPage() {
       </form>
 
       <div className="mt-6 text-center">
-        <Link to="/auth/login" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+        <Link to="/login" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to sign in
         </Link>

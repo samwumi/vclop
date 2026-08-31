@@ -4,6 +4,9 @@ import { PublicRoute } from './PublicRoute';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 
+// Landing page
+import { LandingPage } from '@/pages/landing/LandingPage';
+
 // Auth pages
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
@@ -56,11 +59,13 @@ import { ForbiddenPage } from '@/pages/errors/ForbiddenPage';
 export function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* ── Landing page ──────────────────────────────────────────────────── */}
+      <Route path="/" element={<LandingPage />} />
 
       {/* ── Public auth ───────────────────────────────────────────────────── */}
       <Route element={<AuthLayout />}>
-        <Route path="/auth/login"           element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/login"                element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/auth/login"           element={<Navigate to="/login" replace />} />
         <Route path="/auth/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
         <Route path="/auth/reset-password"  element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
         <Route path="/auth/verify-email"    element={<VerifyEmailPage />} />

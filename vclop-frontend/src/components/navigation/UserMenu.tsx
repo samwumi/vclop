@@ -25,7 +25,7 @@ export function UserMenu() {
     mutationFn: () => authService.logout(refreshToken ?? ''),
     onSettled: () => {
       logout();
-      navigate('/auth/login');
+      navigate('/login');
     },
     onError: () => toast.error('Logout failed — session cleared locally'),
   });
