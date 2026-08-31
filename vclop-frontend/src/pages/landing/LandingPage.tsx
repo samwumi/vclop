@@ -2,98 +2,138 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, 
   Check,
-  Users,
-  TrendingUp,
+  Clock,
   Shield,
   Zap,
-  Clock,
-  DollarSign,
+  TrendingUp,
   Phone,
-  Mail
+  Mail,
+  Calendar,
+  Users,
+  CheckCircle2
 } from 'lucide-react';
 
 export function LandingPage() {
   const navigate = useNavigate();
 
-  const features = [
+  const loanProducts = [
     {
-      icon: Users,
-      title: 'Acquire',
-      description: 'Onboard customers digitally with KYC verification, credit scoring, and instant account creation.',
-      cta: 'Start onboarding',
+      title: 'Daily Loans',
+      rate: '15%',
+      period: '24 days',
+      icon: Zap,
+      features: [
+        'Get funded in 2-4 hours',
+        'Repay daily for 24 business days',
+        'Flexible repayment schedule',
+        'No hidden charges',
+      ],
+      color: 'purple',
+    },
+    {
+      title: 'Weekly Loans',
+      rate: '25%',
+      period: '8 weeks',
+      icon: Calendar,
+      features: [
+        'Fast approval process',
+        'Weekly repayments for 8 weeks',
+        'Ideal for longer projects',
+        'Competitive interest rates',
+      ],
+      color: 'blue',
+    },
+  ];
+
+  const howItWorks = [
+    {
+      step: '1',
+      title: 'Apply Online',
+      description: 'Complete our simple application form in minutes. No paperwork, no long queues.',
+    },
+    {
+      step: '2',
+      title: 'Get Approved',
+      description: 'Our team reviews your application instantly. Most approvals happen within hours.',
+    },
+    {
+      step: '3',
+      title: 'Receive Funds',
+      description: 'Money hits your account the same day. Start growing your business immediately.',
+    },
+  ];
+
+  const benefits = [
+    {
+      icon: Clock,
+      title: 'Fast Approval',
+      description: 'Get your loan approved in 2-4 hours, not days',
+    },
+    {
+      icon: Shield,
+      title: 'Secure & Licensed',
+      description: 'Fully licensed microfinance bank with CBN approval',
     },
     {
       icon: TrendingUp,
-      title: 'Lend',
-      description: 'Process loan applications in minutes with automated approval workflows and instant disbursement.',
-      cta: 'Process loans',
+      title: 'Grow Your Business',
+      description: 'Access working capital to expand and scale',
     },
     {
-      icon: DollarSign,
-      title: 'Collect',
-      description: 'Automate collections with virtual accounts, daily/weekly repayments, and instant reconciliation.',
-      cta: 'Automate collections',
+      icon: Users,
+      title: 'Trusted by Thousands',
+      description: 'Join businesses already growing with us',
     },
   ];
 
-  const stats = [
-    { value: '10x', label: 'Faster loan processing' },
-    { value: '99%', label: 'Uptime guarantee' },
-    { value: '24/7', label: 'Customer access' },
-    { value: '100%', label: 'Compliance coverage' },
-  ];
-
-  const comparisonData = [
-    { 
-      feature: 'Loan processing time',
-      vclop: '2-4 hours',
-      traditional: '3-7 days'
+  const faqs = [
+    {
+      q: 'What documents do I need?',
+      a: 'Valid ID, proof of business registration, and bank statement.',
     },
-    { 
-      feature: 'Collection automation',
-      vclop: 'Fully automated',
-      traditional: 'Manual tracking'
+    {
+      q: 'How fast can I get my loan?',
+      a: 'Most applications are approved within 2-4 hours. Funds are disbursed the same day.',
     },
-    { 
-      feature: 'Payment reconciliation',
-      vclop: 'Real-time',
-      traditional: 'Weekly/Monthly'
+    {
+      q: 'Can I repay early?',
+      a: 'Yes! You can repay your loan early without any penalties.',
     },
-    { 
-      feature: 'Compliance reporting',
-      vclop: 'One-click export',
-      traditional: 'Manual compilation'
-    },
-    { 
-      feature: 'Branch coordination',
-      vclop: 'Unified dashboard',
-      traditional: 'Spreadsheet sharing'
-    },
-    { 
-      feature: 'Customer insights',
-      vclop: '360° view',
-      traditional: 'Fragmented data'
+    {
+      q: 'What if I miss a payment?',
+      a: 'Contact us immediately. We work with you to find a solution.',
     },
   ];
 
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-lg border-b border-gray-100 z-50">
+      <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-lg border-b border-gray-100 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">V</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">VCLOP</span>
+              <div>
+                <span className="text-xl font-bold text-gray-900">VCLOP</span>
+                <span className="text-xs text-gray-500 block -mt-1">Microfinance Bank</span>
+              </div>
             </div>
-            <button
-              onClick={() => navigate('/login')}
-              className="text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors"
-            >
-              Sign in
-            </button>
+            <div className="flex items-center gap-6">
+              <a href="#loans" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
+                Loans
+              </a>
+              <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
+                How It Works
+              </a>
+              <button
+                onClick={() => navigate('/login')}
+                className="text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors"
+              >
+                Sign in
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -101,51 +141,110 @@ export function LandingPage() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-block px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold mb-6">
+            Licensed Microfinance Bank
+          </div>
           <h1 className="text-5xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-            The digital platform built for microfinance
+            Get business loans in hours, not weeks
           </h1>
-          <p className="text-xl lg:text-2xl text-gray-600 mb-12 leading-relaxed">
-            Acquire customers faster, lend with confidence, and collect automatically with VCLOP.
+          <p className="text-xl lg:text-2xl text-gray-600 mb-8 leading-relaxed">
+            Fast, flexible loans for Nigerian businesses. Apply online today and get funded the same day.
           </p>
-          <button
-            onClick={() => navigate('/login')}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-full font-semibold text-lg hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl"
-          >
-            Get started
-            <ArrowRight className="w-5 h-5" />
-          </button>
-        </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-full font-semibold text-lg hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              Apply for a loan
+              <ArrowRight className="w-5 h-5" />
+            </button>
+            <a
+              href="tel:+2348000000000"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-900 rounded-full font-semibold text-lg hover:border-gray-300 transition-all"
+            >
+              <Phone className="w-5 h-5" />
+              Call us
+            </a>
+          </div>
 
-        {/* Stats */}
-        <div className="max-w-5xl mx-auto mt-20 grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {stats.map((stat, idx) => (
-            <div key={idx} className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-purple-600 mb-2">{stat.value}</div>
-              <div className="text-sm text-gray-600">{stat.label}</div>
+          {/* Trust Indicators */}
+          <div className="mt-12 flex flex-wrap justify-center items-center gap-8 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <span>CBN Licensed</span>
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <span>Same Day Approval</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <span>No Hidden Fees</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-3 gap-12">
-            {features.map((feature, idx) => {
-              const Icon = feature.icon;
+      {/* Loan Products */}
+      <section id="loans" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-4">
+              Choose your loan plan
+            </h2>
+            <p className="text-lg text-gray-600">
+              Flexible options designed for Nigerian businesses
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {loanProducts.map((product, idx) => {
+              const Icon = product.icon;
               return (
-                <div key={idx} className="bg-white rounded-3xl p-8 hover:shadow-lg transition-shadow">
-                  <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mb-6">
-                    <Icon className="w-7 h-7 text-purple-600" />
+                <div
+                  key={idx}
+                  className={`bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl transition-all border-2 ${
+                    product.color === 'purple' ? 'border-purple-200' : 'border-blue-200'
+                  }`}
+                >
+                  <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 ${
+                    product.color === 'purple' ? 'bg-purple-100' : 'bg-blue-100'
+                  }`}>
+                    <Icon className={`w-7 h-7 ${
+                      product.color === 'purple' ? 'text-purple-600' : 'text-blue-600'
+                    }`} />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed mb-6">{feature.description}</p>
+                  <h3 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h3>
+                  <div className="flex items-baseline gap-2 mb-6">
+                    <span className={`text-5xl font-bold ${
+                      product.color === 'purple' ? 'text-purple-600' : 'text-blue-600'
+                    }`}>
+                      {product.rate}
+                    </span>
+                    <span className="text-gray-600">interest</span>
+                  </div>
+                  <div className="text-gray-600 mb-6">
+                    <span className="font-semibold">Repayment period:</span> {product.period}
+                  </div>
+                  <ul className="space-y-3 mb-8">
+                    {product.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <Check className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                          product.color === 'purple' ? 'text-purple-600' : 'text-blue-600'
+                        }`} />
+                        <span className="text-gray-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                   <button
                     onClick={() => navigate('/login')}
-                    className="text-purple-600 font-semibold hover:text-purple-700 transition-colors inline-flex items-center gap-2"
+                    className={`w-full py-4 rounded-full font-semibold text-lg transition-all ${
+                      product.color === 'purple'
+                        ? 'bg-purple-600 text-white hover:bg-purple-700'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
                   >
-                    {feature.cta}
-                    <ArrowRight className="w-4 h-4" />
+                    Apply now
                   </button>
                 </div>
               );
@@ -154,142 +253,101 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Benefits Highlights */}
+      {/* How It Works */}
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-4">
+              How it works
+            </h2>
+            <p className="text-lg text-gray-600">
+              Get your business loan in 3 simple steps
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {howItWorks.map((item, idx) => (
+              <div key={idx} className="text-center">
+                <div className="w-16 h-16 bg-purple-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
+                  {item.step}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-4">
+              Why businesses trust us
+            </h2>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {benefits.map((benefit, idx) => {
+              const Icon = benefit.icon;
+              return (
+                <div key={idx} className="text-center">
+                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
+                    <Icon className="w-7 h-7 text-purple-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{benefit.title}</h3>
+                  <p className="text-gray-600 text-sm">{benefit.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof / Stats */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="space-y-16">
-            {/* Benefit 1 */}
-            <div className="flex flex-col lg:flex-row items-center gap-12">
-              <div className="flex-1">
-                <div className="inline-block px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold mb-4">
-                  For Your Customers
-                </div>
-                <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-                  Get loans in minutes, not days
-                </h2>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Your customers submit applications digitally, get instant credit decisions, and receive funds directly to their accounts—all automated.
-                </p>
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-3xl p-12 text-white text-center">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-8">
+              Join thousands of businesses growing with VCLOP
+            </h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+              <div>
+                <div className="text-4xl font-bold mb-2">₦2.4B+</div>
+                <div className="text-purple-200">Disbursed</div>
               </div>
-              <div className="flex-1 bg-gradient-to-br from-purple-500 to-purple-700 rounded-3xl p-8 text-white">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-6 h-6" />
-                    <span className="text-lg">2-4 hour processing</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-6 h-6" />
-                    <span className="text-lg">Secure KYC verification</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Zap className="w-6 h-6" />
-                    <span className="text-lg">Instant disbursement</span>
-                  </div>
-                </div>
+              <div>
+                <div className="text-4xl font-bold mb-2">5,000+</div>
+                <div className="text-purple-200">Active Customers</div>
               </div>
-            </div>
-
-            {/* Benefit 2 */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12">
-              <div className="flex-1">
-                <div className="inline-block px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold mb-4">
-                  For Your Operations
-                </div>
-                <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-                  Scale without hiring more staff
-                </h2>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Automate loan origination, collections, and reconciliation. Free your team to focus on customer relationships, not paperwork.
-                </p>
+              <div>
+                <div className="text-4xl font-bold mb-2">98%</div>
+                <div className="text-purple-200">Satisfaction Rate</div>
               </div>
-              <div className="flex-1 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-3xl p-8 text-white">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Check className="w-6 h-6" />
-                    <span className="text-lg">Automated workflows</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Check className="w-6 h-6" />
-                    <span className="text-lg">Real-time reconciliation</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Check className="w-6 h-6" />
-                    <span className="text-lg">Multi-branch coordination</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Benefit 3 */}
-            <div className="flex flex-col lg:flex-row items-center gap-12">
-              <div className="flex-1">
-                <div className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-4">
-                  For Compliance
-                </div>
-                <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-                  Stay compliant, stay confident
-                </h2>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Built-in regulatory compliance, complete audit trails, and one-click reporting. Always ready for regulators.
-                </p>
-              </div>
-              <div className="flex-1 bg-gradient-to-br from-blue-500 to-blue-700 rounded-3xl p-8 text-white">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-6 h-6" />
-                    <span className="text-lg">NDPA compliant</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-6 h-6" />
-                    <span className="text-lg">Complete audit logs</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-6 h-6" />
-                    <span className="text-lg">Regulatory reports</span>
-                  </div>
-                </div>
+              <div>
+                <div className="text-4xl font-bold mb-2">2-4hrs</div>
+                <div className="text-purple-200">Average Approval</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Comparison Table */}
+      {/* FAQ */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 text-center mb-4">
-            Switch to smarter operations
-          </h2>
-          <p className="text-lg text-gray-600 text-center mb-12">
-            See how VCLOP compares to traditional methods
-          </p>
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-4">
+              Frequently asked questions
+            </h2>
+          </div>
 
-          <div className="bg-white rounded-3xl overflow-hidden shadow-lg">
-            <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-200">
-              <div className="p-4"></div>
-              <div className="p-4 text-center">
-                <div className="text-sm font-semibold text-purple-600">VCLOP</div>
-              </div>
-              <div className="p-4 text-center">
-                <div className="text-sm font-semibold text-gray-500">Traditional</div>
-              </div>
-            </div>
-
-            {comparisonData.map((row, idx) => (
-              <div
-                key={idx}
-                className={`grid grid-cols-3 border-b border-gray-100 ${
-                  idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                }`}
-              >
-                <div className="p-4 text-sm font-medium text-gray-900">{row.feature}</div>
-                <div className="p-4 text-center">
-                  <span className="inline-flex items-center gap-1 text-sm text-emerald-600 font-semibold">
-                    <Check className="w-4 h-4" />
-                    {row.vclop}
-                  </span>
-                </div>
-                <div className="p-4 text-center text-sm text-gray-500">{row.traditional}</div>
+          <div className="space-y-6">
+            {faqs.map((faq, idx) => (
+              <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{faq.q}</h3>
+                <p className="text-gray-600">{faq.a}</p>
               </div>
             ))}
           </div>
@@ -298,25 +356,25 @@ export function LandingPage() {
 
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-6">
-            Join microfinance institutions modernizing with VCLOP
+            Ready to grow your business?
           </h2>
-          <p className="text-lg text-gray-600 mb-8">
-            Start processing loans faster, collecting automatically, and scaling efficiently today.
+          <p className="text-xl text-gray-600 mb-8">
+            Apply now and get your loan approved in hours
           </p>
           <button
             onClick={() => navigate('/login')}
             className="inline-flex items-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-full font-semibold text-lg hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl"
           >
-            Get started
+            Apply for a loan
             <ArrowRight className="w-5 h-5" />
           </button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="border-t border-gray-200 py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-12 mb-8">
             <div className="md:col-span-2">
@@ -324,49 +382,64 @@ export function LandingPage() {
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-lg">V</span>
                 </div>
-                <span className="text-xl font-bold text-gray-900">VCLOP</span>
+                <div>
+                  <span className="text-xl font-bold text-gray-900">VCLOP</span>
+                  <span className="text-xs text-gray-500 block -mt-1">Microfinance Bank</span>
+                </div>
               </div>
-              <p className="text-sm text-gray-600 leading-relaxed max-w-sm">
-                Virtual Credit and Loan Operations Platform. Modern microfinance management for forward-thinking institutions.
+              <p className="text-sm text-gray-600 leading-relaxed max-w-sm mb-4">
+                Licensed microfinance bank providing fast, flexible business loans to Nigerian entrepreneurs.
+              </p>
+              <p className="text-xs text-gray-500">
+                CBN Licensed | RC 123456
               </p>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-4">Product</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-4">Quick Links</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={() => navigate('/login')} className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                    Sign in
-                  </button>
+                  <a href="#loans" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                    Our Loans
+                  </a>
                 </li>
                 <li>
-                  <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                    Features
+                  <a href="#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                    How It Works
                   </a>
+                </li>
+                <li>
+                  <button onClick={() => navigate('/login')} className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                    Apply Now
+                  </button>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-4">Contact</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-4">Contact Us</h4>
               <ul className="space-y-3">
-                <li className="flex items-center gap-2 text-sm text-gray-600">
-                  <Mail className="w-4 h-4" />
-                  support@vclop.com
-                </li>
                 <li className="flex items-center gap-2 text-sm text-gray-600">
                   <Phone className="w-4 h-4" />
                   +234 (0) 800 000 0000
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-600">
+                  <Mail className="w-4 h-4" />
+                  loans@vclop.com
+                </li>
+                <li className="text-sm text-gray-600">
+                  123 Business District,<br />
+                  Lagos, Nigeria
                 </li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-200 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-600">© 2026 VCLOP. All rights reserved.</p>
+            <p className="text-sm text-gray-600">© 2026 VCLOP Microfinance Bank. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                Privacy
+                Privacy Policy
               </a>
               <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                Terms
+                Terms & Conditions
               </a>
             </div>
           </div>
