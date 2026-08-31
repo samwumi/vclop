@@ -54,7 +54,7 @@ export function UserStatusChart() {
           </Pie>
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
-            formatter={(value: number) => [value, 'Users']}
+            formatter={(value: any) => [value ?? 0, 'Users']}
           />
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
         </PieChart>

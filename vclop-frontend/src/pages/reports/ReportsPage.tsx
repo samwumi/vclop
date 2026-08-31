@@ -158,7 +158,7 @@ export function ReportsPage() {
                   {(collections.data?.cases?.length ?? 0) > 0 ? (
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
-                        <Pie data={collections.data!.cases} dataKey="_count._all" nameKey="status" cx="50%" cy="50%" outerRadius={80} label={({ status }) => status?.replace(/_/g, ' ')}>
+                        <Pie data={collections.data!.cases} dataKey="_count._all" nameKey="status" cx="50%" cy="50%" outerRadius={80} label={(props: any) => props.status?.replace(/_/g, ' ')}>
                           {collections.data!.cases.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                         </Pie>
                         <Tooltip formatter={(v) => [v, 'Cases']} />
@@ -180,7 +180,7 @@ export function ReportsPage() {
                           <BarChart data={locations.data!.slice(0, 8)} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
                             <XAxis dataKey="branchName" tick={{ fontSize: 11 }} />
                             <YAxis tickFormatter={(v) => `₦${(v / 1_000_000).toFixed(1)}M`} tick={{ fontSize: 10 }} />
-                            <Tooltip formatter={(v: number) => money(v)} />
+                            <Tooltip formatter={(v: any) => money(Number(v) ?? 0)} />
                             <Bar dataKey="portfolioValue" name="Portfolio" radius={[4, 4, 0, 0]}>
                               {locations.data!.slice(0, 8).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                             </Bar>
@@ -390,7 +390,7 @@ export function ReportsPage() {
                       <BarChart data={par.data ?? []} layout="vertical" margin={{ left: 60, right: 20, top: 0, bottom: 0 }}>
                         <XAxis type="number" tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} />
                         <YAxis type="category" dataKey="branchName" tick={{ fontSize: 11 }} width={60} />
-                        <Tooltip formatter={(v: number) => [`${v.toFixed(2)}%`, 'PAR']} />
+                        <Tooltip formatter={(v: any) => [`${(Number(v) ?? 0).toFixed(2)}%`, 'PAR']} />
                         <Bar dataKey="par" name="PAR %" radius={[0, 4, 4, 0]}>
                           {(par.data ?? []).map((d, i) => (
                             <Cell key={i} fill={d.par > 10 ? '#dc2626' : d.par > 5 ? '#d97706' : '#16a34a'} />

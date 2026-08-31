@@ -66,18 +66,34 @@ export class ReconciliationService {
     });
     const totalRepayments = Number(repaymentsResult._sum?.amount || 0);
 
-    // Expected repayments due in range (from repayment installments)
-    const expectedResult = await this.prisma.repaymentInstallment.aggregate({
+    // Expected repayments: Total amount that should be collected by end of this period
+    // This includes installments due in the range
+    const newInstallmentsResult = await this.prisma.repaymentInstallment.aggregate({
       where: {
         dueDate: {
           gte: startOfRange,
+          lte: endOfRange,
+        },
+      },
+      _sum: { totalDue: true },
+    });
+    const newInstallmentsDue = Number(newInstallmentsResult._sum?.totalDue || 0);
+
+    // For daily reconciliation: show outstanding balance at end of period
+    // This is all unpaid installments with dueDate <= endOfRange
+    const outstandingResult = await this.prisma.repaymentInstallment.aggregate({
+      where: {
+        dueDate: {
           lte: endOfRange,
         },
         status: { not: InstallmentStatus.PAID },
       },
       _sum: { totalDue: true },
     });
-    const expectedRepayments = Number(expectedResult._sum?.totalDue || 0);
+    const totalOutstanding = Number(outstandingResult._sum?.totalDue || 0);
+    
+    // For the report, show new installments due in this period
+    const expectedRepayments = newInstallmentsDue;
 
     // Overdue amount (past due date and not fully paid)
     const overdueResult = await this.prisma.repaymentInstallment.aggregate({
@@ -116,6 +132,7 @@ export class ReconciliationService {
       totalDisbursed,
       totalRepayments,
       expectedRepayments,
+      totalOutstanding, // Add this to show cumulative outstanding
       overdueAmount,
       discrepancies: discrepancyCount,
       status,
@@ -177,10 +194,11 @@ export class ReconciliationService {
         totalDisbursed: acc.totalDisbursed + s.totalDisbursed,
         totalRepayments: acc.totalRepayments + s.totalRepayments,
         expectedRepayments: acc.expectedRepayments + s.expectedRepayments,
+        totalOutstanding: summaries[summaries.length - 1]?.totalOutstanding || 0, // Use last period's outstanding
         overdueAmount: acc.overdueAmount + s.overdueAmount,
         discrepancies: acc.discrepancies + s.discrepancies,
       }),
-      { totalDisbursed: 0, totalRepayments: 0, expectedRepayments: 0, overdueAmount: 0, discrepancies: 0 }
+      { totalDisbursed: 0, totalRepayments: 0, expectedRepayments: 0, totalOutstanding: 0, overdueAmount: 0, discrepancies: 0 }
     );
 
     return {

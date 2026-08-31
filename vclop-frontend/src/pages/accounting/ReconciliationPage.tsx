@@ -10,6 +10,7 @@ interface ReconciliationSummary {
   totalDisbursed: number;
   totalRepayments: number;
   expectedRepayments: number;
+  totalOutstanding: number; // Add this field
   overdueAmount: number;
   discrepancies: number;
   status: 'BALANCED' | 'DISCREPANCY' | 'PENDING';
@@ -241,7 +242,7 @@ export function ReconciliationPage() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -272,8 +273,20 @@ export function ReconciliationPage() {
                 <DollarSign className="w-5 h-5 text-amber-600" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-500">Expected Repayments</p>
+                <p className="text-xs text-gray-500">Expected (New)</p>
                 <p className="text-lg font-bold text-gray-900">{formatCurrency(summary.expectedRepayments)}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-500">Total Outstanding</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(summary.totalOutstanding)}</p>
               </div>
             </div>
           </div>
@@ -305,8 +318,8 @@ export function ReconciliationPage() {
                   <th>Period</th>
                   <th>Disbursed</th>
                   <th>Received</th>
-                  <th>Expected</th>
-                  <th>Variance</th>
+                  <th>Expected (New)</th>
+                  <th>Outstanding</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -317,9 +330,7 @@ export function ReconciliationPage() {
                     <td>{formatCurrency(period.totalDisbursed)}</td>
                     <td>{formatCurrency(period.totalRepayments)}</td>
                     <td>{formatCurrency(period.expectedRepayments)}</td>
-                    <td className={period.totalRepayments >= period.expectedRepayments ? 'text-emerald-600' : 'text-red-600'}>
-                      {formatCurrency(period.totalRepayments - period.expectedRepayments)}
-                    </td>
+                    <td className="text-purple-600 font-medium">{formatCurrency(period.totalOutstanding)}</td>
                     <td>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${
                         period.status === 'BALANCED' ? 'bg-emerald-100 text-emerald-700' :
@@ -392,9 +403,15 @@ export function ReconciliationPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-sm text-gray-600">Expected Repayments</span>
+                <span className="text-sm text-gray-600">Expected Repayments (New This Period)</span>
                 <span className="text-sm font-medium text-gray-900">
                   {formatCurrency(summary?.expectedRepayments || 0)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-600">Total Outstanding Balance</span>
+                <span className="text-sm font-medium text-purple-600">
+                  {formatCurrency(summary?.totalOutstanding || 0)}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-gray-100">
