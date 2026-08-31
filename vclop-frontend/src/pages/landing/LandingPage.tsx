@@ -19,7 +19,7 @@ export function LandingPage() {
   const loanProducts = [
     {
       title: 'Daily Loans',
-      rate: '15%',
+      rate: '0.625%',
       period: '24 days',
       icon: Zap,
       features: [
@@ -32,7 +32,7 @@ export function LandingPage() {
     },
     {
       title: 'Weekly Loans',
-      rate: '25%',
+      rate: '0.446%',
       period: '8 weeks',
       icon: Calendar,
       features: [
@@ -221,7 +221,7 @@ export function LandingPage() {
                     }`}>
                       {product.rate}
                     </span>
-                    <span className="text-gray-600">interest</span>
+                    <span className="text-gray-600">daily</span>
                   </div>
                   <div className="text-gray-600 mb-6">
                     <span className="font-semibold">Repayment period:</span> {product.period}
