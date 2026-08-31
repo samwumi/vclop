@@ -10,11 +10,59 @@ import {
   Mail,
   Calendar,
   Users,
-  CheckCircle2
+  CheckCircle2,
+  Calculator
 } from 'lucide-react';
+import { useState } from 'react';
 
 export function LandingPage() {
   const navigate = useNavigate();
+  const [loanAmount, setLoanAmount] = useState(50000);
+  const [loanType, setLoanType] = useState<'daily' | 'weekly'>('daily');
+
+  // Calculate loan details
+  const calculateLoan = () => {
+    if (loanType === 'daily') {
+      const totalInterest = loanAmount * 0.15; // 15% total
+      const totalRepayment = loanAmount + totalInterest;
+      const dailyPayment = totalRepayment / 24;
+      
+      return {
+        principal: loanAmount,
+        interest: totalInterest,
+        total: totalRepayment,
+        payment: dailyPayment,
+        period: '24 days',
+        frequency: 'Daily',
+        rate: '0.625%',
+      };
+    } else {
+      const totalInterest = loanAmount * 0.25; // 25% total
+      const totalRepayment = loanAmount + totalInterest;
+      const weeklyPayment = totalRepayment / 8;
+      
+      return {
+        principal: loanAmount,
+        interest: totalInterest,
+        total: totalRepayment,
+        payment: weeklyPayment,
+        period: '8 weeks',
+        frequency: 'Weekly',
+        rate: '0.446%',
+      };
+    }
+  };
+
+  const loan = calculateLoan();
+
+  const Logo = () => (
+    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded flex items-center justify-center relative overflow-hidden">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 9 L22 16 L16 16 L10 16 Z" fill="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M8 17.5 Q16 15 24 17.5" stroke="white" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+      </svg>
+    </div>
+  );
 
   const loanProducts = [
     {
@@ -28,7 +76,7 @@ export function LandingPage() {
         'Flexible repayment schedule',
         'No hidden charges',
       ],
-      color: 'purple',
+      color: 'blue',
     },
     {
       title: 'Weekly Loans',
@@ -41,7 +89,7 @@ export function LandingPage() {
         'Ideal for longer projects',
         'Competitive interest rates',
       ],
-      color: 'blue',
+      color: 'purple',
     },
   ];
 
@@ -112,11 +160,9 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">V</span>
-              </div>
+              <Logo />
               <div>
-                <span className="text-xl font-bold text-gray-900">VCLOP</span>
+                <span className="text-xl font-bold text-gray-900">Vertical Capital</span>
                 <span className="text-xs text-gray-500 block -mt-1">Microfinance Bank</span>
               </div>
             </div>
@@ -124,12 +170,12 @@ export function LandingPage() {
               <a href="#loans" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
                 Loans
               </a>
-              <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
-                How It Works
+              <a href="#calculator" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">
+                Calculator
               </a>
               <button
                 onClick={() => navigate('/login')}
-                className="text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors"
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
               >
                 Sign in
               </button>
@@ -141,7 +187,7 @@ export function LandingPage() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-block px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold mb-6">
+          <div className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-6">
             Licensed Microfinance Bank
           </div>
           <h1 className="text-5xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
@@ -153,7 +199,7 @@ export function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => navigate('/login')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-full font-semibold text-lg hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold text-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
             >
               Apply for a loan
               <ArrowRight className="w-5 h-5" />
@@ -185,8 +231,129 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Loan Calculator */}
+      <section id="calculator" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-purple-50">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full text-sm font-semibold text-blue-700 mb-4 shadow-sm">
+              <Calculator className="w-4 h-4" />
+              Loan Calculator
+            </div>
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              Calculate your loan repayment
+            </h2>
+            <p className="text-lg text-gray-600">
+              See exactly how much you'll pay before you apply
+            </p>
+          </div>
+
+          <div className="bg-white rounded-3xl p-8 lg:p-10 shadow-xl">
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Input Section */}
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Loan Amount
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">₦</span>
+                    <input
+                      type="number"
+                      value={loanAmount}
+                      onChange={(e) => setLoanAmount(Number(e.target.value))}
+                      min="10000"
+                      max="5000000"
+                      step="10000"
+                      className="w-full pl-10 pr-4 py-4 text-2xl font-bold border-2 border-gray-200 rounded-2xl focus:border-blue-500 focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <input
+                    type="range"
+                    value={loanAmount}
+                    onChange={(e) => setLoanAmount(Number(e.target.value))}
+                    min="10000"
+                    max="5000000"
+                    step="10000"
+                    className="w-full mt-4"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-2">
+                    <span>₦10K</span>
+                    <span>₦5M</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Loan Type
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setLoanType('daily')}
+                      className={`py-4 px-6 rounded-2xl font-semibold transition-all ${
+                        loanType === 'daily'
+                          ? 'bg-blue-600 text-white shadow-lg'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Daily
+                      <span className="block text-xs mt-1 opacity-80">0.625% daily</span>
+                    </button>
+                    <button
+                      onClick={() => setLoanType('weekly')}
+                      className={`py-4 px-6 rounded-2xl font-semibold transition-all ${
+                        loanType === 'weekly'
+                          ? 'bg-purple-600 text-white shadow-lg'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Weekly
+                      <span className="block text-xs mt-1 opacity-80">0.446% daily</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Results Section */}
+              <div className={`rounded-2xl p-6 ${loanType === 'daily' ? 'bg-gradient-to-br from-blue-500 to-blue-700' : 'bg-gradient-to-br from-purple-500 to-purple-700'} text-white`}>
+                <h3 className="text-lg font-semibold mb-6">Your Loan Summary</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-white/20">
+                    <span className="text-sm opacity-90">Loan Amount</span>
+                    <span className="text-xl font-bold">₦{loan.principal.toLocaleString()}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pb-3 border-b border-white/20">
+                    <span className="text-sm opacity-90">Interest ({loanType === 'daily' ? '15%' : '25%'} total)</span>
+                    <span className="text-xl font-bold">₦{loan.interest.toLocaleString()}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pb-3 border-b border-white/20">
+                    <span className="text-sm opacity-90">Total Repayment</span>
+                    <span className="text-2xl font-bold">₦{loan.total.toLocaleString()}</span>
+                  </div>
+                  
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mt-4">
+                    <div className="text-sm opacity-90 mb-1">{loan.frequency} Payment</div>
+                    <div className="text-3xl font-bold">₦{loan.payment.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-sm opacity-80 mt-1">for {loan.period}</div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate('/login')}
+                  className="w-full mt-6 py-4 bg-white text-blue-700 font-semibold rounded-xl hover:shadow-lg transition-all"
+                >
+                  Apply for this loan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Loan Products */}
-      <section id="loans" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section id="loans" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-4">
@@ -204,20 +371,20 @@ export function LandingPage() {
                 <div
                   key={idx}
                   className={`bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl transition-all border-2 ${
-                    product.color === 'purple' ? 'border-purple-200' : 'border-blue-200'
+                    product.color === 'blue' ? 'border-blue-200' : 'border-purple-200'
                   }`}
                 >
                   <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 ${
-                    product.color === 'purple' ? 'bg-purple-100' : 'bg-blue-100'
+                    product.color === 'blue' ? 'bg-blue-100' : 'bg-purple-100'
                   }`}>
                     <Icon className={`w-7 h-7 ${
-                      product.color === 'purple' ? 'text-purple-600' : 'text-blue-600'
+                      product.color === 'blue' ? 'text-blue-600' : 'text-purple-600'
                     }`} />
                   </div>
                   <h3 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h3>
                   <div className="flex items-baseline gap-2 mb-6">
                     <span className={`text-5xl font-bold ${
-                      product.color === 'purple' ? 'text-purple-600' : 'text-blue-600'
+                      product.color === 'blue' ? 'text-blue-600' : 'text-purple-600'
                     }`}>
                       {product.rate}
                     </span>
@@ -230,7 +397,7 @@ export function LandingPage() {
                     {product.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-3">
                         <Check className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                          product.color === 'purple' ? 'text-purple-600' : 'text-blue-600'
+                          product.color === 'blue' ? 'text-blue-600' : 'text-purple-600'
                         }`} />
                         <span className="text-gray-700">{feature}</span>
                       </li>
@@ -239,9 +406,9 @@ export function LandingPage() {
                   <button
                     onClick={() => navigate('/login')}
                     className={`w-full py-4 rounded-full font-semibold text-lg transition-all ${
-                      product.color === 'purple'
-                        ? 'bg-purple-600 text-white hover:bg-purple-700'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                      product.color === 'blue'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
                     }`}
                   >
                     Apply now
@@ -254,7 +421,7 @@ export function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-4">
@@ -268,7 +435,7 @@ export function LandingPage() {
           <div className="grid md:grid-cols-3 gap-8">
             {howItWorks.map((item, idx) => (
               <div key={idx} className="text-center">
-                <div className="w-16 h-16 bg-purple-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
+                <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
                   {item.step}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
@@ -280,7 +447,7 @@ export function LandingPage() {
       </section>
 
       {/* Benefits */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-4">
@@ -293,8 +460,8 @@ export function LandingPage() {
               const Icon = benefit.icon;
               return (
                 <div key={idx} className="text-center">
-                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
-                    <Icon className="w-7 h-7 text-purple-600" />
+                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md border border-gray-100">
+                    <Icon className="w-7 h-7 text-blue-600" />
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{benefit.title}</h3>
                   <p className="text-gray-600 text-sm">{benefit.description}</p>
@@ -306,28 +473,28 @@ export function LandingPage() {
       </section>
 
       {/* Social Proof / Stats */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-5xl mx-auto">
-          <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-3xl p-12 text-white text-center">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-12 text-white text-center">
             <h2 className="text-3xl lg:text-4xl font-bold mb-8">
-              Join thousands of businesses growing with VCLOP
+              Join thousands of businesses growing with Vertical Capital
             </h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
               <div>
                 <div className="text-4xl font-bold mb-2">₦2.4B+</div>
-                <div className="text-purple-200">Disbursed</div>
+                <div className="text-blue-200">Disbursed</div>
               </div>
               <div>
                 <div className="text-4xl font-bold mb-2">5,000+</div>
-                <div className="text-purple-200">Active Customers</div>
+                <div className="text-blue-200">Active Customers</div>
               </div>
               <div>
                 <div className="text-4xl font-bold mb-2">98%</div>
-                <div className="text-purple-200">Satisfaction Rate</div>
+                <div className="text-blue-200">Satisfaction Rate</div>
               </div>
               <div>
                 <div className="text-4xl font-bold mb-2">2-4hrs</div>
-                <div className="text-purple-200">Average Approval</div>
+                <div className="text-blue-200">Average Approval</div>
               </div>
             </div>
           </div>
@@ -335,7 +502,7 @@ export function LandingPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-4">
@@ -345,7 +512,7 @@ export function LandingPage() {
 
           <div className="space-y-6">
             {faqs.map((faq, idx) => (
-              <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm">
+              <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">{faq.q}</h3>
                 <p className="text-gray-600">{faq.a}</p>
               </div>
@@ -355,7 +522,7 @@ export function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-6">
             Ready to grow your business?
@@ -365,7 +532,7 @@ export function LandingPage() {
           </p>
           <button
             onClick={() => navigate('/login')}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-full font-semibold text-lg hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold text-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
           >
             Apply for a loan
             <ArrowRight className="w-5 h-5" />
@@ -374,16 +541,14 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <footer className="border-t border-gray-200 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-12 mb-8">
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">V</span>
-                </div>
+                <Logo />
                 <div>
-                  <span className="text-xl font-bold text-gray-900">VCLOP</span>
+                  <span className="text-xl font-bold text-gray-900">Vertical Capital</span>
                   <span className="text-xs text-gray-500 block -mt-1">Microfinance Bank</span>
                 </div>
               </div>
@@ -403,8 +568,8 @@ export function LandingPage() {
                   </a>
                 </li>
                 <li>
-                  <a href="#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                    How It Works
+                  <a href="#calculator" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                    Loan Calculator
                   </a>
                 </li>
                 <li>
@@ -423,7 +588,7 @@ export function LandingPage() {
                 </li>
                 <li className="flex items-center gap-2 text-sm text-gray-600">
                   <Mail className="w-4 h-4" />
-                  loans@vclop.com
+                  loans@verticalcapital.ng
                 </li>
                 <li className="text-sm text-gray-600">
                   123 Business District,<br />
@@ -433,7 +598,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-200 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-600">© 2026 VCLOP Microfinance Bank. All rights reserved.</p>
+            <p className="text-sm text-gray-600">© 2026 Vertical Capital Microfinance Bank. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 Privacy Policy
