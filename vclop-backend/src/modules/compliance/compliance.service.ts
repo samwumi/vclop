@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ResourceNotFoundException, BusinessException } from '../../common/exceptions/app.exceptions';
 import { CreditBureauService } from './credit-bureau.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class ComplianceService {
@@ -11,12 +12,27 @@ export class ComplianceService {
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
     private readonly creditBureau: CreditBureauService,
+    private readonly usersService: UsersService,
   ) {}
 
-  async queue(branchIds: string[], isHQ: boolean) {
+  async queue(branchIds: string[], isHQ: boolean, actorId?: string) {
+    // Apply location-based permissions if actorId is provided
+    let effectiveBranchIds = branchIds;
+    
+    if (actorId) {
+      const permittedBranchIds = await this.usersService.getUserPermittedBranchIds(actorId);
+      
+      if (permittedBranchIds.length > 0) {
+        // User has specific location permissions - use those instead of role-based branches
+        effectiveBranchIds = permittedBranchIds;
+        isHQ = false; // Override HQ flag since user has specific location restrictions
+      }
+      // If permittedBranchIds is empty, user has no restrictions (admin/super-admin)
+    }
+
     // If HQ/non-location → see all. Otherwise filter by covered branches.
-    const branchFilter = (!isHQ && branchIds.length > 0)
-      ? { customer: { branchId: { in: branchIds } } }
+    const branchFilter = (!isHQ && effectiveBranchIds.length > 0)
+      ? { customer: { branchId: { in: effectiveBranchIds } } }
       : {};
 
     return this.prisma.loanApplication.findMany({

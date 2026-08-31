@@ -1,12 +1,13 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Download, Users, MoreHorizontal, KeyRound, Trash2, ShieldOff, ShieldCheck, Unlock, Key } from 'lucide-react';
+import { Plus, Download, Users, MoreHorizontal, KeyRound, Trash2, ShieldOff, ShieldCheck, Unlock, Key, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/axios';
 import { ModulePage } from '@/components/ui/ModulePage';
 import { UserStatusBadge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/auth.store';
 import { formatDate } from '@/lib/utils';
+import { LocationPermissionsModal } from './LocationPermissionsModal';
 import type { ApiResponse, PaginationMeta } from '@/types/api.types';
 import type { Role, User } from '@/types/domain.types';
 
@@ -36,6 +37,8 @@ export function UsersPage() {
   const [resetPwdUserId, setResetPwdUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [permissionsUserId, setPermissionsUserId] = useState<string | null>(null);
+  const [locationPermUserId, setLocationPermUserId] = useState<string | null>(null);
+  const [locationPermUserName, setLocationPermUserName] = useState('');
   const { hasPermission, user: currentUser } = useAuthStore();
   const qc = useQueryClient();
 
@@ -225,6 +228,19 @@ export function UsersPage() {
                         className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                       >
                         <Key className="w-4 h-4 text-gray-400" /> Manage Permissions
+                      </button>
+                    )}
+                    {/* Location Permissions */}
+                    {hasPermission('users:update') && (
+                      <button
+                        onClick={() => { 
+                          setLocationPermUserId(user.id); 
+                          setLocationPermUserName(`${user.firstName} ${user.lastName}`);
+                          setOpenMenuId(null); 
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <MapPin className="w-4 h-4 text-gray-400" /> Location Permissions
                       </button>
                     )}
                     {/* Reset password */}
@@ -419,6 +435,18 @@ export function UsersPage() {
 
     {/* Manage Permissions Modal */}
     {permissionsUserId && <UserPermissionsModal userId={permissionsUserId} onClose={() => setPermissionsUserId(null)} />}
+
+    {/* Location Permissions Modal */}
+    {locationPermUserId && (
+      <LocationPermissionsModal 
+        userId={locationPermUserId} 
+        userName={locationPermUserName}
+        onClose={() => {
+          setLocationPermUserId(null);
+          setLocationPermUserName('');
+        }} 
+      />
+    )}
   </>
   );
 }

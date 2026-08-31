@@ -13,6 +13,7 @@ import { QueryLoanApplicationsDto } from './dto/query-loan-applications.dto';
 import { RecordRepaymentDto, ReviewDecision, ReviewLoanApplicationDto } from './dto/review-and-repayment.dto';
 import { WorkflowsService } from '../workflows/workflows.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
+import { UsersService } from '../users/users.service';
 
 const APPLICATION_INCLUDE = {
   customer: { select: { id: true, customerNumber: true, firstName: true, lastName: true, phone: true, status: true } },
@@ -37,10 +38,11 @@ export class LoanApplicationsService {
     private readonly customersService: CustomersService,
     private readonly events: EventEmitter2,
     private readonly workflowsService: WorkflowsService,
+    private readonly usersService: UsersService,
   ) {}
 
-  async findAll(query: QueryLoanApplicationsDto & PaginationDto): Promise<PaginatedResult<unknown>> {
-    const where = {
+  async findAll(query: QueryLoanApplicationsDto & PaginationDto, actorId?: string): Promise<PaginatedResult<unknown>> {
+    const where: any = {
       deletedAt: null,
       ...(query.status && { status: query.status }),
       ...(query.customerId && { customerId: query.customerId }),
@@ -48,6 +50,27 @@ export class LoanApplicationsService {
       ...(query.submittedById && { submittedById: query.submittedById }),
       ...(query.branchId && { customer: { branchId: query.branchId } }),
     };
+
+    // Apply location-based permissions if actorId is provided
+    if (actorId) {
+      const permittedBranchIds = await this.usersService.getUserPermittedBranchIds(actorId);
+      
+      // If user has specific location permissions, filter by those branches
+      if (permittedBranchIds.length > 0) {
+        // Override or merge with existing branchId filter
+        if (query.branchId) {
+          // If a specific branch is requested, check if user has permission for it
+          if (!permittedBranchIds.includes(query.branchId)) {
+            // User doesn't have permission for requested branch - return empty result
+            return paginate([], 0, query.page ?? 1, query.limit ?? 25);
+          }
+        } else {
+          // Apply location filter - only show applications from permitted branches
+          where.customer = { branchId: { in: permittedBranchIds } };
+        }
+      }
+      // If user has no location permissions (empty array), they can see all (admin/super-admin)
+    }
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.loanApplication.findMany({
@@ -494,8 +517,8 @@ export class LoanApplicationsService {
     });
   }
 
-  async exportCsv(query: QueryLoanApplicationsDto & PaginationDto): Promise<string> {
-    const where = {
+  async exportCsv(query: QueryLoanApplicationsDto & PaginationDto, actorId?: string): Promise<string> {
+    const where: any = {
       deletedAt: null,
       ...(query.status && { status: query.status }),
       ...(query.customerId && { customerId: query.customerId }),
@@ -503,6 +526,22 @@ export class LoanApplicationsService {
       ...(query.submittedById && { submittedById: query.submittedById }),
       ...(query.branchId && { customer: { branchId: query.branchId } }),
     };
+
+    // Apply location-based permissions if actorId is provided
+    if (actorId) {
+      const permittedBranchIds = await this.usersService.getUserPermittedBranchIds(actorId);
+      
+      if (permittedBranchIds.length > 0) {
+        if (query.branchId) {
+          if (!permittedBranchIds.includes(query.branchId)) {
+            // User doesn't have permission - return empty CSV
+            return 'Application No.,Customer No.,Customer Name,Phone,Product,Amount (₦),Tenure (days),Purpose,Status,Submitted,Created\n';
+          }
+        } else {
+          where.customer = { branchId: { in: permittedBranchIds } };
+        }
+      }
+    }
 
     const items = await this.prisma.loanApplication.findMany({
       where,

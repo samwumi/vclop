@@ -556,7 +556,7 @@ export function LandingPage() {
                 Licensed microfinance bank providing fast, flexible business loans to Nigerian entrepreneurs.
               </p>
               <p className="text-xs text-gray-500">
-                CBN Licensed | RC 123456
+                CBN Licensed | RC 1954615
               </p>
             </div>
             <div>
@@ -584,14 +584,14 @@ export function LandingPage() {
               <ul className="space-y-3">
                 <li className="flex items-center gap-2 text-sm text-gray-600">
                   <Phone className="w-4 h-4" />
-                  +234 (0) 800 000 0000
+                  +234 08063603622
                 </li>
                 <li className="flex items-center gap-2 text-sm text-gray-600">
                   <Mail className="w-4 h-4" />
-                  loans@verticalcapital.ng
+                  support@verticalcapital.ng
                 </li>
                 <li className="text-sm text-gray-600">
-                  123 Business District,<br />
+                  32 Femi Killa, Okota,<br />
                   Lagos, Nigeria
                 </li>
               </ul>

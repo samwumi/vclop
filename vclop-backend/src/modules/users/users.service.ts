@@ -493,6 +493,137 @@ export class UsersService {
     this.events.emit('audit.log', { userId: actorId, action: AuditAction.UPDATE, module: 'users', entityId: userId, entityType: 'User', description: `Removed branch ${branchId} from user ${userId}`, isSuccess: true });
   }
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // LOCATION-BASED PERMISSIONS
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Grant location-based viewing permission for specific branches to a user.
+   * This allows compliance/IC officers to see loan applications from specific branches.
+   */
+  async grantLocationPermission(userId: string, branchIds: string[], grantedById: string): Promise<void> {
+    await this.assertExists(userId);
+
+    // Validate all branches exist
+    const branches = await this.prisma.branch.findMany({
+      where: { id: { in: branchIds }, deletedAt: null, isActive: true },
+    });
+
+    if (branches.length !== branchIds.length) {
+      throw new BusinessException('One or more branch IDs are invalid or inactive');
+    }
+
+    // Upsert each branch permission
+    await this.prisma.$transaction(
+      branchIds.map((branchId) =>
+        this.prisma.userBranch.upsert({
+          where: { userId_branchId: { userId, branchId } },
+          update: { canViewLoans: true, grantedById, grantedAt: new Date(), revokedAt: null },
+          create: { userId, branchId, canViewLoans: true, grantedById, grantedAt: new Date() },
+        }),
+      ),
+    );
+
+    this.events.emit('audit.log', {
+      userId: grantedById,
+      action: AuditAction.UPDATE,
+      module: 'users',
+      entityId: userId,
+      entityType: 'User',
+      description: `Granted location permissions for branches: ${branches.map((b) => b.name).join(', ')}`,
+      newValues: { branchIds },
+      isSuccess: true,
+    });
+  }
+
+  /**
+   * Revoke location-based viewing permission for a specific branch from a user.
+   */
+  async revokeLocationPermission(userId: string, branchId: string, revokedById: string): Promise<void> {
+    await this.assertExists(userId);
+
+    const userBranch = await this.prisma.userBranch.findUnique({
+      where: { userId_branchId: { userId, branchId } },
+      include: { branch: { select: { name: true } } },
+    });
+
+    if (!userBranch) {
+      throw new ResourceNotFoundException('User branch permission', `${userId}-${branchId}`);
+    }
+
+    // Mark as revoked instead of deleting to maintain audit trail
+    await this.prisma.userBranch.update({
+      where: { userId_branchId: { userId, branchId } },
+      data: { canViewLoans: false, revokedAt: new Date() },
+    });
+
+    this.events.emit('audit.log', {
+      userId: revokedById,
+      action: AuditAction.UPDATE,
+      module: 'users',
+      entityId: userId,
+      entityType: 'User',
+      description: `Revoked location permission for branch: ${userBranch.branch.name}`,
+      oldValues: { branchId },
+      isSuccess: true,
+    });
+  }
+
+  /**
+   * Get all location permissions for a user (both active and revoked).
+   */
+  async getUserLocationPermissions(userId: string): Promise<unknown[]> {
+    await this.assertExists(userId);
+
+    const permissions = await this.prisma.userBranch.findMany({
+      where: { userId },
+      include: {
+        branch: { select: { id: true, code: true, name: true, isActive: true } },
+        user: { select: { id: true } },
+      },
+      orderBy: [{ canViewLoans: 'desc' }, { grantedAt: 'desc' }],
+    });
+
+    // Get granter details
+    const granterIds = permissions.map((p) => p.grantedById).filter((id): id is string => id !== null);
+    const granters = await this.prisma.user.findMany({
+      where: { id: { in: granterIds } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+
+    const granterMap = new Map(granters.map((g) => [g.id, `${g.firstName} ${g.lastName}`]));
+
+    return permissions.map((p) => ({
+      id: p.id,
+      branchId: p.branchId,
+      branchName: p.branch.name,
+      branchCode: p.branch.code,
+      canViewLoans: p.canViewLoans,
+      grantedById: p.grantedById,
+      grantedByName: p.grantedById ? granterMap.get(p.grantedById) : null,
+      grantedAt: p.grantedAt,
+      revokedAt: p.revokedAt,
+    }));
+  }
+
+  /**
+   * Get list of branch IDs that a user has active permission to view loans from.
+   * Returns empty array if user has no restrictions (admin/super-admin).
+   * Returns array of branch IDs if user has specific location permissions.
+   */
+  async getUserPermittedBranchIds(userId: string): Promise<string[]> {
+    const permissions = await this.prisma.userBranch.findMany({
+      where: {
+        userId,
+        canViewLoans: true,
+        revokedAt: null,
+      },
+      select: { branchId: true },
+    });
+
+    return permissions.map((p) => p.branchId);
+  }
+
   private mapUser(user: Record<string, unknown>): unknown {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, twoFactorSecret, userRoles, ...safe } = user;

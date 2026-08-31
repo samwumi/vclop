@@ -46,7 +46,8 @@ export class LoanApplicationsController {
       query.branchId = actor.branchId;
     }
 
-    return this.service.findAll(query);
+    // Pass actorId to enable location-based filtering for compliance/IC officers
+    return this.service.findAll(query, actor.id);
   }
 
   @Get(':id')
@@ -143,7 +144,7 @@ export class LoanApplicationsController {
       query.submittedById = actor.id;
     }
 
-    const csv = await this.service.exportCsv(query);
+    const csv = await this.service.exportCsv(query, actor.id);
     const today = new Date().toISOString().split('T')[0];
     res.set({
       'Content-Type': 'text/csv',

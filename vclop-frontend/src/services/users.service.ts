@@ -48,4 +48,28 @@ export const usersService = {
   async revokeRoles(id: string, roleIds: string[]) {
     await api.delete(`/users/${id}/roles`, { data: { roleIds } });
   },
+
+  // Location-based permissions
+  async getLocationPermissions(id: string) {
+    const { data } = await api.get<ApiResponse<{
+      id: string;
+      branchId: string;
+      branchName: string;
+      branchCode: string;
+      canViewLoans: boolean;
+      grantedById?: string;
+      grantedByName?: string;
+      grantedAt: string;
+      revokedAt?: string;
+    }[]>>(`/users/${id}/location-permissions`);
+    return data.data!;
+  },
+
+  async grantLocationPermission(id: string, branchIds: string[]) {
+    await api.post(`/users/${id}/location-permissions`, { branchIds });
+  },
+
+  async revokeLocationPermission(id: string, branchId: string) {
+    await api.delete(`/users/${id}/location-permissions/${branchId}`);
+  },
 };

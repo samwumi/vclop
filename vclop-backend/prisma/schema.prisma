@@ -179,16 +179,21 @@ model User {
 }
 
 model UserBranch {
-  id        String   @id @default(uuid()) @db.VarChar(36)
-  userId    String   @db.VarChar(36)
-  branchId  String   @db.VarChar(36)
-  createdAt DateTime @default(now())
-  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid()) @db.VarChar(36)
+  userId       String    @db.VarChar(36)
+  branchId     String    @db.VarChar(36)
+  canViewLoans Boolean   @default(false) // Location-based permission for viewing loan applications
+  grantedById  String?   @db.VarChar(36) // Admin who granted this permission
+  grantedAt    DateTime  @default(now())
+  revokedAt    DateTime? // When permission was revoked
+  createdAt    DateTime  @default(now())
+  branch       Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, branchId])
   @@index([userId])
   @@index([branchId])
+  @@index([canViewLoans])
   @@map("user_branches")
 }
 

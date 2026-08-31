@@ -56,7 +56,9 @@ export class ComplianceController {
     ];
     const uniqueBranchIds = [...new Set(allBranchIds)];
     const isHQ = uniqueBranchIds.length === 0;
-    return this.service.queue(uniqueBranchIds, isHQ);
+    
+    // Pass user.id to enable location-based filtering
+    return this.service.queue(uniqueBranchIds, isHQ, user.id);
   }
 
   // ── READ endpoints: accessible by compliance AND IC (and admin via loan_applications:read) ──

@@ -14,6 +14,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { AssignRolesDto, RevokeRolesDto } from './dto/assign-roles.dto';
 import { BulkAssignPermissionsDto, RevokePermissionsDto } from './dto/assign-permissions.dto';
+import { GrantLocationPermissionDto } from './dto/location-permission.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
@@ -275,5 +276,40 @@ export class UsersController {
   ) {
     await this.service.removeManagedBranch(id, branchId, actor.id);
     return ok(null, 'Branch assignment removed');
+  }
+
+  // ── Location-based permissions ──────────────────────────────────────────────
+
+  @Get(':id/location-permissions')
+  @RequirePermissions('users:read')
+  @ApiOperation({ summary: 'Get location-based viewing permissions for a user' })
+  async getUserLocationPermissions(@Param('id', ParseUUIDPipe) id: string) {
+    return ok(await this.service.getUserLocationPermissions(id), 'Location permissions retrieved');
+  }
+
+  @Post(':id/location-permissions')
+  @RequirePermissions('users:update')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Grant location-based viewing permission for specific branches to a user' })
+  async grantLocationPermission(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: GrantLocationPermissionDto,
+    @CurrentUser() actor: RequestUser,
+  ) {
+    await this.service.grantLocationPermission(id, dto.branchIds, actor.id);
+    return ok(null, 'Location permissions granted');
+  }
+
+  @Delete(':id/location-permissions/:branchId')
+  @RequirePermissions('users:update')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revoke location-based viewing permission for a specific branch from a user' })
+  async revokeLocationPermission(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('branchId', ParseUUIDPipe) branchId: string,
+    @CurrentUser() actor: RequestUser,
+  ) {
+    await this.service.revokeLocationPermission(id, branchId, actor.id);
+    return ok(null, 'Location permission revoked');
   }
 }
