@@ -205,7 +205,7 @@ export function LandingPage() {
               <ArrowRight className="w-5 h-5" />
             </button>
             <a
-              href="tel:+2348000000000"
+              href="tel:+2347046625678"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-200 text-gray-900 rounded-full font-semibold text-lg hover:border-gray-300 transition-all"
             >
               <Phone className="w-5 h-5" />
@@ -549,11 +549,11 @@ export function LandingPage() {
                 <Logo />
                 <div>
                   <span className="text-xl font-bold text-gray-900">Vertical Capital</span>
-                  <span className="text-xs text-gray-500 block -mt-1">Microfinance Bank</span>
+                  <span className="text-xs text-gray-500 block -mt-1">Lending Company</span>
                 </div>
               </div>
               <p className="text-sm text-gray-600 leading-relaxed max-w-sm mb-4">
-                Licensed microfinance bank providing fast, flexible business loans to Nigerian entrepreneurs.
+                Licensed lending company providing fast, flexible business loans to Nigerian entrepreneurs.
               </p>
               <p className="text-xs text-gray-500">
                 CBN Licensed | RC 1954615
@@ -584,7 +584,7 @@ export function LandingPage() {
               <ul className="space-y-3">
                 <li className="flex items-center gap-2 text-sm text-gray-600">
                   <Phone className="w-4 h-4" />
-                  +234 08063603622
+                  +234 07046625678
                 </li>
                 <li className="flex items-center gap-2 text-sm text-gray-600">
                   <Mail className="w-4 h-4" />
