@@ -120,6 +120,22 @@ export class UsersController {
     return ok(user, 'User restored');
   }
 
+  // ── Hard delete (permanent) ─────────────────────────────────────────────────
+  @Delete(':id/permanent')
+  @RequirePermissions('users:delete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Permanently delete a user (IRREVERSIBLE)',
+    description: 'WARNING: This permanently removes the user and all related data from the database. This action cannot be undone.'
+  })
+  async hardDelete(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: RequestUser,
+  ) {
+    await this.service.hardDelete(id, actor.id);
+    return ok(null, 'User permanently deleted');
+  }
+
   // ── Lock ────────────────────────────────────────────────────────────────────
   @Post(':id/lock')
   @RequirePermissions('users:lock')

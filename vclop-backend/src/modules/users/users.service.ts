@@ -108,9 +108,10 @@ export class UsersService {
   // ────────────────────────────────────────────────────────────────────────────
 
   async create(dto: CreateUserDto, createdById: string): Promise<unknown> {
-    // Check uniqueness across ALL users including soft-deleted (DB unique constraint applies to all rows)
+    // Check uniqueness only among non-deleted users (soft-deleted users can be recreated)
     const existing = await this.prisma.user.findFirst({
       where: {
+        deletedAt: null, // Only check active (non-deleted) users
         OR: [
           { email: dto.email.toLowerCase() },
           { username: dto.username.toLowerCase() },
@@ -265,6 +266,34 @@ export class UsersService {
     });
 
     return this.mapUser(restored as Record<string, unknown>);
+  }
+
+  /**
+   * Permanently delete a user from the database.
+   * WARNING: This action is irreversible. Use with caution.
+   * This will cascade delete related records (tokens, roles, permissions, etc.)
+   */
+  async hardDelete(id: string, deletedById: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new ResourceNotFoundException('User', id);
+    if (id === deletedById) throw new ForbiddenActionException('You cannot permanently delete your own account');
+
+    // Store user info for audit before deletion
+    const userEmail = user.email;
+    const userName = `${user.firstName} ${user.lastName}`;
+
+    // Delete the user (cascading deletes will handle related records)
+    await this.prisma.user.delete({ where: { id } });
+
+    this.events.emit('audit.log', {
+      userId: deletedById,
+      action: AuditAction.DELETE,
+      module: 'users',
+      entityId: id,
+      entityType: 'User',
+      description: `Permanently deleted user ${userEmail} (${userName})`,
+      isSuccess: true,
+    });
   }
 
   // ────────────────────────────────────────────────────────────────────────────
