@@ -23,7 +23,7 @@ export function AuthLayout() {
           </h1>
           <p className="text-brand-200 text-base leading-relaxed max-w-sm">
             A unified platform for loan origination, compliance review,
-            collections, and executive reporting — purpose-built for microfinance.
+            collections, and executive reporting — purpose-built for lending companies.
           </p>
 
           <div className="grid grid-cols-2 gap-4 mt-10">

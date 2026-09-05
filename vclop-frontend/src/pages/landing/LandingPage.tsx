@@ -120,7 +120,7 @@ export function LandingPage() {
     {
       icon: Shield,
       title: 'Secure & Licensed',
-      description: 'Fully licensed microfinance bank with CBN approval',
+      description: 'Licensed lending company with CBN approval',
     },
     {
       icon: TrendingUp,
@@ -163,7 +163,7 @@ export function LandingPage() {
               <Logo />
               <div>
                 <span className="text-xl font-bold text-gray-900">Vertical Capital</span>
-                <span className="text-xs text-gray-500 block -mt-1">Microfinance Bank</span>
+                <span className="text-xs text-gray-500 block -mt-1">Lending Company</span>
               </div>
             </div>
             <div className="flex items-center gap-6">
@@ -188,7 +188,7 @@ export function LandingPage() {
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-6">
-            Licensed Microfinance Bank
+            Licensed Lending Company
           </div>
           <h1 className="text-5xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
             Get business loans in hours, not weeks
@@ -598,7 +598,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-200 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-600">© 2026 Vertical Capital Microfinance Bank. All rights reserved.</p>
+            <p className="text-sm text-gray-600">© 2026 Vertical Capital Nigeria Limited. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 Privacy Policy
