@@ -7,27 +7,27 @@ export function DashboardLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      {/* Mobile sidebar overlay backdrop */}
+    <div className="flex h-screen overflow-hidden">
+      {/* Premium Mobile sidebar overlay backdrop with gradient */}
       {mobileSidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-gradient-to-br from-gray-900/60 via-blue-900/40 to-gray-900/60 backdrop-blur-sm lg:hidden animate-fade-in"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar — always full width, never collapses to icons */}
+      {/* Premium Sidebar */}
       <Sidebar
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
 
-      {/* Main content — always offset by full sidebar width on desktop */}
-      <div className="flex flex-col flex-1 overflow-hidden lg:ml-[260px]">
-        <TopNav
-          onMenuClick={() => setMobileSidebarOpen((p) => !p)}
-        />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+      {/* Main content with premium styling */}
+      <div className="flex flex-col flex-1 overflow-hidden lg:ml-[280px]">
+        <TopNav onMenuClick={() => setMobileSidebarOpen((p) => !p)} />
+        
+        {/* Premium Main Content Area */}
+        <main className="flex-1 overflow-y-auto p-6 sm:p-8">
           <Outlet />
         </main>
       </div>
