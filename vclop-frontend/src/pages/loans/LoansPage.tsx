@@ -136,7 +136,11 @@ export function LoansPage() {
                 <p className="text-xs text-gray-400">{loan.customer?.customerNumber ?? ''}</p>
               </td>
               <td className="text-xs text-gray-600">{loan.loanProduct?.name ?? '—'}</td>
-              <td className="text-sm font-medium">₦{Number(loan.amount).toLocaleString()}</td>
+              <td>
+                <p className="text-[17px] font-semibold" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--text-primary)' }}>
+                  ₦{Number(loan.amount).toLocaleString()}
+                </p>
+              </td>
               <td>
                 <Badge variant={STATUS_VARIANT[loan.status] ?? 'gray'}>
                   {loan.status.replace(/_/g, ' ')}

@@ -24,16 +24,14 @@ function OpCard({
 }) {
   return (
     <div
-      className={`card p-5 flex items-start gap-4 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+      className={`stat-card ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
-      <div className={`w-11 h-11 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
+      <div className={`stat-card-icon ${color}`}>
         <Icon className="w-5 h-5" />
       </div>
-      <div>
-        <p className="text-sm font-medium text-gray-500">{title}</p>
-        <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
-      </div>
+      <p className="stat-card-label">{title}</p>
+      <p className="stat-card-value">{value}</p>
     </div>
   );
 }
@@ -46,21 +44,25 @@ function QuickAction({
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors text-center`}
+      className="flex flex-col items-center gap-2.5 p-4 hover:bg-gray-50 transition-colors text-center"
+      style={{ borderRadius: '12px', border: '1px solid var(--border-light)' }}
     >
-      <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center`}>
+      <div 
+        className={`w-10 h-10 flex items-center justify-center ${color}`}
+        style={{ borderRadius: '12px' }}
+      >
         <Icon className="w-5 h-5" />
       </div>
-      <p className="text-xs font-medium text-gray-700 leading-tight">{label}</p>
+      <p className="text-[13px] font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>{label}</p>
     </button>
   );
 }
 
-function ProgressBar({ pct, color = 'bg-brand-600' }: { pct: number; color?: string }) {
+function ProgressBar({ pct, color = 'var(--brand-coral)' }: { pct: number; color?: string }) {
   const safe = Math.min(100, Math.max(0, pct));
   return (
     <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-      <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${safe}%` }} />
+      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${safe}%`, background: color }} />
     </div>
   );
 }
@@ -86,37 +88,46 @@ function LoanOfficerPanel({ summary, performance }: {
 
       {/* Monthly target card */}
       {(performance?.monthlyTarget ?? 0) > 0 && (
-        <div className="card p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/performance')}>
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm font-semibold text-gray-800">Monthly Disbursement Target</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                ₦{(performance!.currentAchievement).toLocaleString()} of ₦{(performance!.monthlyTarget).toLocaleString()}
-              </p>
+        <div 
+          className="card cursor-pointer hover:shadow-lg transition-shadow" 
+          onClick={() => navigate('/performance')}
+        >
+          <div className="card-body">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>Monthly Disbursement Target</p>
+                <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  ₦{(performance!.currentAchievement).toLocaleString()} of ₦{(performance!.monthlyTarget).toLocaleString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {performance!.progressPercentage >= 100
+                  ? <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--success-green)' }} />
+                  : <Target className="w-5 h-5" style={{ color: 'var(--brand-coral)' }} />}
+                <p className="amount-medium" style={{ color: 'var(--brand-coral)' }}>{performance!.progressPercentage.toFixed(0)}%</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {performance!.progressPercentage >= 100
-                ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                : <Target className="w-5 h-5 text-brand-600" />}
-              <p className="text-lg font-bold text-brand-700">{performance!.progressPercentage.toFixed(0)}%</p>
-            </div>
+            <ProgressBar
+              pct={performance!.progressPercentage}
+              color={performance!.progressPercentage >= 100 ? 'var(--success-green)' : performance!.progressPercentage >= 60 ? 'var(--brand-coral)' : 'var(--warning-amber)'}
+            />
+            <p className="text-[13px] mt-2" style={{ color: 'var(--text-muted)' }}>₦{(performance!.remainingTarget).toLocaleString()} remaining to target</p>
           </div>
-          <ProgressBar
-            pct={performance!.progressPercentage}
-            color={performance!.progressPercentage >= 100 ? 'bg-emerald-500' : performance!.progressPercentage >= 60 ? 'bg-brand-600' : 'bg-amber-500'}
-          />
-          <p className="text-xs text-gray-400 mt-2">₦{(performance!.remainingTarget).toLocaleString()} remaining to target</p>
         </div>
       )}
 
       {/* Quick actions */}
-      <div className="card p-5">
-        <p className="text-sm font-semibold text-gray-800 mb-4">Quick Actions</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <QuickAction label="New Customer" icon={Users} color="bg-blue-50 text-blue-600" onClick={() => navigate('/customers/new')} />
-          <QuickAction label="New Application" icon={FileText} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/loans/new')} />
-          <QuickAction label="My Applications" icon={TrendingUp} color="bg-violet-50 text-violet-600" onClick={() => navigate('/loans')} />
-          <QuickAction label="My Performance" icon={Target} color="bg-orange-50 text-orange-600" onClick={() => navigate('/performance')} />
+      <div className="card">
+        <div className="card-header">
+          <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="New Customer" icon={Users} color="bg-blue-50 text-blue-600" onClick={() => navigate('/customers/new')} />
+            <QuickAction label="New Application" icon={FileText} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/loans/new')} />
+            <QuickAction label="My Applications" icon={TrendingUp} color="bg-violet-50 text-violet-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="My Performance" icon={Target} color="bg-orange-50 text-orange-600" onClick={() => navigate('/performance')} />
+          </div>
         </div>
       </div>
     </div>
@@ -133,13 +144,17 @@ function CompliancePanel({ summary }: { summary: Awaited<ReturnType<typeof dashb
         <OpCard title="Transport Requests" value={summary.transportRequests} icon={Car} color="bg-amber-50 text-amber-600" onClick={() => navigate('/transport')} />
         <OpCard title="All Applications" value={summary.applications} icon={FileText} color="bg-gray-50 text-gray-600" onClick={() => navigate('/loans')} />
       </div>
-      <div className="card p-5">
-        <p className="text-sm font-semibold text-gray-800 mb-4">Quick Actions</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <QuickAction label="Review Queue" icon={FileCheck2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/compliance')} />
-          <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
-          <QuickAction label="Transport Requests" icon={Car} color="bg-amber-50 text-amber-600" onClick={() => navigate('/transport')} />
-          <QuickAction label="Customers" icon={Users} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/customers')} />
+      <div className="card">
+        <div className="card-header">
+          <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="Review Queue" icon={FileCheck2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/compliance')} />
+            <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="Transport Requests" icon={Car} color="bg-amber-50 text-amber-600" onClick={() => navigate('/transport')} />
+            <QuickAction label="Customers" icon={Users} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/customers')} />
+          </div>
         </div>
       </div>
     </div>
@@ -156,13 +171,17 @@ function AccountingPanel({ summary }: { summary: Awaited<ReturnType<typeof dashb
         <OpCard title="All Applications" value={summary.applications} icon={FileText} color="bg-violet-50 text-violet-600" onClick={() => navigate('/loans')} />
         <OpCard title="Reports" value="View" icon={BarChart2} color="bg-gray-50 text-gray-600" onClick={() => navigate('/reports')} />
       </div>
-      <div className="card p-5">
-        <p className="text-sm font-semibold text-gray-800 mb-4">Quick Actions</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <QuickAction label="Disburse Loans" icon={Banknote} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/accounting')} />
-          <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
-          <QuickAction label="Reports" icon={BarChart2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/reports')} />
-          <QuickAction label="Customers" icon={Users} color="bg-amber-50 text-amber-600" onClick={() => navigate('/customers')} />
+      <div className="card">
+        <div className="card-header">
+          <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="Disburse Loans" icon={Banknote} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/accounting')} />
+            <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="Reports" icon={BarChart2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/reports')} />
+            <QuickAction label="Customers" icon={Users} color="bg-amber-50 text-amber-600" onClick={() => navigate('/customers')} />
+          </div>
         </div>
       </div>
     </div>
@@ -179,13 +198,17 @@ function InternalControlPanel({ summary }: { summary: Awaited<ReturnType<typeof 
         <OpCard title="All Applications" value={summary.applications} icon={FileText} color="bg-gray-50 text-gray-600" onClick={() => navigate('/loans')} />
         <OpCard title="Reports" value="View" icon={BarChart2} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/reports')} />
       </div>
-      <div className="card p-5">
-        <p className="text-sm font-semibold text-gray-800 mb-4">Quick Actions</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <QuickAction label="Review Queue" icon={ShieldAlert} color="bg-violet-50 text-violet-600" onClick={() => navigate('/internal-control')} />
-          <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
-          <QuickAction label="Reports" icon={BarChart2} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/reports')} />
-          <QuickAction label="Customers" icon={Users} color="bg-amber-50 text-amber-600" onClick={() => navigate('/customers')} />
+      <div className="card">
+        <div className="card-header">
+          <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="Review Queue" icon={ShieldAlert} color="bg-violet-50 text-violet-600" onClick={() => navigate('/internal-control')} />
+            <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="Reports" icon={BarChart2} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/reports')} />
+            <QuickAction label="Customers" icon={Users} color="bg-amber-50 text-amber-600" onClick={() => navigate('/customers')} />
+          </div>
         </div>
       </div>
     </div>
@@ -201,13 +224,17 @@ function CollectionsPanel({ summary }: { summary: Awaited<ReturnType<typeof dash
         <OpCard title="Pending Tasks" value={summary.myTasks} icon={ClipboardList} color="bg-blue-50 text-blue-600" />
         <OpCard title="All Loans" value={summary.applications} icon={FileText} color="bg-gray-50 text-gray-600" onClick={() => navigate('/loans')} />
       </div>
-      <div className="card p-5">
-        <p className="text-sm font-semibold text-gray-800 mb-4">Quick Actions</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <QuickAction label="Collections" icon={TrendingDown} color="bg-red-50 text-red-600" onClick={() => navigate('/collections')} />
-          <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
-          <QuickAction label="Reports" icon={BarChart2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/reports')} />
-          <QuickAction label="Customers" icon={Users} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/customers')} />
+      <div className="card">
+        <div className="card-header">
+          <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="Collections" icon={TrendingDown} color="bg-red-50 text-red-600" onClick={() => navigate('/collections')} />
+            <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="Reports" icon={BarChart2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/reports')} />
+            <QuickAction label="Customers" icon={Users} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/customers')} />
+          </div>
         </div>
       </div>
     </div>
@@ -231,11 +258,12 @@ function AdminPanel({ summary, hasPermission }: {
         {hasPermission('users:read') && <StatCard title="Total Users" queryKey={['dashboard', 'active-users']} queryFn={dashboardService.activeUsers} icon={Users} color="blue" />}
         {hasPermission('branches:read') && <StatCard title="Branches" queryKey={['dashboard', 'total-branches']} queryFn={dashboardService.totalBranches} icon={GitBranch} color="green" />}
         {hasPermission('departments:read') && <StatCard title="Departments" queryKey={['dashboard', 'total-departments']} queryFn={dashboardService.totalDepartments} icon={Building2} color="purple" />}
-        <div className="card p-5 flex items-start gap-4">
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
-            <Activity className="w-5 h-5 text-emerald-600" />
+        <div className="stat-card">
+          <div className="stat-card-icon bg-emerald-50 text-emerald-600">
+            <Activity className="w-5 h-5" />
           </div>
-          <div><p className="text-sm font-medium text-gray-500">Platform</p><p className="text-2xl font-bold text-gray-900 mt-0.5">Online</p></div>
+          <p className="stat-card-label">Platform</p>
+          <p className="stat-card-value">Online</p>
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -295,7 +323,7 @@ export function DashboardPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">{greeting}, {user?.firstName ?? 'there'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-[15px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             {user?.jobTitle ?? roleLabel[role] ?? role} —{' '}
             {new Date().toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
