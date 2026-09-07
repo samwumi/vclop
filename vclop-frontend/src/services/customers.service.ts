@@ -1,4 +1,5 @@
 import { api } from '@/lib/axios';
+import { useAuthStore } from '@/stores/auth.store';
 import type { ApiResponse, PaginatedResponse, PaginationParams } from '@/types/api.types';
 import type { Customer, Customer360, CustomerDocument, CustomerStatus } from '@/types/domain.types';
 
@@ -91,6 +92,12 @@ export const customersService = {
       responseType: 'blob',
     });
     return data;
+  },
+
+  /** Download document with auth token in URL (fallback method) */
+  getAuthenticatedDownloadUrl(customerId: string, documentId: string): string {
+    const token = useAuthStore.getState().accessToken;
+    return `/api/v1/customers/${customerId}/documents/${documentId}/download?token=${token}`;
   },
 
   /** Export customers list as CSV — uses authenticated fetch so JWT is included */

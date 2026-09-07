@@ -73,14 +73,67 @@ export function CustomerDocumentsTab({ customerId }: { customerId: string }) {
   };
 
   const handleViewDocument = async (doc: CustomerDocument) => {
+    // Check permission first
+    if (!hasPermission('documents:read')) {
+      toast.error('You do not have permission to view documents');
+      return;
+    }
+
+    // Check if user is authenticated
+    const { accessToken, isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated || !accessToken) {
+      toast.error('Your session has expired. Please log in again.');
+      return;
+    }
+
     try {
+      toast.loading('Opening document...', { id: 'doc-view' });
+      
+      // Log for debugging
+      console.log('Attempting to download document:', {
+        customerId,
+        documentId: doc.id,
+        hasToken: !!accessToken,
+        tokenPreview: accessToken?.substring(0, 20) + '...',
+      });
+
       const blob = await customersService.downloadDocument(customerId, doc.id);
+      
+      console.log('Document downloaded successfully:', {
+        size: blob.size,
+        type: blob.type,
+      });
+
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
+      toast.success('Document opened', { id: 'doc-view' });
+      
       // Clean up the blob URL after a short delay
       setTimeout(() => URL.revokeObjectURL(url), 100);
-    } catch (error) {
-      toast.error('Failed to open document');
+    } catch (error: any) {
+      console.error('Document view error:', error);
+      console.error('Error details:', {
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        message: error?.message,
+      });
+
+      let errMsg = 'Failed to open document';
+      
+      if (error?.response?.status === 401) {
+        errMsg = 'Authentication failed. Please log in again.';
+      } else if (error?.response?.status === 403) {
+        errMsg = 'You do not have permission to view this document';
+      } else if (error?.response?.status === 404) {
+        errMsg = 'Document not found';
+      } else if (error?.response?.data?.message) {
+        errMsg = error.response.data.message;
+      } else if (error?.message) {
+        errMsg = error.message;
+      }
+      
+      toast.error(errMsg, { id: 'doc-view' });
     }
   };
 
@@ -167,17 +220,19 @@ export function CustomerDocumentsTab({ customerId }: { customerId: string }) {
                               className="btn-ghost btn-sm text-red-600 px-2 py-1 text-xs">Reject</button>
                           </>
                         )}
-                        <a
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleViewDocument(doc);
-                          }}
-                          className="btn-ghost btn-icon w-7 h-7 text-brand-600"
-                          title="View document"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </a>
+                        {hasPermission('documents:read') && (
+                          <a
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleViewDocument(doc);
+                            }}
+                            className="btn-ghost btn-icon w-7 h-7 text-brand-600"
+                            title="View document"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </a>
+                        )}
                         {hasPermission('documents:delete') && doc.status !== 'VERIFIED' && (
                           <button onClick={() => deleteMutation.mutate(doc.id)} className="btn-ghost btn-icon w-7 h-7 text-gray-400">
                             <Trash2 className="w-3.5 h-3.5" />
