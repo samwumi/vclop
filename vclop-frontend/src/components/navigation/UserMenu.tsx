@@ -39,45 +39,46 @@ export function UserMenu() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 transition-colors duration-150"
+        className="touch-target flex items-center gap-2 md:gap-2.5 px-2 md:px-3 py-2 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150"
         style={{ borderRadius: '12px' }}
+        aria-label="User menu"
       >
-        {/* Monzo-style Avatar */}
+        {/* Premium Avatar */}
         <div 
-          className="w-9 h-9 flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+          className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
           style={{ 
             borderRadius: '50%',
             background: 'var(--brand-primary)'
           }}
         >
           {user.avatarPath ? (
-            <img src={user.avatarPath} alt={name} className="w-9 h-9 rounded-full object-cover" />
+            <img src={user.avatarPath} alt={name} className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover" />
           ) : (
             userInitials
           )}
         </div>
         
-        {/* User Info */}
+        {/* User Info - Hidden on small screens */}
         <div className="hidden sm:block text-left">
-          <p className="text-[15px] font-semibold leading-tight max-w-[140px] truncate" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-sm md:text-[15px] font-semibold leading-tight max-w-[120px] md:max-w-[140px] truncate" style={{ color: 'var(--text-primary)' }}>
             {name}
           </p>
-          <p className="text-[13px] leading-tight max-w-[140px] truncate" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs md:text-[13px] leading-tight max-w-[120px] md:max-w-[140px] truncate" style={{ color: 'var(--text-secondary)' }}>
             {user.jobTitle ?? user.email}
           </p>
         </div>
         
-        {/* Chevron */}
+        {/* Chevron - Hidden on mobile */}
         <ChevronDown 
-          className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} 
+          className={`hidden md:block w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} 
           style={{ color: 'var(--text-muted)' }}
         />
       </button>
 
-      {/* Monzo-style Dropdown */}
+      {/* Premium Dropdown - Mobile Friendly */}
       {open && (
         <div 
-          className="absolute right-0 top-full mt-2 w-72 bg-white py-2 z-50 animate-scale-in"
+          className="absolute right-0 top-full mt-2 w-[280px] md:w-72 bg-white py-2 z-50 animate-scale-in"
           style={{ 
             borderRadius: '16px',
             border: '1px solid var(--border-light)',

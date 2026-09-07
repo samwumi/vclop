@@ -69,28 +69,29 @@ export function ModulePage({
   const visibleActions = actions.filter((a) => a.permission !== false);
 
   return (
-    <div>
+    <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
       <Breadcrumbs />
 
-      {/* Page header */}
+      {/* Premium Page Header - Mobile Responsive */}
       <div className="page-header">
-        <div>
-          <h1 className="page-title flex items-center gap-2">
-            {Icon && <Icon className="w-5 h-5 text-gray-600" />}
-            {title}
+        <div className="min-w-0 flex-1">
+          <h1 className="page-title text-responsive-xl flex items-center gap-2">
+            {Icon && <Icon className="w-5 h-5 md:w-6 md:h-6 icon-premium-static flex-shrink-0" />}
+            <span className="truncate">{title}</span>
           </h1>
-          {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-responsive-sm text-gray-500 mt-1 line-clamp-2">{subtitle}</p>}
         </div>
         {headerRight ?? (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {visibleActions.map((action) => (
               <button
                 key={action.label}
                 onClick={action.onClick}
-                className={btnClass(action.variant)}
+                className={`${btnClass(action.variant)} touch-target`}
               >
-                {action.icon && <action.icon className="w-4 h-4" />}
-                {action.label}
+                {action.icon && <action.icon className="w-4 h-4 icon-premium-static" />}
+                <span className="hidden sm:inline">{action.label}</span>
+                <span className="sm:hidden">{action.label.split(' ').slice(-1)}</span>
               </button>
             ))}
           </div>
@@ -99,21 +100,21 @@ export function ModulePage({
 
       {children}
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+      {/* Mobile-Friendly Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
         <SearchBar
           value={search}
           onChange={onSearchChange}
           className="w-full sm:w-72"
         />
-        {filters && <div className="flex items-center gap-2">{filters}</div>}
+        {filters && <div className="flex items-center gap-2 flex-wrap">{filters}</div>}
       </div>
 
-      {/* Table with error handling */}
+      {/* Mobile-Responsive Table with Horizontal Scroll */}
       {isLoading ? (
         <TableSkeleton rows={8} cols={columns.length} />
       ) : isError ? (
-        <div className="table-container">
+        <div className="card-mobile">
           <ErrorState
             title="Failed to load data"
             description="An error occurred while fetching the data. Please try again."
@@ -122,7 +123,7 @@ export function ModulePage({
           />
         </div>
       ) : isEmpty ? (
-        <div className="table-container">
+        <div className="card-mobile">
           <EmptyState
             icon={emptyIcon}
             title={emptyTitle ?? `No ${title.toLowerCase()} found`}
@@ -130,23 +131,51 @@ export function ModulePage({
           />
         </div>
       ) : (
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr>
-                {columns.map((col) => (
-                  <th key={col.key} style={col.width ? { width: col.width } : undefined}>
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>{rows}</tbody>
-          </table>
-          {meta && onPageChange && meta.total > meta.limit && (
-            <Pagination meta={meta} onPageChange={onPageChange} />
-          )}
-        </div>
+        <>
+          {/* Desktop Table - Hidden on mobile */}
+          <div className="hidden md:block table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  {columns.map((col) => (
+                    <th key={col.key} style={col.width ? { width: col.width } : undefined}>
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>{rows}</tbody>
+            </table>
+            {meta && onPageChange && meta.total > meta.limit && (
+              <Pagination meta={meta} onPageChange={onPageChange} />
+            )}
+          </div>
+
+          {/* Mobile Table - Horizontal Scroll */}
+          <div className="md:hidden">
+            <div className="scroll-x-mobile">
+              <div className="table-container" style={{ minWidth: '640px' }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      {columns.map((col) => (
+                        <th key={col.key} style={col.width ? { width: col.width } : undefined}>
+                          {col.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>{rows}</tbody>
+                </table>
+              </div>
+            </div>
+            {meta && onPageChange && meta.total > meta.limit && (
+              <div className="mt-4">
+                <Pagination meta={meta} onPageChange={onPageChange} />
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

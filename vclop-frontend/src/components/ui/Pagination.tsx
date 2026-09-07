@@ -17,47 +17,59 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200">
-      <p className="text-sm text-gray-500">
+      <p className="text-responsive-xs text-gray-500">
         Showing <span className="font-medium text-gray-700">{from}–{to}</span> of{' '}
-        <span className="font-medium text-gray-700">{total}</span> records
+        <span className="font-medium text-gray-700">{total}</span>
+        <span className="hidden sm:inline"> records</span>
       </p>
 
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={!meta.hasPrevPage}
-          className="btn-icon btn-secondary disabled:opacity-40 p-1.5"
+          className="touch-target btn-icon btn-secondary disabled:opacity-40 p-1.5"
           aria-label="Previous page"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4 icon-premium-static" />
         </button>
 
-        {pages.map((p, i) =>
-          p === '…' ? (
-            <span key={`ellipsis-${i}`} className="px-2 text-gray-400 text-sm select-none">…</span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => onPageChange(p as number)}
-              className={cn(
-                'min-w-[32px] h-8 rounded-lg text-sm font-medium transition-colors',
-                p === page
-                  ? 'bg-brand-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100',
-              )}
-            >
-              {p}
-            </button>
-          ),
-        )}
+        {/* Show fewer page numbers on mobile */}
+        <div className="hidden sm:flex items-center gap-1">
+          {pages.map((p, i) =>
+            p === '…' ? (
+              <span key={`ellipsis-${i}`} className="px-2 text-gray-400 text-sm select-none">…</span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onPageChange(p as number)}
+                className={cn(
+                  'min-w-[32px] h-8 rounded-lg text-sm font-medium transition-colors touch-target',
+                  p === page
+                    ? 'text-white'
+                    : 'text-gray-600 hover:bg-gray-100 active:bg-gray-200',
+                )}
+                style={p === page ? { background: 'var(--brand-primary)' } : undefined}
+              >
+                {p}
+              </button>
+            ),
+          )}
+        </div>
+
+        {/* Mobile: Show only current page */}
+        <div className="sm:hidden flex items-center px-3">
+          <span className="text-sm font-medium" style={{ color: 'var(--brand-primary)' }}>
+            {page} / {totalPages}
+          </span>
+        </div>
 
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={!meta.hasNextPage}
-          className="btn-icon btn-secondary disabled:opacity-40 p-1.5"
+          className="touch-target btn-icon btn-secondary disabled:opacity-40 p-1.5"
           aria-label="Next page"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4 icon-premium-static" />
         </button>
       </div>
     </div>

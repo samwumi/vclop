@@ -125,19 +125,19 @@ export function LoansPage() {
       rows={
         <>
           {data?.data?.map((loan: LoanApplication) => (
-            <tr key={loan.id} className="cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
+            <tr key={loan.id} className="cursor-pointer clickable-mobile" onClick={() => navigate(`/loans/${loan.id}`)}>
               <td className="font-mono text-xs text-brand-600 font-semibold">{loan.applicationNumber}</td>
               <td>
-                <p className="text-sm font-medium text-gray-800">
+                <p className="text-responsive-sm font-medium text-gray-800 truncate">
                   {loan.customer
                     ? `${loan.customer.firstName} ${loan.customer.lastName}`
                     : '—'}
                 </p>
-                <p className="text-xs text-gray-400">{loan.customer?.customerNumber ?? ''}</p>
+                <p className="text-xs text-gray-400 truncate">{loan.customer?.customerNumber ?? ''}</p>
               </td>
-              <td className="text-xs text-gray-600">{loan.loanProduct?.name ?? '—'}</td>
+              <td className="text-responsive-xs text-gray-600 truncate">{loan.loanProduct?.name ?? '—'}</td>
               <td>
-                <p className="text-[17px] font-semibold" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--text-primary)' }}>
+                <p className="text-[15px] md:text-[17px] font-semibold" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--text-primary)' }}>
                   ₦{Number(loan.amount).toLocaleString()}
                 </p>
               </td>
@@ -146,7 +146,7 @@ export function LoansPage() {
                   {loan.status.replace(/_/g, ' ')}
                 </Badge>
               </td>
-              <td className="text-xs text-gray-500">{formatDate(loan.createdAt)}</td>
+              <td className="text-responsive-xs text-gray-500">{formatDate(loan.createdAt)}</td>
             </tr>
           ))}
         </>
