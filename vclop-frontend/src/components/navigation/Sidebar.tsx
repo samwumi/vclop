@@ -75,7 +75,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
                   )
                 }
                 style={({ isActive }) => ({
-                  background: isActive ? 'var(--brand-coral)' : 'transparent',
+                  background: isActive ? 'var(--brand-primary)' : 'transparent',
                   color: isActive ? 'white' : 'var(--text-secondary)',
                 })}
               >

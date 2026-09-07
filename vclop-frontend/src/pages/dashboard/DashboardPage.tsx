@@ -58,7 +58,7 @@ function QuickAction({
   );
 }
 
-function ProgressBar({ pct, color = 'var(--brand-coral)' }: { pct: number; color?: string }) {
+function ProgressBar({ pct, color = 'var(--brand-primary)' }: { pct: number; color?: string }) {
   const safe = Math.min(100, Math.max(0, pct));
   return (
     <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
@@ -103,13 +103,13 @@ function LoanOfficerPanel({ summary, performance }: {
               <div className="flex items-center gap-2">
                 {performance!.progressPercentage >= 100
                   ? <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--success-green)' }} />
-                  : <Target className="w-5 h-5" style={{ color: 'var(--brand-coral)' }} />}
-                <p className="amount-medium" style={{ color: 'var(--brand-coral)' }}>{performance!.progressPercentage.toFixed(0)}%</p>
+                  : <Target className="w-5 h-5" style={{ color: 'var(--brand-primary)' }} />}
+                <p className="amount-medium" style={{ color: 'var(--brand-primary)' }}>{performance!.progressPercentage.toFixed(0)}%</p>
               </div>
             </div>
             <ProgressBar
               pct={performance!.progressPercentage}
-              color={performance!.progressPercentage >= 100 ? 'var(--success-green)' : performance!.progressPercentage >= 60 ? 'var(--brand-coral)' : 'var(--warning-amber)'}
+              color={performance!.progressPercentage >= 100 ? 'var(--success-green)' : performance!.progressPercentage >= 60 ? 'var(--brand-primary)' : 'var(--warning-amber)'}
             />
             <p className="text-[13px] mt-2" style={{ color: 'var(--text-muted)' }}>₦{(performance!.remainingTarget).toLocaleString()} remaining to target</p>
           </div>

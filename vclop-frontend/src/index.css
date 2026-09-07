@@ -9,10 +9,10 @@
     --sidebar-width: 280px;
     --topnav-height: 72px;
     
-    /* Monzo-Inspired Brand Colors */
-    --brand-coral: #FF6B58;
-    --brand-coral-dark: #E85A47;
-    --brand-coral-light: #FF8774;
+    /* Vertical Capital Brand Colors */
+    --brand-primary: #3b82f6;
+    --brand-primary-dark: #1e40af;
+    --brand-primary-light: #60a5fa;
     --deep-navy: #0A1929;
     --soft-white: #FFFFFF;
     --warm-gray: #F5F5F7;
@@ -41,7 +41,7 @@
     --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
     --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
     --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.12);
-    --shadow-coral: 0 4px 16px rgba(255, 107, 88, 0.25);
+    --shadow-primary: 0 4px 16px rgba(59, 130, 246, 0.25);
   }
 
   html {
@@ -88,18 +88,18 @@
   
   .btn-primary {
     @apply btn text-white;
-    background: var(--brand-coral);
-    box-shadow: var(--shadow-coral);
+    background: var(--brand-primary);
+    box-shadow: var(--shadow-primary);
   }
   
   .btn-primary:hover:not(:disabled) {
-    background: var(--brand-coral-dark);
-    box-shadow: 0 6px 20px rgba(255, 107, 88, 0.3);
+    background: var(--brand-primary-dark);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
   }
   
   .btn-primary:focus-visible {
     @apply ring-2 ring-offset-2;
-    ring-color: var(--brand-coral);
+    ring-color: var(--brand-primary);
   }
   
   .btn-secondary {
@@ -194,8 +194,8 @@
   }
   
   .form-input:focus {
-    border-color: var(--brand-coral);
-    box-shadow: 0 0 0 4px rgba(255, 107, 88, 0.1);
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
   }
   
   .form-input:disabled {
@@ -287,9 +287,9 @@
     color: var(--text-secondary);
   }
   
-  .badge-coral {
-    background: rgba(255, 107, 88, 0.1);
-    color: var(--brand-coral);
+  .badge-primary {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--brand-primary);
   }
 
   /* Monzo Stats Card */
@@ -299,7 +299,7 @@
   
   .stat-card-icon {
     @apply w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-white;
-    background: var(--brand-coral);
+    background: var(--brand-primary);
   }
   
   .stat-card-label {

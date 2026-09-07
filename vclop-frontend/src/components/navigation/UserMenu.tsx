@@ -47,7 +47,7 @@ export function UserMenu() {
           className="w-9 h-9 flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
           style={{ 
             borderRadius: '50%',
-            background: 'var(--brand-coral)'
+            background: 'var(--brand-primary)'
           }}
         >
           {user.avatarPath ? (
@@ -92,7 +92,7 @@ export function UserMenu() {
                 className="w-12 h-12 flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                 style={{ 
                   borderRadius: '12px',
-                  background: 'var(--brand-coral)'
+                  background: 'var(--brand-primary)'
                 }}
               >
                 {user.avatarPath ? (
@@ -108,7 +108,7 @@ export function UserMenu() {
                 
                 {/* Role Badge */}
                 {user.jobTitle && (
-                  <div className="badge badge-coral mt-1.5 inline-flex items-center gap-1.5">
+                  <div className="badge badge-primary mt-1.5 inline-flex items-center gap-1.5">
                     <Briefcase className="w-3 h-3" />
                     {user.jobTitle}
                   </div>
