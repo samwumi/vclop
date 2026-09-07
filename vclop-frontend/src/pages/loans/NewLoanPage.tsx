@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { FileText, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { FileText, CheckCircle2, XCircle } from 'lucide-react';
 import { loansService } from '@/services/loans.service';
 import { adminService } from '@/services/admin.service';
 import { customersService } from '@/services/customers.service';
@@ -25,21 +25,32 @@ type FormValues = z.infer<typeof schema>;
 
 // ── Profile completeness check ─────────────────────────────────────────────
 
-type CheckResult = { label: string; ok: boolean };
+type CheckResult = { label: string; ok: boolean; severity: 'error' | 'warning' };
 
 function profileChecks(c: Customer & Record<string, unknown>, docCount: number): CheckResult[] {
   return [
-    { label: 'BVN or NIN provided',              ok: !!(c.bvn || c.nin) },
-    { label: 'Gender filled in',                 ok: !!c.gender },
-    { label: 'Date of birth filled in',          ok: !!c.dateOfBirth },
-    { label: 'Residential address filled in',    ok: !!c.residentialAddress },
-    { label: 'Business address filled in',       ok: !!c.businessAddress },
-    { label: 'Next of kin name & phone provided',ok: !!(c.nokName && c.nokPhone) },
-    { label: 'At least 1 document uploaded',     ok: docCount > 0 },
+    // CRITICAL - Required for loan application
+    { label: 'BVN provided (required)', ok: !!c.bvn, severity: 'error' as const },
+    { label: 'NIN provided (required)', ok: !!c.nin, severity: 'error' as const },
+    { label: 'Bank account number (required for disbursement)', ok: !!c.bankAccountNumber, severity: 'error' as const },
+    { label: 'Bank code (required for disbursement)', ok: !!c.bankCode, severity: 'error' as const },
+    { label: 'Gender filled in', ok: !!c.gender, severity: 'error' as const },
+    { label: 'Date of birth filled in', ok: !!c.dateOfBirth, severity: 'error' as const },
+    { label: 'Residential address filled in', ok: !!c.residentialAddress, severity: 'error' as const },
+    { label: 'Next of kin name provided', ok: !!c.nokName, severity: 'error' as const },
+    { label: 'Next of kin phone provided', ok: !!c.nokPhone, severity: 'error' as const },
+    { label: 'Employer name provided', ok: !!c.employerName, severity: 'error' as const },
+    { label: 'Employment type provided', ok: !!c.employmentType, severity: 'error' as const },
+    { label: 'Monthly income provided', ok: !!c.monthlyIncome, severity: 'error' as const },
+    { label: 'At least 1 VERIFIED document uploaded', ok: docCount > 0, severity: 'error' as const },
+    // Business-specific
+    ...(c.type === 'BUSINESS' ? [
+      { label: 'Business address (required for business loans)', ok: !!c.businessAddress, severity: 'error' as const },
+    ] : []),
   ];
 }
 
-const LOAN_BLOCKED_STATUSES = ['INELIGIBLE', 'BLACKLISTED', 'SUSPENDED', 'PROSPECT'];
+const LOAN_BLOCKED_STATUSES = ['INELIGIBLE', 'BLACKLISTED', 'SUSPENDED', 'PROSPECT', 'REGISTERED', 'KYC_PENDING'];
 
 export function NewLoanPage() {
   const navigate = useNavigate();
@@ -154,17 +165,29 @@ export function NewLoanPage() {
                 {selectedCustomer && LOAN_BLOCKED_STATUSES.includes(selectedCustomer.status) && (
                   <div className="banner-danger flex items-start gap-2">
                     <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span>
-                      Customer is <strong>{selectedCustomer.status}</strong> and cannot apply for a loan.
-                    </span>
+                    <div>
+                      <p className="font-semibold">Customer is not eligible for loan applications</p>
+                      <p className="text-sm mt-1">
+                        Status: <strong>{selectedCustomer.status}</strong>
+                        {selectedCustomer.status === 'REGISTERED' && ' - Customer must complete KYC verification first'}
+                        {selectedCustomer.status === 'KYC_PENDING' && ' - Waiting for KYC verification by compliance officer'}
+                      </p>
+                      {(selectedCustomer.status === 'REGISTERED' || selectedCustomer.status === 'KYC_PENDING') && (
+                        <p className="text-sm mt-1">
+                          Only customers with <strong>KYC_VERIFIED</strong> or <strong>ELIGIBLE</strong> status can apply for loans.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {/* KYC info note */}
-                {(selectedCustomer.status === 'REGISTERED' || selectedCustomer.status === 'KYC_PENDING') && (
-                  <div className="banner-info">
-                    ℹ Customer is <strong>{selectedCustomer.status.replace(/_/g, ' ')}</strong>.
-                    Compliance will complete KYC verification during their review.
+                {/* KYC verified - good to go */}
+                {selectedCustomer && (selectedCustomer.status === 'KYC_VERIFIED' || selectedCustomer.status === 'ELIGIBLE') && (
+                  <div className="banner-success flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>
+                      Customer is <strong>{selectedCustomer.status}</strong> - Ready to apply for loans
+                    </span>
                   </div>
                 )}
 
@@ -172,37 +195,42 @@ export function NewLoanPage() {
                 {docCount !== null && checks.length > 0 && (
                   <div className={`rounded-lg border p-3 space-y-2 text-xs ${
                     failedChecks.length > 0
-                      ? 'bg-amber-50 border-amber-200'
+                      ? 'bg-red-50 border-red-300'
                       : 'bg-emerald-50 border-emerald-200'
                   }`}>
                     <p className={`font-semibold flex items-center gap-1.5 ${
-                      failedChecks.length > 0 ? 'text-amber-800' : 'text-emerald-800'
+                      failedChecks.length > 0 ? 'text-red-900' : 'text-emerald-800'
                     }`}>
                       {failedChecks.length > 0
-                        ? <><AlertTriangle className="w-3.5 h-3.5" /> {failedChecks.length} item{failedChecks.length > 1 ? 's' : ''} required before submission</>
-                        : <><CheckCircle2 className="w-3.5 h-3.5" /> Customer profile complete — ready to apply</>
+                        ? <><XCircle className="w-4 h-4" /> {failedChecks.length} REQUIRED field{failedChecks.length > 1 ? 's' : ''} missing - Application cannot be created</>
+                        : <><CheckCircle2 className="w-3.5 h-3.5" /> All required fields complete - Ready to apply</>
                       }
                     </p>
                     <ul className="space-y-1">
                       {checks.map((chk) => (
-                        <li key={chk.label} className={`flex items-center gap-2 ${chk.ok ? 'text-emerald-700' : 'text-amber-800 font-medium'}`}>
+                        <li key={chk.label} className={`flex items-center gap-2 ${chk.ok ? 'text-emerald-700' : 'text-red-900 font-semibold'}`}>
                           {chk.ok
                             ? <CheckCircle2 className="w-3 h-3 flex-shrink-0 text-emerald-500" />
-                            : <AlertTriangle className="w-3 h-3 flex-shrink-0 text-amber-500" />
+                            : <XCircle className="w-3 h-3 flex-shrink-0 text-red-500" />
                           }
                           {chk.label}
                         </li>
                       ))}
                     </ul>
                     {failedChecks.length > 0 && (
-                      <a
-                        href={`/customers/${selectedCustomer.id}?tab=details`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block mt-1 font-medium text-amber-700 underline"
-                      >
-                        Open customer profile to complete missing fields →
-                      </a>
+                      <>
+                        <div className="mt-2 p-2 bg-red-100 rounded text-red-900 font-medium">
+                          ⚠️ All fields marked above are REQUIRED. You cannot create a loan application until all requirements are met.
+                        </div>
+                        <a
+                          href={`/customers/${selectedCustomer.id}?tab=details`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block mt-1 font-bold text-red-800 underline"
+                        >
+                          → Open customer profile to complete required fields
+                        </a>
+                      </>
                     )}
                   </div>
                 )}

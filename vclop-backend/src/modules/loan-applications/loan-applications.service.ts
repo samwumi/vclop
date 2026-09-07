@@ -95,25 +95,64 @@ export class LoanApplicationsService {
   async create(dto: CreateLoanApplicationDto, actorId: string): Promise<unknown> {
     const customer = await this.prisma.customer.findFirst({ where: { id: dto.customerId, deletedAt: null } });
     if (!customer) throw new ResourceNotFoundException('Customer', dto.customerId);
-    // Allow applications for customers who are REGISTERED, KYC_PENDING, KYC_VERIFIED, or ELIGIBLE.
-    // Compliance officers verify KYC during their review stage, so the customer does not need
-    // to be fully ELIGIBLE before a loan officer can originate the application.
-    const LOAN_ELIGIBLE_STATUSES: string[] = ['REGISTERED', 'KYC_PENDING', 'KYC_VERIFIED', 'ELIGIBLE'];
+    
+    // ── STRICT VALIDATION: Customer must be at least KYC_VERIFIED ────────────
+    // REGISTERED and KYC_PENDING customers cannot apply for loans until compliance verifies their KYC
+    const LOAN_ELIGIBLE_STATUSES: string[] = ['KYC_VERIFIED', 'ELIGIBLE'];
     if (!LOAN_ELIGIBLE_STATUSES.includes(customer.status)) {
-      throw new BusinessException(`Customer status is ${customer.status} — cannot apply for a loan. Customer must be REGISTERED or KYC-verified.`);
+      throw new BusinessException(
+        `Customer status is ${customer.status}. Only customers with KYC_VERIFIED or ELIGIBLE status can apply for loans. ` +
+        `Please complete KYC verification first.`
+      );
     }
 
-    // ── Minimum profile requirements before a loan application ─────────────────
+    // ── STRICT VALIDATION: Complete profile requirements ─────────────────────
     const missing: string[] = [];
-    if (!customer.bvn && !customer.nin)        missing.push('BVN or NIN (government ID)');
-    if (!customer.gender)                      missing.push('Gender');
-    if (!customer.dateOfBirth)                 missing.push('Date of birth');
-    if (!customer.residentialAddress)          missing.push('Residential address');
-    if (!customer.nokName || !customer.nokPhone) missing.push('Next of kin (name and phone)');
+    
+    // Government ID (both required, not just one)
+    if (!customer.bvn) missing.push('BVN (Bank Verification Number)');
+    if (!customer.nin) missing.push('NIN (National Identification Number)');
+    
+    // Personal information
+    if (!customer.gender) missing.push('Gender');
+    if (!customer.dateOfBirth) missing.push('Date of birth');
+    
+    // Contact and address
+    if (!customer.residentialAddress) missing.push('Residential address');
+    if (customer.type === 'BUSINESS' && !customer.businessAddress) missing.push('Business address');
+    
+    // Next of kin (both required)
+    if (!customer.nokName) missing.push('Next of kin name');
+    if (!customer.nokPhone) missing.push('Next of kin phone');
+    
+    // Bank account (REQUIRED for virtual account creation and disbursement)
+    if (!customer.bankAccountNumber) missing.push('Bank account number (required for loan disbursement)');
+    if (!customer.bankCode) missing.push('Bank code (required for loan disbursement)');
+    
+    // Employment information (required for creditworthiness assessment)
+    if (!customer.employerName) missing.push('Employer name');
+    if (!customer.employmentType) missing.push('Employment type');
+    if (!customer.monthlyIncome) missing.push('Monthly income');
 
     if (missing.length > 0) {
       throw new BusinessException(
-        `Customer profile is incomplete. Please fill in the following before applying: ${missing.join(', ')}.`,
+        `Customer profile is incomplete. The following fields are required before applying for a loan:\n• ${missing.join('\n• ')}\n\n` +
+        `Please update the customer profile first.`
+      );
+    }
+
+    // ── STRICT VALIDATION: Document requirements ──────────────────────────────
+    const verifiedDocCount = await this.prisma.customerDocument.count({
+      where: {
+        customerId: dto.customerId,
+        status: 'VERIFIED', // Only VERIFIED documents count
+      },
+    });
+
+    if (verifiedDocCount === 0) {
+      throw new BusinessException(
+        'At least one VERIFIED document is required before applying for a loan. ' +
+        'Please upload and verify customer documents first.'
       );
     }
 
@@ -218,23 +257,48 @@ export class LoanApplicationsService {
     if (!customer) throw new ResourceNotFoundException('Customer', application.customerId);
 
     const profileErrors: string[] = [];
-    if (!customer.bvn && !customer.nin)        profileErrors.push('Customer must have a BVN or NIN');
-    if (!customer.residentialAddress)          profileErrors.push('Residential address is required');
-    if (!customer.businessAddress)             profileErrors.push('Business address is required (business loan)');
-    if (!customer.nokName || !customer.nokPhone) profileErrors.push('Next of kin name and phone are required');
+    
+    // Government IDs (both required)
+    if (!customer.bvn) profileErrors.push('BVN is required');
+    if (!customer.nin) profileErrors.push('NIN is required');
+    
+    // Addresses
+    if (!customer.residentialAddress) profileErrors.push('Residential address is required');
+    if (customer.type === 'BUSINESS' && !customer.businessAddress) {
+      profileErrors.push('Business address is required for business loans');
+    }
+    
+    // Next of kin (both fields required)
+    if (!customer.nokName) profileErrors.push('Next of kin name is required');
+    if (!customer.nokPhone) profileErrors.push('Next of kin phone is required');
+    
+    // Bank account (required for disbursement)
+    if (!customer.bankAccountNumber) profileErrors.push('Bank account number is required');
+    if (!customer.bankCode) profileErrors.push('Bank code is required');
+    
+    // Employment (required for creditworthiness)
+    if (!customer.employerName) profileErrors.push('Employer name is required');
+    if (!customer.employmentType) profileErrors.push('Employment type is required');
+    if (!customer.monthlyIncome) profileErrors.push('Monthly income is required');
+    
     if (profileErrors.length > 0) {
       throw new BusinessException(
-        `Customer profile incomplete — please update the customer before submitting:\n• ${profileErrors.join('\n• ')}`,
+        `Customer profile is incomplete. Please update the following fields before submitting:\n• ${profileErrors.join('\n• ')}`
       );
     }
 
-    // ── At least 1 document uploaded ─────────────────────────────────────
-    const docCount = await this.prisma.customerDocument.count({
-      where: { customerId: application.customerId },
+    // ── VERIFIED documents required (not just uploaded) ────────────────────
+    const verifiedDocCount = await this.prisma.customerDocument.count({
+      where: {
+        customerId: application.customerId,
+        status: 'VERIFIED', // Must be VERIFIED, not just PENDING
+      },
     });
-    if (docCount === 0) {
+    
+    if (verifiedDocCount === 0) {
       throw new BusinessException(
-        'At least one document must be uploaded for the customer before submitting',
+        'At least one VERIFIED document is required before submission. ' +
+        'Please upload and verify customer documents first.'
       );
     }
 
@@ -248,11 +312,18 @@ export class LoanApplicationsService {
 
     const requiredDocTypeIds = application.loanProduct.documentRequirements.filter((r) => r.isRequired).map((r) => r.documentTypeId);
     if (requiredDocTypeIds.length > 0) {
-      const verifiedCount = await this.prisma.customerDocument.count({
-        where: { customerId: application.customerId, documentTypeId: { in: requiredDocTypeIds }, status: 'VERIFIED' },
+      const verifiedRequiredCount = await this.prisma.customerDocument.count({
+        where: { 
+          customerId: application.customerId, 
+          documentTypeId: { in: requiredDocTypeIds }, 
+          status: 'VERIFIED' // Must be VERIFIED
+        },
       });
-      if (verifiedCount < requiredDocTypeIds.length) {
-        throw new BusinessException(`Customer is missing ${requiredDocTypeIds.length - verifiedCount} verified document(s) required by ${application.loanProduct.name}`);
+      if (verifiedRequiredCount < requiredDocTypeIds.length) {
+        throw new BusinessException(
+          `Customer is missing ${requiredDocTypeIds.length - verifiedRequiredCount} VERIFIED document(s) required by ${application.loanProduct.name}. ` +
+          `All required documents must be uploaded and verified before submission.`
+        );
       }
     }
 
@@ -305,18 +376,44 @@ export class LoanApplicationsService {
   }
 
   /**
-   * APPROVED -> DISBURSED. Creates the Loan record and its repayment schedule
-   * automatically. Simplified vs. the full spec: no virtual account, no
-   * ledger/accounting entries yet — those are separate, not-yet-built pieces.
+   * APPROVED -> DISBURSED. Creates the Loan record and its repayment schedule.
+   * 
+   * STRICT VALIDATION: Requires virtual account to be set up for the customer
+   * before disbursement to ensure repayments can be collected.
    */
   async disburse(applicationId: string, actorId: string): Promise<unknown> {
     const application = await this.prisma.loanApplication.findFirst({
       where: { id: applicationId, deletedAt: null },
-      include: { loanProduct: true },
+      include: { loanProduct: true, customer: true },
     });
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
     if (application.status !== LoanApplicationStatus.APPROVED) {
       throw new BusinessException(`Only APPROVED applications can be disbursed (currently ${application.status})`);
+    }
+
+    // ── STRICT VALIDATION: Bank account required for disbursement ─────────────
+    if (!application.customer.bankAccountNumber || !application.customer.bankCode) {
+      throw new BusinessException(
+        'Cannot disburse loan: Customer bank account details are missing. ' +
+        'Bank account number and bank code are required for disbursement. ' +
+        'Please update the customer profile first.'
+      );
+    }
+
+    // ── STRICT VALIDATION: Virtual account required for repayment collection ──
+    const virtualAccount = await this.prisma.virtualAccount.findFirst({
+      where: {
+        customerId: application.customerId,
+        status: 'ACTIVE',
+      },
+    });
+
+    if (!virtualAccount) {
+      throw new BusinessException(
+        'Cannot disburse loan: No active virtual account found for this customer. ' +
+        'A virtual account is required to collect loan repayments. ' +
+        'Please set up a virtual account first from the customer profile.'
+      );
     }
 
     const principal = Number(application.amount);

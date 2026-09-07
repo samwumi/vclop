@@ -95,8 +95,25 @@ export class CustomersService {
   async create(dto: CreateCustomerDto, actorId: string): Promise<unknown> {
     await this.assertNoDuplicates(dto.phone, dto.email, dto.bvn, dto.nin);
 
+    // ── STRICT VALIDATION: Required fields for customer registration ────────
+    const validationErrors: string[] = [];
+    
+    if (!dto.bvn) validationErrors.push('BVN is required');
+    if (!dto.nin) validationErrors.push('NIN is required');
+    if (!dto.dataProcessingConsent) validationErrors.push('Data processing consent is required');
+    if (!dto.creditBureauConsent) validationErrors.push('Credit bureau consent is required');
+    if (!dto.phone) validationErrors.push('Phone number is required');
+    if (!dto.firstName) validationErrors.push('First name is required');
+    if (!dto.lastName) validationErrors.push('Last name is required');
+    
     if (dto.type === 'BUSINESS' && !dto.businessName) {
-      throw new BusinessException('businessName is required for a BUSINESS customer');
+      validationErrors.push('Business name is required for BUSINESS customer type');
+    }
+
+    if (validationErrors.length > 0) {
+      throw new BusinessException(
+        `Customer registration incomplete. Missing required fields:\n• ${validationErrors.join('\n• ')}`
+      );
     }
 
     const customerNumber = await this.generateCustomerNumber();
