@@ -85,6 +85,14 @@ export const customersService = {
     return `/api/v1/customers/${customerId}/documents/${documentId}/download`;
   },
 
+  /** Download document as blob with authentication */
+  async downloadDocument(customerId: string, documentId: string): Promise<Blob> {
+    const { data } = await api.get(`/customers/${customerId}/documents/${documentId}/download`, {
+      responseType: 'blob',
+    });
+    return data;
+  },
+
   /** Export customers list as CSV — uses authenticated fetch so JWT is included */
   async exportCsv(params?: { search?: string; status?: string; branchId?: string }): Promise<void> {
     const token = (await import('@/stores/auth.store')).useAuthStore.getState().accessToken;

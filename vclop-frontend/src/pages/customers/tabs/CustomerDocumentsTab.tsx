@@ -72,6 +72,18 @@ export function CustomerDocumentsTab({ customerId }: { customerId: string }) {
     uploadMutation.mutate({ file, docTypeId: uploadDocTypeId });
   };
 
+  const handleViewDocument = async (doc: CustomerDocument) => {
+    try {
+      const blob = await customersService.downloadDocument(customerId, doc.id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      // Clean up the blob URL after a short delay
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      toast.error('Failed to open document');
+    }
+  };
+
   if (isLoading) return <PageLoader />;
 
   return (
@@ -156,9 +168,11 @@ export function CustomerDocumentsTab({ customerId }: { customerId: string }) {
                           </>
                         )}
                         <a
-                          href={customersService.getDocumentDownloadUrl(customerId, doc.id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleViewDocument(doc);
+                          }}
                           className="btn-ghost btn-icon w-7 h-7 text-brand-600"
                           title="View document"
                         >
