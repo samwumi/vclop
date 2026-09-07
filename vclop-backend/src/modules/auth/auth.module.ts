@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
+import { OtpService } from './otp.service';
 import { PermissionResolverService } from './permission-resolver.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
@@ -25,11 +26,11 @@ import { LocalStrategy } from './strategies/local.strategy';
   providers: [
     AuthService,
     TokenService,
+    OtpService,
     PermissionResolverService,
     JwtStrategy,
     LocalStrategy,
   ],
-  exports: [AuthService, PermissionResolverService,  TokenService,
- JwtModule],
+  exports: [AuthService, PermissionResolverService, TokenService, OtpService, JwtModule],
 })
 export class AuthModule {}

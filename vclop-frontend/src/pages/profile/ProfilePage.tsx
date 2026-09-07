@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { User, Lock, Save } from 'lucide-react';
+import { User, Lock, Save, Mail, Clock } from 'lucide-react';
 import { api } from '@/lib/axios';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { OtpInput } from '@/components/auth/OtpInput';
 import { useAuthStore } from '@/stores/auth.store';
 import type { ApiResponse } from '@/types/api.types';
 import type { AuthUser } from '@/types/auth.types';
@@ -23,6 +24,25 @@ export function ProfilePage() {
   // ── Password form ────────────────────────────────────────────────────────
   const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' });
   const [pwdErrors, setPwdErrors] = useState<Record<string, string>>({});
+  const [otpStep, setOtpStep] = useState<'initial' | 'otp-sent' | 'verified'>('initial');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [otpError, setOtpError] = useState('');
+
+  // Countdown timer for OTP
+  useEffect(() => {
+    if (otpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setOtpCountdown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpCountdown]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const profileMutation = useMutation({
     mutationFn: async () => {
@@ -42,20 +62,48 @@ export function ProfilePage() {
       toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Update failed'),
   });
 
+  const requestOtpMutation = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post<ApiResponse<{ expiresInSeconds: number }>>(
+        '/auth/request-password-change-otp',
+        { email: user?.email },
+      );
+      return data.data!;
+    },
+    onSuccess: (result) => {
+      setOtpStep('otp-sent');
+      setOtpCountdown(result.expiresInSeconds);
+      setOtpError('');
+      toast.success('OTP sent to your email');
+    },
+    onError: (e: unknown) => {
+      const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to send OTP';
+      toast.error(message);
+      setOtpError(message);
+    },
+  });
+
   const passwordMutation = useMutation({
     mutationFn: async () => {
-      await api.patch('/auth/change-password', {
+      await api.patch('/auth/change-password-with-otp', {
         currentPassword: pwd.current,
         newPassword: pwd.next,
+        otpCode,
       });
     },
     onSuccess: () => {
-      toast.success('Password changed successfully');
+      toast.success('Password changed successfully. Please log in again.');
       setPwd({ current: '', next: '', confirm: '' });
+      setOtpCode('');
+      setOtpStep('initial');
+      setOtpCountdown(0);
       updateUser({ mustChangePassword: false });
     },
-    onError: (e: unknown) =>
-      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Password change failed'),
+    onError: (e: unknown) => {
+      const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Password change failed';
+      toast.error(message);
+      setOtpError(message);
+    },
   });
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -66,7 +114,36 @@ export function ProfilePage() {
     if (pwd.next !== pwd.confirm) errs.confirm = 'Passwords do not match';
     setPwdErrors(errs);
     if (Object.keys(errs).length) return;
-    passwordMutation.mutate();
+
+    // Step 1: Request OTP
+    if (otpStep === 'initial') {
+      requestOtpMutation.mutate();
+      return;
+    }
+
+    // Step 2: Verify OTP and change password
+    if (otpStep === 'otp-sent') {
+      if (otpCode.length !== 6) {
+        setOtpError('Please enter the 6-digit OTP code');
+        return;
+      }
+      passwordMutation.mutate();
+    }
+  };
+
+  const handleResendOtp = () => {
+    setOtpCode('');
+    setOtpError('');
+    requestOtpMutation.mutate();
+  };
+
+  const handleCancelOtp = () => {
+    setOtpStep('initial');
+    setOtpCode('');
+    setOtpError('');
+    setOtpCountdown(0);
+    setPwd({ current: '', next: '', confirm: '' });
+    setPwdErrors({});
   };
 
   if (!user) return null;
@@ -166,50 +243,137 @@ export function ProfilePage() {
           <h2 className="text-sm font-semibold text-gray-800">Change Password</h2>
         </div>
         <form onSubmit={handlePasswordSubmit} className="card-body space-y-4">
-          <div>
-            <label className="form-label">Current Password <span className="text-red-500">*</span></label>
-            <input
-              type="password"
-              className="form-input"
-              value={pwd.current}
-              onChange={(e) => setPwd(p => ({ ...p, current: e.target.value }))}
-              autoComplete="current-password"
-            />
-            {pwdErrors.current && <p className="text-xs text-red-500 mt-0.5">{pwdErrors.current}</p>}
-          </div>
-          <div>
-            <label className="form-label">New Password <span className="text-red-500">*</span></label>
-            <input
-              type="password"
-              className="form-input"
-              value={pwd.next}
-              onChange={(e) => setPwd(p => ({ ...p, next: e.target.value }))}
-              autoComplete="new-password"
-            />
-            {pwdErrors.next && <p className="text-xs text-red-500 mt-0.5">{pwdErrors.next}</p>}
-            <p className="text-xs text-gray-400 mt-1">Min 8 characters, include uppercase, number, and symbol.</p>
-          </div>
-          <div>
-            <label className="form-label">Confirm New Password <span className="text-red-500">*</span></label>
-            <input
-              type="password"
-              className="form-input"
-              value={pwd.confirm}
-              onChange={(e) => setPwd(p => ({ ...p, confirm: e.target.value }))}
-              autoComplete="new-password"
-            />
-            {pwdErrors.confirm && <p className="text-xs text-red-500 mt-0.5">{pwdErrors.confirm}</p>}
-          </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={passwordMutation.isPending}
-              className="btn-primary gap-2 disabled:opacity-50"
-            >
-              <Lock className="w-4 h-4" />
-              {passwordMutation.isPending ? 'Changing…' : 'Change Password'}
-            </button>
-          </div>
+          {/* Step indicator */}
+          {otpStep !== 'initial' && (
+            <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-blue-800">
+                <Mail className="w-4 h-4" />
+                <span className="font-medium">OTP Verification Required</span>
+              </div>
+              {otpCountdown > 0 && (
+                <div className="flex items-center gap-1.5 text-sm text-blue-600">
+                  <Clock className="w-4 h-4" />
+                  <span className="font-mono font-semibold">{formatTime(otpCountdown)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Password fields - shown initially or when editing */}
+          {otpStep === 'initial' && (
+            <>
+              <div>
+                <label className="form-label">Current Password <span className="text-red-500">*</span></label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={pwd.current}
+                  onChange={(e) => setPwd(p => ({ ...p, current: e.target.value }))}
+                  autoComplete="current-password"
+                />
+                {pwdErrors.current && <p className="text-xs text-red-500 mt-0.5">{pwdErrors.current}</p>}
+              </div>
+              <div>
+                <label className="form-label">New Password <span className="text-red-500">*</span></label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={pwd.next}
+                  onChange={(e) => setPwd(p => ({ ...p, next: e.target.value }))}
+                  autoComplete="new-password"
+                />
+                {pwdErrors.next && <p className="text-xs text-red-500 mt-0.5">{pwdErrors.next}</p>}
+                <p className="text-xs text-gray-400 mt-1">Min 8 characters, include uppercase, number, and symbol.</p>
+              </div>
+              <div>
+                <label className="form-label">Confirm New Password <span className="text-red-500">*</span></label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={pwd.confirm}
+                  onChange={(e) => setPwd(p => ({ ...p, confirm: e.target.value }))}
+                  autoComplete="new-password"
+                />
+                {pwdErrors.confirm && <p className="text-xs text-red-500 mt-0.5">{pwdErrors.confirm}</p>}
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={requestOtpMutation.isPending}
+                  className="btn-primary gap-2 disabled:opacity-50"
+                >
+                  <Mail className="w-4 h-4" />
+                  {requestOtpMutation.isPending ? 'Sending OTP…' : 'Send OTP to Email'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* OTP verification step */}
+          {otpStep === 'otp-sent' && (
+            <>
+              <div className="space-y-3">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-1">
+                    We've sent a 6-digit code to
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900 mb-4">
+                    {user?.email}
+                  </p>
+                </div>
+
+                <div className="py-2">
+                  <OtpInput
+                    value={otpCode}
+                    onChange={(value) => {
+                      setOtpCode(value);
+                      setOtpError('');
+                    }}
+                    disabled={passwordMutation.isPending}
+                    error={!!otpError}
+                    autoFocus
+                  />
+                </div>
+
+                {otpError && (
+                  <div className="text-center">
+                    <p className="text-sm text-red-500">{otpError}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={otpCountdown > 0 || requestOtpMutation.isPending}
+                    className="text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed font-medium"
+                  >
+                    {requestOtpMutation.isPending ? 'Sending…' : 'Resend OTP'}
+                  </button>
+                  <span className="text-gray-300">•</span>
+                  <button
+                    type="button"
+                    onClick={handleCancelOtp}
+                    disabled={passwordMutation.isPending}
+                    className="text-sm text-gray-600 hover:text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={passwordMutation.isPending || otpCode.length !== 6}
+                  className="btn-primary gap-2 disabled:opacity-50"
+                >
+                  <Lock className="w-4 h-4" />
+                  {passwordMutation.isPending ? 'Changing Password…' : 'Change Password'}
+                </button>
+              </div>
+            </>
+          )}
         </form>
       </div>
     </div>

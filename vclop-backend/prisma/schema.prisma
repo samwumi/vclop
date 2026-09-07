@@ -159,6 +159,7 @@ model User {
   dashboardLayouts        DashboardLayout[]
   notificationPreferences NotificationPreference[]
   tokens                  Token[]
+  otpCodes                OtpCode[]
   managedBranches         UserBranch[]
   userPermissions         UserPermission[]
   userRoles               UserRole[]
@@ -1340,4 +1341,31 @@ enum CollectionCaseStatus {
   LEGAL
   RESOLVED
   WRITTEN_OFF
+}
+
+model OtpCode {
+  id        String      @id @default(uuid()) @db.VarChar(36)
+  userId    String      @db.VarChar(36)
+  email     String      @db.VarChar(150)
+  code      String      @db.VarChar(6)
+  type      OtpCodeType
+  expiresAt DateTime
+  usedAt    DateTime?
+  ipAddress String?     @db.VarChar(45)
+  userAgent String?     @db.VarChar(500)
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
+  @@index([code])
+  @@index([type])
+  @@index([expiresAt])
+  @@map("otp_codes")
+}
+
+enum OtpCodeType {
+  PASSWORD_CHANGE
+  EMAIL_VERIFICATION
+  TWO_FACTOR_AUTH
 }

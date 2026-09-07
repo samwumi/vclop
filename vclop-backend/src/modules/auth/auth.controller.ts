@@ -13,6 +13,8 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { RequestPasswordChangeOtpDto } from './dto/request-password-change-otp.dto';
+import { ChangePasswordWithOtpDto } from './dto/change-password-with-otp.dto';
 import { Verify2faDto } from './dto/verify-2fa.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { Public } from '../../common/decorators/public.decorator';
@@ -164,6 +166,67 @@ export class AuthController {
   ): Promise<{ message: string; data: null }> {
     await this.authService.changePassword(user.id, dto.currentPassword, dto.newPassword);
     return ok(null, 'Password changed. Please log in again on all devices.');
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // POST /api/v1/auth/request-password-change-otp
+  // ──────────────────────────────────────────────────────────────────────────
+
+  @UseGuards(JwtAuthGuard, ThrottlerGuard)
+  @ApiBearerAuth('JWT-auth')
+  @Post('request-password-change-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request OTP for password change' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+    schema: {
+      properties: {
+        message: { type: 'string', example: 'OTP sent to your email' },
+        data: {
+          type: 'object',
+          properties: {
+            expiresInSeconds: { type: 'number', example: 600 },
+          },
+        },
+      },
+    },
+  })
+  async requestPasswordChangeOtp(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: RequestPasswordChangeOtpDto,
+    @IpAddress() ip: string,
+    @UserAgent() ua: string,
+  ): Promise<{ message: string; data: { expiresInSeconds: number } }> {
+    const result = await this.authService.requestPasswordChangeOtp(
+      user.id,
+      dto.email,
+      ip,
+      ua,
+    );
+    return ok(result, 'OTP sent to your email. Please check your inbox.');
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // PATCH /api/v1/auth/change-password-with-otp
+  // ──────────────────────────────────────────────────────────────────────────
+
+  @UseGuards(JwtAuthGuard, ThrottlerGuard)
+  @ApiBearerAuth('JWT-auth')
+  @Patch('change-password-with-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change password with OTP verification' })
+  async changePasswordWithOtp(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: ChangePasswordWithOtpDto,
+  ): Promise<{ message: string; data: null }> {
+    await this.authService.changePasswordWithOtp(
+      user.id,
+      dto.currentPassword,
+      dto.newPassword,
+      dto.otpCode,
+    );
+    return ok(null, 'Password changed successfully. Please log in again on all devices.');
   }
 
   // ──────────────────────────────────────────────────────────────────────────

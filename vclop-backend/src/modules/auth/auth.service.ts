@@ -4,7 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TokenService } from './token.service';
 import { PermissionResolverService } from './permission-resolver.service';
-import { User, UserStatus } from '@prisma/client';
+import { OtpService } from './otp.service';
+import { User, UserStatus, OtpCodeType } from '@prisma/client';
 import {
   AccountLockedException,
   InvalidCredentialsException,
@@ -28,6 +29,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly tokenService: TokenService,
     private readonly permissionResolver: PermissionResolverService,
+    private readonly otpService: OtpService,
     private readonly config: ConfigService,
     private readonly events: EventEmitter2,
   ) {}
@@ -312,6 +314,120 @@ export class AuthService {
       description: 'Password changed',
       isSuccess: true,
     });
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // REQUEST PASSWORD CHANGE OTP
+  // ────────────────────────────────────────────────────────────────────────────
+
+  async requestPasswordChangeOtp(
+    userId: string,
+    email: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{ expiresInSeconds: number }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new ResourceNotFoundException('User');
+
+    // Verify email matches user's email
+    if (user.email.toLowerCase() !== email.toLowerCase()) {
+      throw new BusinessException('Email does not match user account');
+    }
+
+    // Check if there's already a valid OTP
+    const hasValid = await this.otpService.hasValidOtp(userId, OtpCodeType.PASSWORD_CHANGE);
+    if (hasValid) {
+      const remainingSeconds = await this.otpService.getOtpExpirySeconds(
+        userId,
+        OtpCodeType.PASSWORD_CHANGE,
+      );
+      throw new BusinessException(
+        `An OTP was already sent. Please wait ${remainingSeconds} seconds before requesting a new one.`,
+      );
+    }
+
+    // Generate OTP
+    const otpCode = await this.otpService.generateOtp(
+      userId,
+      email,
+      OtpCodeType.PASSWORD_CHANGE,
+      ipAddress,
+      userAgent,
+    );
+
+    // Send OTP via email
+    this.events.emit('notification.send', {
+      recipientId: user.id,
+      recipientEmail: user.email,
+      event: 'auth.password_change_otp',
+      variables: {
+        firstName: user.firstName,
+        otpCode,
+        expiresInMinutes: 10,
+      },
+    });
+
+    this.logger.log(`Password change OTP requested for user ${userId}`);
+
+    return { expiresInSeconds: 600 }; // 10 minutes
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // CHANGE PASSWORD WITH OTP
+  // ────────────────────────────────────────────────────────────────────────────
+
+  async changePasswordWithOtp(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    otpCode: string,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new ResourceNotFoundException('User');
+
+    // Verify current password
+    const valid = await comparePassword(currentPassword, user.passwordHash);
+    if (!valid) throw new InvalidCredentialsException('Current password is incorrect');
+
+    // Verify OTP
+    const otpValid = await this.otpService.verifyOtp(
+      userId,
+      otpCode,
+      OtpCodeType.PASSWORD_CHANGE,
+    );
+
+    if (!otpValid) {
+      throw new BusinessException('Invalid or expired OTP code');
+    }
+
+    // Validate new password
+    const policy = getDefaultPasswordPolicy();
+    const validation = validatePassword(newPassword, policy);
+    if (!validation.valid) throw new BusinessException(validation.errors.join('. '));
+
+    // Hash and update password
+    const hashed = await hashPassword(
+      newPassword,
+      this.config.get<number>('auth.bcryptRounds') ?? 12,
+    );
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: hashed, mustChangePassword: false },
+    });
+
+    // Revoke all other sessions — force re-login on other devices
+    await this.tokenService.revokeAllUserRefreshTokens(userId);
+
+    this.events.emit('audit.log', {
+      userId,
+      action: AuditAction.PASSWORD_CHANGE,
+      module: 'auth',
+      description: 'Password changed with OTP verification',
+      isSuccess: true,
+    });
+
+    this.logger.log(`Password changed with OTP for user ${userId}`);
   }
 
   // ────────────────────────────────────────────────────────────────────────────
