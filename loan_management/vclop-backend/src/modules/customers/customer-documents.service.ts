@@ -23,6 +23,17 @@ export class CustomerDocumentsService {
     });
   }
 
+  async findOne(documentId: string, customerId: string): Promise<any> {
+    const document = await this.prisma.customerDocument.findFirst({
+      where: { id: documentId, customerId },
+      include: { documentType: true },
+    });
+    if (!document) {
+      throw new ResourceNotFoundException('Document', documentId);
+    }
+    return document;
+  }
+
   async upload(
     customerId: string,
     documentTypeId: string,

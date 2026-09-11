@@ -8,10 +8,12 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -20,9 +22,12 @@ import { RequirePermissions } from '../../common/decorators/require-permissions.
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { ok } from '../../common/utils/response.util';
-import { BusinessException } from '../../common/exceptions/app.exceptions';
+import { BusinessException, ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { CustomerDocumentsService } from './customer-documents.service';
 import { VerifyDocumentDto } from './dto/document-type.dto';
+import { ConfigService } from '@nestjs/config';
+import * as path from 'path';
+import * as fs from 'fs';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
 
@@ -31,7 +36,10 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller({ path: 'customers/:customerId/documents', version: '1' })
 export class CustomerDocumentsController {
-  constructor(private readonly service: CustomerDocumentsService) {}
+  constructor(
+    private readonly service: CustomerDocumentsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get()
   @RequirePermissions('documents:read')
@@ -75,5 +83,36 @@ export class CustomerDocumentsController {
   async remove(@Param('documentId', ParseUUIDPipe) documentId: string, @CurrentUser() actor: RequestUser) {
     await this.service.remove(documentId, actor.id);
     return ok(null, 'Document deleted');
+  }
+
+  @Get(':documentId/download')
+  @RequirePermissions('documents:read')
+  @ApiOperation({ summary: 'Download a document file' })
+  async download(
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Res() res: Response,
+  ) {
+    // Get document record
+    const document = await this.service.findOne(documentId, customerId);
+    if (!document) {
+      throw new ResourceNotFoundException('Document', documentId);
+    }
+
+    // Get upload directory from config
+    const uploadDir = this.configService.get<string>('storage.local.uploadDir') ?? './uploads';
+    const filePath = path.join(uploadDir, document.fileKey);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      throw new ResourceNotFoundException('File', document.fileKey);
+    }
+
+    // Stream file to response
+    res.setHeader('Content-Type', document.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+    
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
   }
 }
