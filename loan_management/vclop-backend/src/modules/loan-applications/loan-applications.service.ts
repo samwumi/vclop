@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AuditAction, InstallmentStatus, InterestType, LoanApplicationStatus, LoanStatus, RepaymentFrequency } from '@prisma/client';
+import { 
+  AuditAction, 
+  CustomerStatus, 
+  DocumentStatus, 
+  InstallmentStatus, 
+  InterestType, 
+  LoanApplicationStatus, 
+  LoanStatus, 
+  RepaymentFrequency 
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { paginate } from '../../common/utils/pagination.util';
@@ -164,13 +173,31 @@ export class LoanApplicationsService {
   /** SUBMITTED -> APPROVED or REJECTED. Simplified single-approval-step version of the full Compliance -> Operations -> CEO chain. */
   async review(applicationId: string, dto: ReviewLoanApplicationDto, actor: RequestUser): Promise<unknown> {
     const actorId = actor.id;
-    const application = await this.prisma.loanApplication.findFirst({ where: { id: applicationId, deletedAt: null } });
+    const application = await this.prisma.loanApplication.findFirst({ 
+      where: { id: applicationId, deletedAt: null },
+      include: {
+        customer: true,
+        loanProduct: {
+          include: {
+            documentRequirements: {
+              where: { isRequired: true },
+              include: { documentType: true }
+            }
+          }
+        }
+      }
+    });
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
     if (application.status !== LoanApplicationStatus.COMPLIANCE_REVIEW && application.status !== LoanApplicationStatus.SUBMITTED) {
       throw new BusinessException(`Only submitted applications can be reviewed (currently ${application.status})`);
     }
     if ((dto.decision === ReviewDecision.REJECTED || dto.decision === ReviewDecision.REQUEST_INFORMATION) && !dto.rejectionReason) {
       throw new BusinessException('rejectionReason is required when rejecting or requesting information');
+    }
+
+    // CRITICAL: Validate KYC before approval
+    if (dto.decision === ReviewDecision.APPROVED) {
+      await this.validateKYCBeforeApproval(application);
     }
 
     // Handle workflow transition for compliance review stage
@@ -453,6 +480,74 @@ export class LoanApplicationsService {
     }
     const totalRepayable = installments.reduce((sum, inst) => sum + inst.total, 0);
     return { installments, totalRepayable: round2(totalRepayable) };
+  }
+
+  /**
+   * Validates that customer's KYC is complete before loan approval.
+   * Compliance officers MUST verify documents and customer status before approving.
+   */
+  private async validateKYCBeforeApproval(application: any): Promise<void> {
+    const { customer, loanProduct, customerId } = application;
+
+    // 1. Check customer status - must be KYC_VERIFIED or ELIGIBLE
+    if (customer.status !== 'KYC_VERIFIED' && customer.status !== 'ELIGIBLE') {
+      throw new BusinessException(
+        `Cannot approve loan: Customer KYC status is ${customer.status}. ` +
+        `Customer must be marked as KYC_VERIFIED or ELIGIBLE before loan approval.`
+      );
+    }
+
+    // 2. Check all required documents for this loan product are VERIFIED
+    const requiredDocs = loanProduct.documentRequirements || [];
+    
+    if (requiredDocs.length > 0) {
+      // Get customer's verified documents
+      const verifiedDocs = await this.prisma.customerDocument.findMany({
+        where: {
+          customerId,
+          status: 'VERIFIED',
+          documentTypeId: {
+            in: requiredDocs.map((req: any) => req.documentTypeId)
+          }
+        },
+        select: { documentTypeId: true }
+      });
+
+      const verifiedDocTypeIds = new Set(verifiedDocs.map(d => d.documentTypeId));
+      const missingDocs = requiredDocs.filter((req: any) => !verifiedDocTypeIds.has(req.documentTypeId));
+
+      if (missingDocs.length > 0) {
+        const missingDocNames = missingDocs.map((req: any) => req.documentType.name).join(', ');
+        throw new BusinessException(
+          `Cannot approve loan: The following required documents are not verified: ${missingDocNames}. ` +
+          `All required documents must be uploaded and verified before approval.`
+        );
+      }
+    }
+
+    // 3. Ensure at least some documents exist (even if product doesn't specify requirements)
+    const totalDocuments = await this.prisma.customerDocument.count({
+      where: { customerId }
+    });
+
+    if (totalDocuments === 0) {
+      throw new BusinessException(
+        'Cannot approve loan: No documents have been uploaded for this customer. ' +
+        'At least one identity document must be uploaded and verified.'
+      );
+    }
+
+    // 4. Check that at least one document is VERIFIED
+    const verifiedCount = await this.prisma.customerDocument.count({
+      where: { customerId, status: 'VERIFIED' }
+    });
+
+    if (verifiedCount === 0) {
+      throw new BusinessException(
+        'Cannot approve loan: No documents have been verified for this customer. ' +
+        'At least one document must be verified before loan approval.'
+      );
+    }
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
