@@ -1,0 +1,100 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { CustomerType, Gender } from '@prisma/client';
+import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+
+export class CreateCustomerDto {
+  @ApiPropertyOptional({ enum: CustomerType, default: CustomerType.INDIVIDUAL })
+  @IsOptional()
+  @IsEnum(CustomerType)
+  type?: CustomerType;
+
+  @ApiProperty({ maxLength: 100 })
+  @IsString()
+  @MaxLength(100)
+  firstName!: string;
+
+  @ApiProperty({ maxLength: 100 })
+  @IsString()
+  @MaxLength(100)
+  lastName!: string;
+
+  @ApiPropertyOptional({ maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  middleName?: string;
+
+  @ApiPropertyOptional({ maxLength: 200, description: 'Required when type is BUSINESS' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  businessName?: string;
+
+  @ApiPropertyOptional({ enum: Gender })
+  @IsOptional()
+  @IsEnum(Gender)
+  gender?: Gender;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @ApiProperty({ maxLength: 20 })
+  @IsString()
+  @Matches(/^\+?\d{10,14}$/, { message: 'phone must be a valid phone number' })
+  phone!: string;
+
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?\d{10,14}$/, { message: 'alternatePhone must be a valid phone number' })
+  alternatePhone?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({ description: '11-digit Bank Verification Number' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{11}$/, { message: 'bvn must be 11 digits' })
+  bvn?: string;
+
+  @ApiPropertyOptional({ description: '11-digit National Identification Number' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{11}$/, { message: 'nin must be 11 digits' })
+  nin?: string;
+
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  residentialAddress?: string;
+
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  businessAddress?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  gpsLat?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  gpsLng?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  assignedOfficerId?: string;
+}

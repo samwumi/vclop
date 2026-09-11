@@ -1,0 +1,7 @@
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { IsNumber, Min } from 'class-validator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'; import { PermissionsGuard } from '../../common/guards/permissions.guard'; import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'; import { CurrentUser } from '../../common/decorators/current-user.decorator'; import { RequestUser } from '../../common/interfaces/request-user.interface'; import { ok } from '../../common/utils/response.util'; import { PerformanceService } from './performance.service';
+class TargetDto { @IsNumber() @Min(0) amount!: number; }
+@ApiTags('Performance') @ApiBearerAuth('JWT-auth') @UseGuards(JwtAuthGuard, PermissionsGuard) @Controller({ path: 'performance', version: '1' })
+export class PerformanceController { constructor(private readonly service: PerformanceService) {} @Get('me') @RequirePermissions('dashboard:read') async mine(@CurrentUser() user: RequestUser) { return ok(await this.service.summary(user.id)); } @Patch('users/:userId/target') @RequirePermissions('settings:update') async target(@Param('userId', ParseUUIDPipe) userId: string, @Body() dto: TargetDto, @CurrentUser() user: RequestUser) { return ok(await this.service.setTarget(userId, dto.amount, user.id)); } }
