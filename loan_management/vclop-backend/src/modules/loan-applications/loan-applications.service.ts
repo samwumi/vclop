@@ -174,17 +174,9 @@ export class LoanApplicationsService {
     }
 
     // Handle workflow transition for compliance review stage
-    if (application.status === LoanApplicationStatus.COMPLIANCE_REVIEW) {
-      let workflowAction: 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION';
-      
-      if (dto.decision === ReviewDecision.APPROVED) {
-        workflowAction = 'APPROVE';
-      } else if (dto.decision === ReviewDecision.REJECTED) {
-        workflowAction = 'REJECT';
-      } else {
-        // REQUEST_INFORMATION
-        workflowAction = 'REQUEST_INFORMATION';
-      }
+    // Note: REQUEST_INFORMATION is handled outside workflow as it uses status-based flow
+    if (application.status === LoanApplicationStatus.COMPLIANCE_REVIEW && dto.decision !== ReviewDecision.REQUEST_INFORMATION) {
+      const workflowAction = dto.decision === ReviewDecision.APPROVED ? 'APPROVE' : 'REJECT';
 
       await this.workflowsService.transition('LOAN_APPLICATION', applicationId, {
         action: workflowAction,
