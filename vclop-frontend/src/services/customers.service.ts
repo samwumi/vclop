@@ -1,0 +1,132 @@
+import { api } from '@/lib/axios';
+import { useAuthStore } from '@/stores/auth.store';
+import type { ApiResponse, PaginatedResponse, PaginationParams } from '@/types/api.types';
+import type { Customer, Customer360, CustomerDocument, CustomerStatus } from '@/types/domain.types';
+
+export const customersService = {
+  async list(params?: PaginationParams & { status?: CustomerStatus; branchId?: string; search?: string }): Promise<PaginatedResponse<Customer>> {
+    const p = new URLSearchParams();
+    if (params) Object.entries(params).forEach(([k, v]) => {
+      // Skip empty strings to avoid sending search= which could confuse the backend
+      if (v !== undefined && v !== '') p.set(k, String(v));
+    });
+    const { data } = await api.get<ApiResponse<Customer[]>>(`/customers?${p}`);
+    return { data: data.data ?? [], meta: data.meta! };
+  },
+
+  /** Client-side "search" reuses the same list endpoint's `search` param — there's no separate /search route on the backend. */
+  async search(q: string, limit = 10): Promise<Customer[]> {
+    if (!q) return [];
+    const result = await this.list({ search: q, limit, page: 1 });
+    return result.data;
+  },
+
+  /** Full Customer 360 — profile + documents + dynamic form data + activity timeline, all in one call. */
+  async get(id: string): Promise<Customer360> {
+    const { data } = await api.get<ApiResponse<Customer360>>(`/customers/${id}`);
+    return data.data!;
+  },
+
+  async create(payload: Record<string, unknown>): Promise<Customer> {
+    const { data } = await api.post<ApiResponse<Customer>>('/customers', payload);
+    return data.data!;
+  },
+
+  async update(id: string, payload: Record<string, unknown>): Promise<Customer> {
+    const { data } = await api.patch<ApiResponse<Customer>>(`/customers/${id}`, payload);
+    return data.data!;
+  },
+
+  /** One generic status transition endpoint covers KYC progression and blacklist/unblacklist — there's no separate route per action. */
+  async updateStatus(id: string, status: CustomerStatus, reason?: string): Promise<Customer> {
+    const { data } = await api.patch<ApiResponse<Customer>>(`/customers/${id}/status`, { status, reason });
+    return data.data!;
+  },
+
+  async remove(id: string): Promise<void> {
+    await api.delete(`/customers/${id}`);
+  },
+
+  // ── Documents ────────────────────────────────────────────────────────────
+
+  async getDocuments(customerId: string): Promise<CustomerDocument[]> {
+    const { data } = await api.get<ApiResponse<CustomerDocument[]>>(`/customers/${customerId}/documents`);
+    return data.data ?? [];
+  },
+
+  async uploadDocument(customerId: string, documentTypeId: string, file: File): Promise<CustomerDocument> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('documentTypeId', documentTypeId);
+    const { data } = await api.post<ApiResponse<CustomerDocument>>(`/customers/${customerId}/documents`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.data!;
+  },
+
+  async verifyDocument(
+    customerId: string,
+    documentId: string,
+    status: 'VERIFIED' | 'REJECTED',
+    rejectionReason?: string,
+  ): Promise<CustomerDocument> {
+    const { data } = await api.patch<ApiResponse<CustomerDocument>>(
+      `/customers/${customerId}/documents/${documentId}/verify`,
+      { status, rejectionReason },
+    );
+    return data.data!;
+  },
+
+  async deleteDocument(customerId: string, documentId: string): Promise<void> {
+    await api.delete(`/customers/${customerId}/documents/${documentId}`);
+  },
+
+  /** Download a document through the authenticated backend endpoint — avoids exposing raw /uploads/ files */
+  getDocumentDownloadUrl(customerId: string, documentId: string): string {
+    return `/api/v1/customers/${customerId}/documents/${documentId}/download`;
+  },
+
+  /** Download document as blob with authentication */
+  async downloadDocument(customerId: string, documentId: string): Promise<Blob> {
+    const { data } = await api.get(`/customers/${customerId}/documents/${documentId}/download`, {
+      responseType: 'blob',
+    });
+    return data;
+  },
+
+  /** Download document with auth token in URL (fallback method) */
+  getAuthenticatedDownloadUrl(customerId: string, documentId: string): string {
+    const token = useAuthStore.getState().accessToken;
+    return `/api/v1/customers/${customerId}/documents/${documentId}/download?token=${token}`;
+  },
+
+  /** Export customers list as CSV — uses authenticated fetch so JWT is included */
+  async exportCsv(params?: { search?: string; status?: string; branchId?: string }): Promise<void> {
+    const token = (await import('@/stores/auth.store')).useAuthStore.getState().accessToken;
+    const p = new URLSearchParams();
+    if (params?.search)   p.set('search', params.search);
+    if (params?.status)   p.set('status', params.status);
+    if (params?.branchId) p.set('branchId', params.branchId);
+    const resp = await fetch(`/api/v1/customers/export/csv?${p}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!resp.ok) throw new Error('Export failed');
+    const blob = await resp.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = `customers-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(href);
+  },
+};
+
+export const documentTypesService = {
+  async list(params?: { appliesTo?: 'INDIVIDUAL' | 'BUSINESS'; withInactive?: boolean }) {
+    const p = new URLSearchParams();
+    if (params?.appliesTo) p.set('appliesTo', params.appliesTo);
+    if (params?.withInactive) p.set('withInactive', 'true');
+    const { data } = await api.get<ApiResponse<unknown[]>>(`/document-types?${p}`);
+    return data.data ?? [];
+  },
+};

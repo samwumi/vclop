@@ -1,0 +1,10 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Professional V lettermark with geometric precision -->
+  <rect width="40" height="40" rx="10" fill="#3b82f6"/>
+  
+  <!-- V shape - clean, bold, professional -->
+  <path d="M12 11L20 28L28 11" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Subtle accent line for sophistication -->
+  <line x1="20" y1="28" x2="20" y2="31" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+</svg>

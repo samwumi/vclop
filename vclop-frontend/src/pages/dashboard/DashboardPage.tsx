@@ -1,0 +1,379 @@
+import { useQuery } from '@tanstack/react-query';
+import {
+  Activity, AlertTriangle, Banknote, BarChart2, Building2,
+  Car, CheckCircle2, ClipboardList, FileCheck2, FileText,
+  GitBranch, Landmark, ShieldAlert, Target, TrendingDown, TrendingUp, Users, Wallet,
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/auth.store';
+import { dashboardService } from '@/services/dashboard.service';
+import { performanceService } from '@/services/performance.service';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { StatCard } from './widgets/StatCard';
+import { LoginActivityChart } from './widgets/LoginActivityChart';
+import { UserStatusChart } from './widgets/UserStatusChart';
+import { RecentAuditTable } from './widgets/RecentAuditTable';
+import { SystemHealthWidget } from './widgets/SystemHealthWidget';
+
+// ── Reusable small components ─────────────────────────────────────────────────
+
+function OpCard({
+  title, value, icon: Icon, color, onClick,
+}: {
+  title: string; value: number | string; icon: typeof ClipboardList; color: string; onClick?: () => void;
+}) {
+  return (
+    <div
+      className={`stat-card clickable-mobile ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+    >
+      <div className={`stat-card-icon ${color}`}>
+        <Icon className="w-5 h-5 icon-premium-static" />
+      </div>
+      <p className="stat-card-label">{title}</p>
+      <p className="stat-card-value text-responsive-lg">{value}</p>
+    </div>
+  );
+}
+
+function QuickAction({
+  label, icon: Icon, color, onClick,
+}: {
+  label: string; icon: typeof FileText; color: string; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="touch-target clickable-mobile flex flex-col items-center gap-2.5 p-4 hover:bg-gray-50 active:bg-gray-100 transition-colors text-center"
+      style={{ borderRadius: '12px', border: '1px solid var(--border-light)' }}
+    >
+      <div 
+        className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${color}`}
+        style={{ borderRadius: '12px' }}
+      >
+        <Icon className="w-5 h-5 md:w-6 md:h-6 icon-premium-static" />
+      </div>
+      <p className="text-responsive-xs font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>{label}</p>
+    </button>
+  );
+}
+
+function ProgressBar({ pct, color = 'var(--brand-primary)' }: { pct: number; color?: string }) {
+  const safe = Math.min(100, Math.max(0, pct));
+  return (
+    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${safe}%`, background: color }} />
+    </div>
+  );
+}
+
+// ── Role panels ──────────────────────────────────────────────────────────────
+
+function LoanOfficerPanel({ summary, performance }: {
+  summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>>;
+  performance: Awaited<ReturnType<typeof performanceService.mine>> | undefined;
+}) {
+  const navigate = useNavigate();
+  const weekNo = Math.ceil(new Date().getDate() / 7);
+
+  return (
+    <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
+      {/* KPIs - Mobile Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        <OpCard title="My Applications" value={summary.applications} icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+        <OpCard title="Pending Tasks" value={summary.myTasks} icon={ClipboardList} color="bg-violet-50 text-violet-600" />
+        <OpCard title="Disbursed (MTD)" value={performance?.monthlyDisbursements ?? 0} icon={Banknote} color="bg-emerald-50 text-emerald-600" />
+        <OpCard title={`Week ${weekNo} Allowance`} value={`₦${(performance?.weeklyAllowance ?? 0).toLocaleString()}`} icon={Wallet} color="bg-orange-50 text-orange-600" onClick={() => navigate('/performance')} />
+      </div>
+
+      {/* Monthly target card - Mobile Optimized */}
+      {(performance?.monthlyTarget ?? 0) > 0 && (
+        <div 
+          className="card-mobile clickable-mobile cursor-pointer hover:shadow-lg active:shadow-md transition-shadow" 
+          onClick={() => navigate('/performance')}
+        >
+          <div className="card-body">
+            <div className="flex-mobile-col items-start md:items-center justify-between mb-3 gap-2 md:gap-0">
+              <div className="flex-1">
+                <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Monthly Disbursement Target</p>
+                <p className="text-responsive-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  ₦{(performance!.currentAchievement).toLocaleString()} of ₦{(performance!.monthlyTarget).toLocaleString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {performance!.progressPercentage >= 100
+                  ? <CheckCircle2 className="w-5 h-5 icon-premium-static" style={{ color: 'var(--success-green)' }} />
+                  : <Target className="w-5 h-5 icon-premium-static" style={{ color: 'var(--brand-primary)' }} />}
+                <p className="text-responsive-lg font-bold" style={{ fontFamily: 'Manrope, sans-serif', color: 'var(--brand-primary)' }}>
+                  {performance!.progressPercentage.toFixed(0)}%
+                </p>
+              </div>
+            </div>
+            <ProgressBar
+              pct={performance!.progressPercentage}
+              color={performance!.progressPercentage >= 100 ? 'var(--success-green)' : performance!.progressPercentage >= 60 ? 'var(--brand-primary)' : 'var(--warning-amber)'}
+            />
+            <p className="text-responsive-xs mt-2" style={{ color: 'var(--text-muted)' }}>₦{(performance!.remainingTarget).toLocaleString()} remaining to target</p>
+          </div>
+        </div>
+      )}
+
+      {/* Quick actions - Mobile Responsive */}
+      <div className="card-mobile">
+        <div className="card-header">
+          <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="New Customer" icon={Users} color="bg-blue-50 text-blue-600" onClick={() => navigate('/customers/new')} />
+            <QuickAction label="New Application" icon={FileText} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/loans/new')} />
+            <QuickAction label="My Applications" icon={TrendingUp} color="bg-violet-50 text-violet-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="My Performance" icon={Target} color="bg-orange-50 text-orange-600" onClick={() => navigate('/performance')} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompliancePanel({ summary }: { summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>> }) {
+  const navigate = useNavigate();
+  return (
+    <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        <OpCard title="Review Queue" value={summary.complianceQueue} icon={FileCheck2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/compliance')} />
+        <OpCard title="Pending Tasks" value={summary.myTasks} icon={ClipboardList} color="bg-blue-50 text-blue-600" />
+        <OpCard title="Transport Requests" value={summary.transportRequests} icon={Car} color="bg-amber-50 text-amber-600" onClick={() => navigate('/transport')} />
+        <OpCard title="All Applications" value={summary.applications} icon={FileText} color="bg-gray-50 text-gray-600" onClick={() => navigate('/loans')} />
+      </div>
+      <div className="card-mobile">
+        <div className="card-header">
+          <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="Review Queue" icon={FileCheck2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/compliance')} />
+            <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="Transport Requests" icon={Car} color="bg-amber-50 text-amber-600" onClick={() => navigate('/transport')} />
+            <QuickAction label="Customers" icon={Users} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/customers')} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccountingPanel({ summary }: { summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>> }) {
+  const navigate = useNavigate();
+  return (
+    <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        <OpCard title="Pending Disbursement" value={summary.approvedLoans} icon={Landmark} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/accounting')} />
+        <OpCard title="Pending Tasks" value={summary.myTasks} icon={ClipboardList} color="bg-blue-50 text-blue-600" />
+        <OpCard title="All Applications" value={summary.applications} icon={FileText} color="bg-violet-50 text-violet-600" onClick={() => navigate('/loans')} />
+        <OpCard title="Reports" value="View" icon={BarChart2} color="bg-gray-50 text-gray-600" onClick={() => navigate('/reports')} />
+      </div>
+      <div className="card-mobile">
+        <div className="card-header">
+          <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="Disburse Loans" icon={Banknote} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/accounting')} />
+            <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="Reports" icon={BarChart2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/reports')} />
+            <QuickAction label="Customers" icon={Users} color="bg-amber-50 text-amber-600" onClick={() => navigate('/customers')} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InternalControlPanel({ summary }: { summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>> }) {
+  const navigate = useNavigate();
+  return (
+    <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        <OpCard title="Review Queue" value={summary.icQueue ?? 0} icon={ShieldAlert} color="bg-violet-50 text-violet-600" onClick={() => navigate('/internal-control')} />
+        <OpCard title="Pending Tasks" value={summary.myTasks} icon={ClipboardList} color="bg-blue-50 text-blue-600" />
+        <OpCard title="All Applications" value={summary.applications} icon={FileText} color="bg-gray-50 text-gray-600" onClick={() => navigate('/loans')} />
+        <OpCard title="Reports" value="View" icon={BarChart2} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/reports')} />
+      </div>
+      <div className="card-mobile">
+        <div className="card-header">
+          <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="Review Queue" icon={ShieldAlert} color="bg-violet-50 text-violet-600" onClick={() => navigate('/internal-control')} />
+            <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="Reports" icon={BarChart2} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/reports')} />
+            <QuickAction label="Customers" icon={Users} color="bg-amber-50 text-amber-600" onClick={() => navigate('/customers')} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CollectionsPanel({ summary }: { summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>> }) {  const navigate = useNavigate();
+  return (
+    <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        <OpCard title="Open Cases" value={summary.collectionCases} icon={TrendingDown} color="bg-red-50 text-red-600" onClick={() => navigate('/collections')} />
+        <OpCard title="Overdue Installments" value={summary.overdueInstallments} icon={AlertTriangle} color="bg-amber-50 text-amber-600" onClick={() => navigate('/collections')} />
+        <OpCard title="Pending Tasks" value={summary.myTasks} icon={ClipboardList} color="bg-blue-50 text-blue-600" />
+        <OpCard title="All Loans" value={summary.applications} icon={FileText} color="bg-gray-50 text-gray-600" onClick={() => navigate('/loans')} />
+      </div>
+      <div className="card-mobile">
+        <div className="card-header">
+          <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <QuickAction label="Collections" icon={TrendingDown} color="bg-red-50 text-red-600" onClick={() => navigate('/collections')} />
+            <QuickAction label="All Loans" icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+            <QuickAction label="Reports" icon={BarChart2} color="bg-violet-50 text-violet-600" onClick={() => navigate('/reports')} />
+            <QuickAction label="Customers" icon={Users} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/customers')} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminPanel({ summary, hasPermission }: {
+  summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>>;
+  hasPermission: (p: string) => boolean;
+}) {
+  const navigate = useNavigate();
+  return (
+    <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        <OpCard title="Compliance Queue"    value={summary.complianceQueue} icon={FileCheck2}  color="bg-violet-50 text-violet-600"  onClick={() => navigate('/compliance')} />
+        <OpCard title="Internal Control"    value={summary.icQueue ?? 0}    icon={ShieldAlert}  color="bg-indigo-50 text-indigo-600"  onClick={() => navigate('/internal-control')} />
+        <OpCard title="Pending Disbursement"value={summary.approvedLoans}   icon={Landmark}     color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/accounting')} />
+        <OpCard title="Open Collections"    value={summary.collectionCases} icon={TrendingDown} color="bg-red-50 text-red-600"         onClick={() => navigate('/collections')} />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        {hasPermission('users:read') && <StatCard title="Total Users" queryKey={['dashboard', 'active-users']} queryFn={dashboardService.activeUsers} icon={Users} color="blue" />}
+        {hasPermission('branches:read') && <StatCard title="Branches" queryKey={['dashboard', 'total-branches']} queryFn={dashboardService.totalBranches} icon={GitBranch} color="green" />}
+        {hasPermission('departments:read') && <StatCard title="Departments" queryKey={['dashboard', 'total-departments']} queryFn={dashboardService.totalDepartments} icon={Building2} color="purple" />}
+        <div className="stat-card">
+          <div className="stat-card-icon bg-emerald-50 text-emerald-600">
+            <Activity className="w-5 h-5 icon-premium-static" />
+          </div>
+          <p className="stat-card-label">Platform</p>
+          <p className="stat-card-value text-responsive-lg">Online</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+        {hasPermission('audit:read') && <LoginActivityChart />}
+        {hasPermission('audit:read') && <UserStatusChart />}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+        {hasPermission('audit:read') && <RecentAuditTable />}
+        {hasPermission('system:health') && <SystemHealthWidget />}
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export function DashboardPage() {
+  const { user, hasPermission } = useAuthStore();
+
+  useQuery({ queryKey: ['dashboard', 'bootstrap'], queryFn: dashboardService.bootstrap, staleTime: 60_000 });
+
+  const { data: summary, error: summaryError } = useQuery({
+    queryKey: ['dashboard', 'operational-summary'],
+    queryFn: dashboardService.operationalSummary,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    retry: 2,
+  });
+
+  const { data: performance } = useQuery({
+    queryKey: ['performance', 'me'],
+    queryFn: performanceService.mine,
+    staleTime: 60_000,
+  });
+
+  const greeting =
+    new Date().getHours() < 12 ? 'Good morning'
+    : new Date().getHours() < 18 ? 'Good afternoon'
+    : 'Good evening';
+
+  const role = summary?.role ?? 'LOAN_OFFICER';
+
+  const roleLabel: Record<string, string> = {
+    SUPER_ADMIN:            'System Administrator',
+    ACCOUNTING:             'Accounting',
+    UNDERWRITER_COMPLIANCE: 'Underwriting & Compliance',
+    INTERNAL_CONTROL:       'Internal Control',
+    COLLECTIONS:            'Collections',
+    LOAN_OFFICER:           'Loan Officer',
+  };
+
+  return (
+    <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
+      <Breadcrumbs />
+
+      {/* Premium Greeting - Mobile Responsive */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title text-responsive-xl">{greeting}, {user?.firstName ?? 'there'}</h1>
+          <p className="text-responsive-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+            {user?.jobTitle ?? roleLabel[role] ?? role} —{' '}
+            <span className="hidden sm:inline">
+              {new Date().toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
+            <span className="sm:hidden">
+              {new Date().toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* Role-specific panel */}
+      {summaryError ? (
+        <div className="card-mobile p-6 md:p-8 text-center">
+          <p className="text-responsive-sm text-red-600 font-medium">Dashboard failed to load</p>
+          <p className="text-responsive-xs text-gray-400 mt-1">Try refreshing the page. If the issue persists contact your administrator.</p>
+          <button onClick={() => window.location.reload()} className="btn-secondary btn-sm mt-4 touch-target">Refresh</button>
+        </div>
+      ) : !summary ? (
+        <div className="card-mobile p-6 md:p-8 text-center">
+          <div className="animate-pulse space-y-3">
+            <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto" />
+            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
+            <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto" />
+          </div>
+        </div>
+      ) : (
+        <>
+          {role === 'LOAN_OFFICER' && (
+            <LoanOfficerPanel summary={summary} performance={performance} />
+          )}
+          {role === 'UNDERWRITER_COMPLIANCE' && (
+            <CompliancePanel summary={summary} />
+          )}
+          {role === 'INTERNAL_CONTROL' && (
+            <InternalControlPanel summary={summary} />
+          )}
+          {role === 'ACCOUNTING' && (
+            <AccountingPanel summary={summary} />
+          )}
+          {role === 'COLLECTIONS' && (
+            <CollectionsPanel summary={summary} />
+          )}
+          {role === 'SUPER_ADMIN' && (
+            <AdminPanel summary={summary} hasPermission={hasPermission} />
+          )}
+        </>
+      )}
+    </div>
+  );
+}

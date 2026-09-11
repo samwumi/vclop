@@ -1,10 +1,16 @@
+<<<<<<< HEAD
 # Node modules
 node_modules/
 **/node_modules/
+=======
+# Dependencies
+node_modules/
+>>>>>>> 791677c17915c781e67e9157334a9fc1a8f8fa00
 
 # Build output
 dist/
 build/
+<<<<<<< HEAD
 **/dist/
 **/build/
 
@@ -24,10 +30,18 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+=======
+coverage/
+
+# Environment
+.env
+.env.*
+>>>>>>> 791677c17915c781e67e9157334a9fc1a8f8fa00
 
 # Logs
 *.log
 npm-debug.log*
+<<<<<<< HEAD
 yarn-debug.log*
 yarn-error.log*
 logs/
@@ -44,3 +58,18 @@ logs/
 
 # Git lock files (just in case)
 .git/index.lock
+=======
+
+# Uploads
+uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+
+# AI/Agent configs
+.agents/
+>>>>>>> 791677c17915c781e67e9157334a9fc1a8f8fa00
