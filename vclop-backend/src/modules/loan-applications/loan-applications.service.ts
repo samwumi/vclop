@@ -398,6 +398,8 @@ export class LoanApplicationsService {
    * before disbursement to ensure repayments can be collected.
    * 
    * SECURITY: Verifies workflow completion to prevent status manipulation bypass.
+   * 
+   * UPDATED: Creates virtual account if it doesn't exist (instead of requiring pre-creation)
    */
   async disburse(applicationId: string, actorId: string): Promise<unknown> {
     const application = await this.prisma.loanApplication.findFirst({
@@ -440,22 +442,6 @@ export class LoanApplicationsService {
         'Cannot disburse loan: Customer bank account details are missing. ' +
         'Bank account number and bank code are required for disbursement. ' +
         'Please update the customer profile first.'
-      );
-    }
-
-    // ── STRICT VALIDATION: Virtual account required for repayment collection ──
-    const virtualAccount = await this.prisma.virtualAccount.findFirst({
-      where: {
-        customerId: application.customerId,
-        status: 'ACTIVE',
-      },
-    });
-
-    if (!virtualAccount) {
-      throw new BusinessException(
-        'Cannot disburse loan: No active virtual account found for this customer. ' +
-        'A virtual account is required to collect loan repayments. ' +
-        'Please set up a virtual account first from the customer profile.'
       );
     }
 
@@ -507,7 +493,12 @@ export class LoanApplicationsService {
     });
 
     this.emitAudit(AuditAction.UPDATE, actorId, applicationId, `Disbursed ${application.applicationNumber} as loan ${loanNumber} - workflow verified`);
+    
+    // ── Virtual Account Creation ─────────────────────────────────────────────
+    // Virtual account will be created automatically via loan.disbursed event
+    // The VirtualAccountsService listens to this event and creates the account
     this.events.emit('loan.disbursed', { loanId: loan.id, applicationId, customerId: application.customerId, principal });
+    
     return this.findOne(applicationId);
   }
 
