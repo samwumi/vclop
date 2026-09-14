@@ -337,41 +337,57 @@ export class LoanApplicationsService {
     return this.findOne(applicationId);
   }
 
-  /** SUBMITTED -> APPROVED or REJECTED. Simplified single-approval-step version of the full Compliance -> Operations -> CEO chain. */
+  /**
+   * DEPRECATED ENDPOINT - Workflow transition should be used instead.
+   * This method is kept only for backward compatibility but enforces workflow usage.
+   * 
+   * All approvals MUST go through the workflow system to ensure proper multi-stage approval.
+   * Direct status manipulation bypasses IC, Accounting Head, and audit trail.
+   */
   async review(applicationId: string, dto: ReviewLoanApplicationDto, actor: RequestUser): Promise<unknown> {
-    const actorId = actor.id;
     const application = await this.prisma.loanApplication.findFirst({ where: { id: applicationId, deletedAt: null } });
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
-    if (application.status !== LoanApplicationStatus.COMPLIANCE_REVIEW && application.status !== LoanApplicationStatus.SUBMITTED) {
-      throw new BusinessException(`Only submitted applications can be reviewed (currently ${application.status})`);
+    
+    // ── STRICT ENFORCEMENT: All reviews must go through workflow ───────────────
+    // The old direct-approval path (SUBMITTED → APPROVED) is a security vulnerability
+    // that allows bypassing IC and Accounting Head approval stages.
+    if (application.status !== LoanApplicationStatus.COMPLIANCE_REVIEW) {
+      throw new BusinessException(
+        `This application cannot be reviewed directly. Current status: ${application.status}. ` +
+        `All loan approvals must follow the proper workflow stages. ` +
+        `Please use the workflow transition endpoint instead of this legacy review endpoint.`
+      );
     }
+
     if (dto.decision === ReviewDecision.REJECTED && !dto.rejectionReason) {
       throw new BusinessException('rejectionReason is required when rejecting an application');
     }
 
-    if (application.status === LoanApplicationStatus.COMPLIANCE_REVIEW) {
-      await this.workflowsService.transition('LOAN_APPLICATION', applicationId, {
-        action: dto.decision === ReviewDecision.APPROVED ? 'APPROVE' : 'REJECT',
-        reason: dto.rejectionReason,
-        notes: dto.reviewNotes,
-      }, actor);
-    }
+    // Transition through workflow - this updates the status automatically
+    await this.workflowsService.transition('LOAN_APPLICATION', applicationId, {
+      action: dto.decision === ReviewDecision.APPROVED ? 'APPROVE' : 'REJECT',
+      reason: dto.rejectionReason,
+      notes: dto.reviewNotes,
+    }, actor);
 
+    // Update denormalized fields (status is already updated by workflow)
     await this.prisma.loanApplication.update({
       where: { id: applicationId },
       data: {
-        status: dto.decision === ReviewDecision.APPROVED
-          ? (application.status === LoanApplicationStatus.COMPLIANCE_REVIEW ? LoanApplicationStatus.INTERNAL_CONTROL_REVIEW : LoanApplicationStatus.APPROVED)
-          : LoanApplicationStatus.REJECTED,
-        reviewedById: actorId,
+        reviewedById: actor.id,
         reviewedAt: new Date(),
         reviewNotes: dto.reviewNotes,
         rejectionReason: dto.decision === ReviewDecision.REJECTED ? dto.rejectionReason : null,
       },
     });
 
-    this.emitAudit(AuditAction.UPDATE, actorId, applicationId, `${dto.decision === ReviewDecision.APPROVED ? 'Approved' : 'Rejected'} ${application.applicationNumber}`);
-    this.events.emit('loan_application.reviewed', { applicationId, decision: dto.decision, actorId });
+    this.emitAudit(
+      dto.decision === ReviewDecision.APPROVED ? AuditAction.APPROVE : AuditAction.REJECT, 
+      actor.id, 
+      applicationId, 
+      `${dto.decision === ReviewDecision.APPROVED ? 'Approved' : 'Rejected'} ${application.applicationNumber} via workflow`
+    );
+    this.events.emit('loan_application.reviewed', { applicationId, decision: dto.decision, actorId: actor.id });
     return this.findOne(applicationId);
   }
 
@@ -380,6 +396,8 @@ export class LoanApplicationsService {
    * 
    * STRICT VALIDATION: Requires virtual account to be set up for the customer
    * before disbursement to ensure repayments can be collected.
+   * 
+   * SECURITY: Verifies workflow completion to prevent status manipulation bypass.
    */
   async disburse(applicationId: string, actorId: string): Promise<unknown> {
     const application = await this.prisma.loanApplication.findFirst({
@@ -389,6 +407,31 @@ export class LoanApplicationsService {
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
     if (application.status !== LoanApplicationStatus.APPROVED) {
       throw new BusinessException(`Only APPROVED applications can be disbursed (currently ${application.status})`);
+    }
+
+    // ── SECURITY: Verify workflow completion to prevent bypass ─────────────────
+    // If someone manually changes status to APPROVED in database, this check catches it
+    const workflowInstance = await this.prisma.workflowInstance.findFirst({
+      where: {
+        entityType: 'LOAN_APPLICATION',
+        entityId: applicationId,
+      },
+    });
+
+    if (!workflowInstance) {
+      throw new BusinessException(
+        'Cannot disburse: No workflow found for this application. ' +
+        'This application may have been created before the workflow system was implemented. ' +
+        'Please contact system administrator.'
+      );
+    }
+
+    if (workflowInstance.currentStageCode !== 'APPROVED') {
+      throw new BusinessException(
+        `Cannot disburse: Workflow is at stage "${workflowInstance.currentStageCode}", not APPROVED. ` +
+        `The application status appears to be APPROVED but the workflow has not completed all required stages. ` +
+        `This indicates potential data manipulation. Please review the workflow history.`
+      );
     }
 
     // ── STRICT VALIDATION: Bank account required for disbursement ─────────────
@@ -463,7 +506,7 @@ export class LoanApplicationsService {
       return created;
     });
 
-    this.emitAudit(AuditAction.UPDATE, actorId, applicationId, `Disbursed ${application.applicationNumber} as loan ${loanNumber}`);
+    this.emitAudit(AuditAction.UPDATE, actorId, applicationId, `Disbursed ${application.applicationNumber} as loan ${loanNumber} - workflow verified`);
     this.events.emit('loan.disbursed', { loanId: loan.id, applicationId, customerId: application.customerId, principal });
     return this.findOne(applicationId);
   }
