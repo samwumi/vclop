@@ -92,6 +92,21 @@ export function NewLoanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Check for active loans/applications when customer is selected
+  const { data: activeLoans } = useQuery({
+    queryKey: ['loans', 'active', selectedCustomer?.id],
+    queryFn: () => loansService.list({ customerId: selectedCustomer!.id }),
+    enabled: !!selectedCustomer,
+  });
+
+  const hasActiveLoan = activeLoans?.data?.some((loan: any) => 
+    ['DISBURSED', 'ACTIVE', 'OVERDUE', 'DEFAULTED'].includes(loan.status)
+  );
+
+  const hasActiveApplication = activeLoans?.data?.some((loan: any) => 
+    ['DRAFT', 'IN_REVIEW', 'PENDING_APPROVAL', 'APPROVED'].includes(loan.status)
+  );
+
   function selectCustomer(c: Customer) {
     setSelectedCustomer(c);
     setValue('customerId', c.id);
@@ -124,7 +139,9 @@ export function NewLoanPage() {
   const failedChecks = checks.filter((c) => !c.ok);
   const isBlocked =
     (selectedCustomer && LOAN_BLOCKED_STATUSES.includes(selectedCustomer.status)) ||
-    failedChecks.length > 0;
+    failedChecks.length > 0 ||
+    hasActiveLoan ||
+    hasActiveApplication;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -179,6 +196,49 @@ export function NewLoanPage() {
                       )}
                     </div>
                   </div>
+                )}
+
+                {/* Active loan warning */}
+                {hasActiveLoan && (
+                  <div className="banner-danger flex items-start gap-2">
+                    <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">Customer has an outstanding loan</p>
+                      <p className="text-sm mt-1">
+                        This customer has an active loan that has not been fully repaid. 
+                        Customer must repay their current loan before applying for a new one.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/customers/${selectedCustomer.id}?tab=loans`)}
+                        className="text-sm text-red-700 underline mt-2"
+                      >
+                        View customer's active loans
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Active application warning */}
+                {hasActiveApplication && (
+                  <div className="banner-danger flex items-start gap-2">
+                    <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">Customer has a pending loan application</p>
+                      <p className="text-sm mt-1">
+                        This customer already has an active loan application in progress. 
+                        Please wait for the current application to be completed (approved, rejected, or disbursed) before creating a new one.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/customers/${selectedCustomer.id}?tab=loans`)}
+                        className="text-sm text-red-700 underline mt-2"
+                      >
+                        View customer's applications
+                      </button>
+                    </div>
+                  </div>
+                )}                  </div>
                 )}
 
                 {/* KYC verified - good to go */}

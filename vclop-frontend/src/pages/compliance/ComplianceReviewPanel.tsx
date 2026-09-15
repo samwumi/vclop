@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tantml:react-query';
 import { toast } from 'sonner';
 import {
   CheckCircle2, XCircle, RotateCcw, MapPin, Clock,
@@ -20,6 +20,7 @@ import { WorkflowHistory } from '@/components/ui/WorkflowHistory';
 import type { ComplianceQueueItem } from '@/services/compliance.service';
 import type { TransportRequest } from '@/services/transport.service';
 import type { CustomerStatus } from '@/types/domain.types';
+import { useAuthStore } from '@/stores/auth.store';
 
 const VISIT_TYPES = ['BUSINESS', 'RESIDENCE', 'EMPLOYER', 'GUARANTOR', 'OTHER'];
 const RECOMMENDATION_OPTS: Array<{ value: WorkflowRecommendation; label: string; color: string }> = [
@@ -40,6 +41,7 @@ interface Props {
 export function ComplianceReviewPanel({ application, onClose }: Props) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>('documents');
+  const { hasPermission } = useAuthStore();
 
   // ── Assessment form state ──────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -220,16 +222,26 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
       } as Parameters<typeof complianceService.saveAssessment>[1]),
       onSuccess: () => qc.invalidateQueries({ queryKey: ['compliance-assessment', application.id] }),
     });
+
+    // Only compliance officers can mark items as verified
+    const canVerify = hasPermission('loan_applications:compliance_review');
+
     return (
       <div className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
         <span className="text-sm text-gray-700">{label}</span>
-        <button
-          onClick={() => toggleMutation.mutate()}
-          disabled={toggleMutation.isPending}
-          className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full transition-colors ${verifiedAt ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-        >
-          {verifiedAt ? <><CheckCircle2 className="w-3.5 h-3.5" /> Verified</> : 'Mark Verified'}
-        </button>
+        {canVerify ? (
+          <button
+            onClick={() => toggleMutation.mutate()}
+            disabled={toggleMutation.isPending}
+            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full transition-colors ${verifiedAt ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+          >
+            {verifiedAt ? <><CheckCircle2 className="w-3.5 h-3.5" /> Verified</> : 'Mark Verified'}
+          </button>
+        ) : (
+          <span className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full ${verifiedAt ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+            {verifiedAt ? <><CheckCircle2 className="w-3.5 h-3.5" /> Verified on {new Date(verifiedAt).toLocaleDateString()}</> : 'Not Verified'}
+          </span>
+        )}
       </div>
     );
   }
@@ -445,33 +457,43 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                       'bg-gray-100 text-gray-600'
                     }`}>{(c?.status ?? '').replace(/_/g, ' ')}</span>
                   </div>
-                  <p className="text-xs text-gray-500 mb-2">
-                    After completing field visit and verifications, advance the customer:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {(['KYC_VERIFIED', 'ELIGIBLE', 'INELIGIBLE', 'BLACKLISTED'] as CustomerStatus[]).map((status) => (
-                      <button
-                        key={status}
-                        disabled={c?.status === status || kycMutation.isPending}
-                        onClick={() => kycMutation.mutate(status)}
-                        className={`btn-sm disabled:opacity-50 disabled:cursor-default ${
-                          c?.status === status          ? 'btn-primary' :
-                          status === 'ELIGIBLE'         ? 'bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-600' :
-                          status === 'KYC_VERIFIED'     ? 'bg-blue-600 text-white hover:bg-blue-700 border border-blue-600' :
-                          status === 'INELIGIBLE'       ? 'bg-red-600 text-white hover:bg-red-700 border border-red-600' :
-                          'bg-gray-800 text-white hover:bg-gray-900 border border-gray-800'
-                        }`}
-                      >
-                        {status === 'ELIGIBLE' && '✓ '}
-                        {status === 'KYC_VERIFIED' && '✓ '}
-                        {status.replace(/_/g, ' ')}
-                        {c?.status === status && ' (current)'}
-                      </button>
-                    ))}
-                  </div>
-                  {c?.status === 'ELIGIBLE' && (
-                    <p className="text-xs text-emerald-700 mt-2 font-medium">
-                      ✓ Customer is Eligible — you can now submit the compliance decision.
+
+                  {/* Only compliance officers can change KYC status */}
+                  {hasPermission('loan_applications:compliance_review') ? (
+                    <>
+                      <p className="text-xs text-gray-500 mb-2">
+                        After completing field visit and verifications, advance the customer:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {(['KYC_VERIFIED', 'ELIGIBLE', 'INELIGIBLE', 'BLACKLISTED'] as CustomerStatus[]).map((status) => (
+                          <button
+                            key={status}
+                            disabled={c?.status === status || kycMutation.isPending}
+                            onClick={() => kycMutation.mutate(status)}
+                            className={`btn-sm disabled:opacity-50 disabled:cursor-default ${
+                              c?.status === status          ? 'btn-primary' :
+                              status === 'ELIGIBLE'         ? 'bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-600' :
+                              status === 'KYC_VERIFIED'     ? 'bg-blue-600 text-white hover:bg-blue-700 border border-blue-600' :
+                              status === 'INELIGIBLE'       ? 'bg-red-600 text-white hover:bg-red-700 border border-red-600' :
+                              'bg-gray-800 text-white hover:bg-gray-900 border border-gray-800'
+                            }`}
+                          >
+                            {status === 'ELIGIBLE' && '✓ '}
+                            {status === 'KYC_VERIFIED' && '✓ '}
+                            {status.replace(/_/g, ' ')}
+                            {c?.status === status && ' (current)'}
+                          </button>
+                        ))}
+                      </div>
+                      {c?.status === 'ELIGIBLE' && (
+                        <p className="text-xs text-emerald-700 mt-2 font-medium">
+                          ✓ Customer is Eligible — you can now submit the compliance decision.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-600 italic">
+                      Only compliance officers can update KYC verification status. You can view the current status and verification history above.
                     </p>
                   )}
                 </div>
@@ -668,9 +690,10 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
           {/* ── Field Visits ──────────────────────────────────────────────── */}
           {tab === 'visits' && (
             <>
-              {/* Log new visit */}
-              <div className="space-y-3">
-                <p className="text-xs font-semibold text-gray-700">Log Field Visit</p>
+              {/* Log new visit - Only for compliance officers */}
+              {hasPermission('loan_applications:compliance_review') ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-gray-700">Log Field Visit</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="form-label">Visit Type</label>
@@ -820,8 +843,15 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
                   {visitMutation.isPending ? 'Saving…' : 'Log Visit'}
                 </button>
               </div>
+              ) : (
+                <div className="card p-4 bg-gray-50">
+                  <p className="text-xs text-gray-600 italic">
+                    Only compliance officers can log field visits. You can view visit history below.
+                  </p>
+                </div>
+              )}
 
-              {/* Visit history */}
+              {/* Visit history — visible to everyone */}
               {visits.length > 0 && (
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <p className="text-xs font-semibold text-gray-600">Visit History ({visits.length})</p>

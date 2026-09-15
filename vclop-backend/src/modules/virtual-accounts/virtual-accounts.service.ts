@@ -301,6 +301,247 @@ export class VirtualAccountsService {
     });
   }
 
+  /**
+   * Find all disbursed loans that don't have virtual accounts.
+   * This happens when the event listener fails during disbursement.
+   */
+  async findLoansWithoutVirtualAccounts(): Promise<unknown[]> {
+    const loansWithoutVA = await this.prisma.loan.findMany({
+      where: {
+        virtualAccount: null,
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            customerNumber: true,
+            firstName: true,
+            lastName: true,
+            businessName: true,
+            phone: true,
+            email: true,
+            bankAccountNumber: true,
+            bankCode: true,
+          },
+        },
+        loanProduct: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return loansWithoutVA.map(loan => ({
+      loanId: loan.id,
+      loanNumber: loan.loanNumber,
+      customerId: loan.customerId,
+      customerNumber: loan.customer.customerNumber,
+      customerName: loan.customer.businessName ?? `${loan.customer.firstName} ${loan.customer.lastName}`,
+      customerPhone: loan.customer.phone,
+      customerEmail: loan.customer.email,
+      hasBankAccount: !!(loan.customer.bankAccountNumber && loan.customer.bankCode),
+      principal: loan.principal,
+      loanProduct: loan.loanProduct.name,
+      disbursedAt: loan.createdAt,
+    }));
+  }
+
+  /**
+   * Find all virtual accounts stuck in PENDING status.
+   * These accounts were created but Paystack hasn't assigned account numbers yet.
+   */
+  async findPendingVirtualAccounts(): Promise<unknown[]> {
+    const pendingAccounts = await this.prisma.virtualAccount.findMany({
+      where: {
+        accountNumber: {
+          startsWith: 'PENDING-',
+        },
+        provider: 'PAYSTACK',
+      },
+      include: {
+        loan: {
+          include: {
+            customer: {
+              select: {
+                customerNumber: true,
+                firstName: true,
+                lastName: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            loanProduct: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return pendingAccounts.map(va => ({
+      virtualAccountId: va.id,
+      loanId: va.loanId,
+      loanNumber: va.loan.loanNumber,
+      customerNumber: va.loan.customer.customerNumber,
+      customerName: va.loan.customer.businessName ?? `${va.loan.customer.firstName} ${va.loan.customer.lastName}`,
+      customerPhone: va.loan.customer.phone,
+      customerEmail: va.loan.customer.email,
+      principal: va.loan.principal,
+      loanProduct: va.loan.loanProduct.name,
+      pendingAccountNumber: va.accountNumber,
+      createdAt: va.createdAt,
+      daysPending: Math.floor((Date.now() - va.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
+    }));
+  }
+
+  /**
+   * Create virtual accounts for all disbursed loans that don't have them.
+   * Returns summary of created accounts and failures.
+   */
+  async bulkCreateMissingVirtualAccounts(): Promise<{
+    total: number;
+    created: number;
+    skipped: number;
+    failed: number;
+    details: Array<{ loanNumber: string; status: 'created' | 'skipped' | 'failed'; reason?: string }>;
+  }> {
+    const loansWithoutVA = await this.prisma.loan.findMany({
+      where: { virtualAccount: null },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            bankAccountNumber: true,
+            bankCode: true,
+          },
+        },
+      },
+    });
+
+    const results = {
+      total: loansWithoutVA.length,
+      created: 0,
+      skipped: 0,
+      failed: 0,
+      details: [] as Array<{ loanNumber: string; status: 'created' | 'skipped' | 'failed'; reason?: string }>,
+    };
+
+    for (const loan of loansWithoutVA) {
+      // Skip if customer has no bank account (virtual account creation will fail)
+      if (!loan.customer.bankAccountNumber || !loan.customer.bankCode) {
+        results.skipped++;
+        results.details.push({
+          loanNumber: loan.loanNumber,
+          status: 'skipped',
+          reason: 'Customer has no bank account details',
+        });
+        continue;
+      }
+
+      try {
+        await this.createForLoan(loan.id, loan.customerId);
+        results.created++;
+        results.details.push({
+          loanNumber: loan.loanNumber,
+          status: 'created',
+        });
+        this.logger.log(`Created virtual account for loan ${loan.loanNumber}`);
+      } catch (error) {
+        results.failed++;
+        results.details.push({
+          loanNumber: loan.loanNumber,
+          status: 'failed',
+          reason: error instanceof Error ? error.message : 'Unknown error',
+        });
+        this.logger.error(`Failed to create virtual account for loan ${loan.loanNumber}`, error as Error);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Sync all PENDING virtual accounts with Paystack to get their account numbers.
+   * Returns summary of synced accounts and failures.
+   */
+  async bulkSyncPendingVirtualAccounts(): Promise<{
+    total: number;
+    synced: number;
+    stillPending: number;
+    failed: number;
+    details: Array<{ loanNumber: string; status: 'synced' | 'still_pending' | 'failed'; accountNumber?: string; reason?: string }>;
+  }> {
+    const pendingAccounts = await this.prisma.virtualAccount.findMany({
+      where: {
+        accountNumber: { startsWith: 'PENDING-' },
+        provider: 'PAYSTACK',
+      },
+      include: {
+        loan: true,
+      },
+    });
+
+    const results = {
+      total: pendingAccounts.length,
+      synced: 0,
+      stillPending: 0,
+      failed: 0,
+      details: [] as Array<{ loanNumber: string; status: 'synced' | 'still_pending' | 'failed'; accountNumber?: string; reason?: string }>,
+    };
+
+    for (const account of pendingAccounts) {
+      try {
+        const synced = await this.syncFromPaystack(account.id);
+        const syncedAccount = synced as any;
+        
+        if (syncedAccount.accountNumber?.startsWith('PENDING-')) {
+          results.stillPending++;
+          results.details.push({
+            loanNumber: account.loan.loanNumber,
+            status: 'still_pending',
+            reason: 'Paystack has not assigned account number yet',
+          });
+        } else {
+          results.synced++;
+          results.details.push({
+            loanNumber: account.loan.loanNumber,
+            status: 'synced',
+            accountNumber: syncedAccount.accountNumber,
+          });
+          this.logger.log(`Synced virtual account for loan ${account.loan.loanNumber} → ${syncedAccount.accountNumber}`);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        // Check if it's still pending on Paystack's side
+        if (errorMessage.includes('No dedicated account found') || errorMessage.includes('pending assignment')) {
+          results.stillPending++;
+          results.details.push({
+            loanNumber: account.loan.loanNumber,
+            status: 'still_pending',
+            reason: 'Paystack has not assigned account number yet',
+          });
+        } else {
+          results.failed++;
+          results.details.push({
+            loanNumber: account.loan.loanNumber,
+            status: 'failed',
+            reason: errorMessage,
+          });
+          this.logger.error(`Failed to sync virtual account for loan ${account.loan.loanNumber}`, error as Error);
+        }
+      }
+    }
+
+    return results;
+  }
+
   /** Manually links an unmatched transaction to a virtual account and runs it through the same reconciliation logic — Accounting's resolution action. */
   async resolveUnmatched(transactionId: string, virtualAccountId: string): Promise<unknown> {
     const transaction = await this.prisma.virtualAccountTransaction.findUnique({ where: { id: transactionId } });

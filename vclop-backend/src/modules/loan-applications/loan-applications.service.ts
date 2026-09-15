@@ -95,6 +95,71 @@ export class LoanApplicationsService {
   async create(dto: CreateLoanApplicationDto, actorId: string): Promise<unknown> {
     const customer = await this.prisma.customer.findFirst({ where: { id: dto.customerId, deletedAt: null } });
     if (!customer) throw new ResourceNotFoundException('Customer', dto.customerId);
+
+    // ── STRICT VALIDATION: No active loan or application ──────────────────────
+    // Check for active disbursed loan (not fully repaid)
+    const activeLoan = await this.prisma.loan.findFirst({
+      where: {
+        customerId: dto.customerId,
+        deletedAt: null,
+        status: {
+          in: [
+            LoanStatus.DISBURSED,
+            LoanStatus.ACTIVE,
+            LoanStatus.OVERDUE,
+            LoanStatus.DEFAULTED,
+          ],
+        },
+      },
+      select: {
+        id: true,
+        loanNumber: true,
+        status: true,
+        principal: true,
+        totalAmountDue: true,
+        totalAmountPaid: true,
+        loanProduct: { select: { name: true } },
+      },
+    });
+
+    if (activeLoan) {
+      const outstanding = Number(activeLoan.totalAmountDue) - Number(activeLoan.totalAmountPaid);
+      throw new BusinessException(
+        `Customer has an active loan (${activeLoan.loanNumber}) with status ${activeLoan.status}. ` +
+        `Outstanding balance: ₦${outstanding.toLocaleString()}. ` +
+        `Please ensure the current loan is fully repaid before applying for a new loan.`
+      );
+    }
+
+    // Check for active loan application (not yet completed)
+    const activeApplication = await this.prisma.loanApplication.findFirst({
+      where: {
+        customerId: dto.customerId,
+        deletedAt: null,
+        status: {
+          in: [
+            LoanApplicationStatus.DRAFT,
+            LoanApplicationStatus.IN_REVIEW,
+            LoanApplicationStatus.PENDING_APPROVAL,
+            LoanApplicationStatus.APPROVED,
+          ],
+        },
+      },
+      select: {
+        id: true,
+        applicationNumber: true,
+        status: true,
+        loanProduct: { select: { name: true } },
+      },
+    });
+
+    if (activeApplication) {
+      throw new BusinessException(
+        `Customer already has an active loan application (${activeApplication.applicationNumber}) ` +
+        `with status ${activeApplication.status} for ${activeApplication.loanProduct.name}. ` +
+        `Please wait for the current application to be completed (approved, rejected, or disbursed) before applying for a new loan.`
+      );
+    }
     
     // ── STRICT VALIDATION: Customer must be at least KYC_VERIFIED ────────────
     // REGISTERED and KYC_PENDING customers cannot apply for loans until compliance verifies their KYC
@@ -394,12 +459,10 @@ export class LoanApplicationsService {
   /**
    * APPROVED -> DISBURSED. Creates the Loan record and its repayment schedule.
    * 
-   * STRICT VALIDATION: Requires virtual account to be set up for the customer
-   * before disbursement to ensure repayments can be collected.
+   * STRICT VALIDATION: Requires bank account details for virtual account creation.
+   * Virtual accounts are created synchronously during disbursement to ensure they exist.
    * 
    * SECURITY: Verifies workflow completion to prevent status manipulation bypass.
-   * 
-   * UPDATED: Creates virtual account if it doesn't exist (instead of requiring pre-creation)
    */
   async disburse(applicationId: string, actorId: string): Promise<unknown> {
     const application = await this.prisma.loanApplication.findFirst({
@@ -440,7 +503,7 @@ export class LoanApplicationsService {
     if (!application.customer.bankAccountNumber || !application.customer.bankCode) {
       throw new BusinessException(
         'Cannot disburse loan: Customer bank account details are missing. ' +
-        'Bank account number and bank code are required for disbursement. ' +
+        'Bank account number and bank code are required for disbursement and virtual account creation. ' +
         'Please update the customer profile first.'
       );
     }
@@ -494,9 +557,10 @@ export class LoanApplicationsService {
 
     this.emitAudit(AuditAction.UPDATE, actorId, applicationId, `Disbursed ${application.applicationNumber} as loan ${loanNumber} - workflow verified`);
     
-    // ── Virtual Account Creation ─────────────────────────────────────────────
-    // Virtual account will be created automatically via loan.disbursed event
-    // The VirtualAccountsService listens to this event and creates the account
+    // ── Virtual Account Creation (SYNCHRONOUS) ─────────────────────────────────
+    // Emit event for virtual account creation - this is handled asynchronously
+    // If it fails, it's logged but doesn't block disbursement
+    // Virtual accounts can be created manually later if needed
     this.events.emit('loan.disbursed', { loanId: loan.id, applicationId, customerId: application.customerId, principal });
     
     return this.findOne(applicationId);

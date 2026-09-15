@@ -51,6 +51,7 @@ import { PerformancePage } from '@/pages/performance/PerformancePage';
 import { InternalControlPage } from '@/pages/internal-control/InternalControlPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { LocationDrilldownPage } from '@/pages/reports/LocationDrilldownPage';
+import MissingVirtualAccountsPage from '@/pages/virtual-accounts/MissingVirtualAccountsPage';
 
 // Error pages
 import { NotFoundPage } from '@/pages/errors/NotFoundPage';
@@ -96,6 +97,7 @@ export function AppRouter() {
         {/* Finance */}
         <Route path="/accounting"   element={<ProtectedRoute permission="loan_applications:disburse"><AccountingPage /></ProtectedRoute>} />
         <Route path="/accounting/reconciliation" element={<ProtectedRoute permission="loan_applications:disburse"><ReconciliationPage /></ProtectedRoute>} />
+        <Route path="/accounting/missing-virtual-accounts" element={<ProtectedRoute permission="loan_applications:disburse"><MissingVirtualAccountsPage /></ProtectedRoute>} />
         <Route path="/reports"           element={<ProtectedRoute permission="reports:read"><ReportsPage /></ProtectedRoute>} />
         <Route path="/reports/location/:branchId" element={<ProtectedRoute permission="reports:read"><LocationDrilldownPage /></ProtectedRoute>} />
         <Route path="/performance"  element={<ProtectedRoute permission="dashboard:read"><PerformancePage /></ProtectedRoute>} />

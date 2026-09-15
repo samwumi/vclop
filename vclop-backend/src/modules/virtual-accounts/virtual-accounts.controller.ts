@@ -33,6 +33,42 @@ export class VirtualAccountsController {
     return this.service.findUnmatched();
   }
 
+  @Get('missing/list')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('virtual_accounts:read')
+  @ApiOperation({ summary: 'List all disbursed loans that are missing virtual accounts' })
+  findLoansWithoutVirtualAccounts() {
+    return this.service.findLoansWithoutVirtualAccounts();
+  }
+
+  @Get('pending/list')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('virtual_accounts:read')
+  @ApiOperation({ summary: 'List all virtual accounts stuck in PENDING status (waiting for Paystack)' })
+  findPendingVirtualAccounts() {
+    return this.service.findPendingVirtualAccounts();
+  }
+
+  @Post('missing/create-all')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('virtual_accounts:write')
+  @ApiOperation({ summary: 'Bulk create virtual accounts for all loans that are missing them (fix historical data)' })
+  async bulkCreateMissing() {
+    return ok(await this.service.bulkCreateMissingVirtualAccounts(), 'Bulk virtual account creation completed');
+  }
+
+  @Post('pending/sync-all')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('virtual_accounts:write')
+  @ApiOperation({ summary: 'Bulk sync all PENDING virtual accounts with Paystack to get account numbers' })
+  async bulkSyncPending() {
+    return ok(await this.service.bulkSyncPendingVirtualAccounts(), 'Bulk sync completed');
+  }
+
   @Get('loan/:loanId')
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
