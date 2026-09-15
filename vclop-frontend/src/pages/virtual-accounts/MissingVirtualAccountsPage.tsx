@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle2, XCircle, RefreshCw, AlertTriangle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/Badge';
-import api from '@/lib/axios';
+import { api } from '@/lib/axios';
 
 interface LoanWithoutVA {
   loanId: string;
@@ -114,22 +113,6 @@ export default function MissingVirtualAccountsPage() {
     if (window.confirm(`Sync ${pendingAccounts?.length || 0} pending virtual accounts with Paystack?`)) {
       bulkSyncMutation.mutate();
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   return (
