@@ -238,7 +238,6 @@ export function NewLoanPage() {
                       </button>
                     </div>
                   </div>
-                )}                  </div>
                 )}
 
                 {/* KYC verified - good to go */}
