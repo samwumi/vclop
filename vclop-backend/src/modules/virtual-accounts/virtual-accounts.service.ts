@@ -311,22 +311,26 @@ export class VirtualAccountsService {
         virtualAccount: null,
       },
       include: {
-        customer: {
-          select: {
-            id: true,
-            customerNumber: true,
-            firstName: true,
-            lastName: true,
-            businessName: true,
-            phone: true,
-            email: true,
-            bankAccountNumber: true,
-            bankCode: true,
-          },
-        },
-        loanProduct: {
-          select: {
-            name: true,
+        loanApplication: {
+          include: {
+            customer: {
+              select: {
+                id: true,
+                customerNumber: true,
+                firstName: true,
+                lastName: true,
+                businessName: true,
+                phone: true,
+                email: true,
+                bankAccountNumber: true,
+                bankCode: true,
+              },
+            },
+            loanProduct: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
@@ -337,13 +341,13 @@ export class VirtualAccountsService {
       loanId: loan.id,
       loanNumber: loan.loanNumber,
       customerId: loan.customerId,
-      customerNumber: loan.customer.customerNumber,
-      customerName: loan.customer.businessName ?? `${loan.customer.firstName} ${loan.customer.lastName}`,
-      customerPhone: loan.customer.phone,
-      customerEmail: loan.customer.email,
-      hasBankAccount: !!(loan.customer.bankAccountNumber && loan.customer.bankCode),
+      customerNumber: loan.loanApplication.customer.customerNumber,
+      customerName: loan.loanApplication.customer.businessName ?? `${loan.loanApplication.customer.firstName} ${loan.loanApplication.customer.lastName}`,
+      customerPhone: loan.loanApplication.customer.phone,
+      customerEmail: loan.loanApplication.customer.email,
+      hasBankAccount: !!(loan.loanApplication.customer.bankAccountNumber && loan.loanApplication.customer.bankCode),
       principal: loan.principal,
-      loanProduct: loan.loanProduct.name,
+      loanProduct: loan.loanApplication.loanProduct.name,
       disbursedAt: loan.createdAt,
     }));
   }
@@ -363,19 +367,23 @@ export class VirtualAccountsService {
       include: {
         loan: {
           include: {
-            customer: {
-              select: {
-                customerNumber: true,
-                firstName: true,
-                lastName: true,
-                businessName: true,
-                phone: true,
-                email: true,
-              },
-            },
-            loanProduct: {
-              select: {
-                name: true,
+            loanApplication: {
+              include: {
+                customer: {
+                  select: {
+                    customerNumber: true,
+                    firstName: true,
+                    lastName: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+                loanProduct: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -388,12 +396,12 @@ export class VirtualAccountsService {
       virtualAccountId: va.id,
       loanId: va.loanId,
       loanNumber: va.loan.loanNumber,
-      customerNumber: va.loan.customer.customerNumber,
-      customerName: va.loan.customer.businessName ?? `${va.loan.customer.firstName} ${va.loan.customer.lastName}`,
-      customerPhone: va.loan.customer.phone,
-      customerEmail: va.loan.customer.email,
+      customerNumber: va.loan.loanApplication.customer.customerNumber,
+      customerName: va.loan.loanApplication.customer.businessName ?? `${va.loan.loanApplication.customer.firstName} ${va.loan.loanApplication.customer.lastName}`,
+      customerPhone: va.loan.loanApplication.customer.phone,
+      customerEmail: va.loan.loanApplication.customer.email,
       principal: va.loan.principal,
-      loanProduct: va.loan.loanProduct.name,
+      loanProduct: va.loan.loanApplication.loanProduct.name,
       pendingAccountNumber: va.accountNumber,
       createdAt: va.createdAt,
       daysPending: Math.floor((Date.now() - va.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
@@ -414,11 +422,15 @@ export class VirtualAccountsService {
     const loansWithoutVA = await this.prisma.loan.findMany({
       where: { virtualAccount: null },
       include: {
-        customer: {
-          select: {
-            id: true,
-            bankAccountNumber: true,
-            bankCode: true,
+        loanApplication: {
+          include: {
+            customer: {
+              select: {
+                id: true,
+                bankAccountNumber: true,
+                bankCode: true,
+              },
+            },
           },
         },
       },
@@ -434,7 +446,7 @@ export class VirtualAccountsService {
 
     for (const loan of loansWithoutVA) {
       // Skip if customer has no bank account (virtual account creation will fail)
-      if (!loan.customer.bankAccountNumber || !loan.customer.bankCode) {
+      if (!loan.loanApplication.customer.bankAccountNumber || !loan.loanApplication.customer.bankCode) {
         results.skipped++;
         results.details.push({
           loanNumber: loan.loanNumber,

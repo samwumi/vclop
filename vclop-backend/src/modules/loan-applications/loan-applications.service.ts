@@ -101,12 +101,9 @@ export class LoanApplicationsService {
     const activeLoan = await this.prisma.loan.findFirst({
       where: {
         customerId: dto.customerId,
-        deletedAt: null,
         status: {
           in: [
-            LoanStatus.DISBURSED,
             LoanStatus.ACTIVE,
-            LoanStatus.OVERDUE,
             LoanStatus.DEFAULTED,
           ],
         },
@@ -116,17 +113,13 @@ export class LoanApplicationsService {
         loanNumber: true,
         status: true,
         principal: true,
-        totalAmountDue: true,
-        totalAmountPaid: true,
-        loanProduct: { select: { name: true } },
+        totalRepayable: true,
       },
     });
 
     if (activeLoan) {
-      const outstanding = Number(activeLoan.totalAmountDue) - Number(activeLoan.totalAmountPaid);
       throw new BusinessException(
         `Customer has an active loan (${activeLoan.loanNumber}) with status ${activeLoan.status}. ` +
-        `Outstanding balance: ₦${outstanding.toLocaleString()}. ` +
         `Please ensure the current loan is fully repaid before applying for a new loan.`
       );
     }
@@ -135,12 +128,14 @@ export class LoanApplicationsService {
     const activeApplication = await this.prisma.loanApplication.findFirst({
       where: {
         customerId: dto.customerId,
-        deletedAt: null,
         status: {
           in: [
             LoanApplicationStatus.DRAFT,
-            LoanApplicationStatus.IN_REVIEW,
-            LoanApplicationStatus.PENDING_APPROVAL,
+            LoanApplicationStatus.SUBMITTED,
+            LoanApplicationStatus.COMPLIANCE_REVIEW,
+            LoanApplicationStatus.AWAITING_INFORMATION,
+            LoanApplicationStatus.INTERNAL_CONTROL_REVIEW,
+            LoanApplicationStatus.ACCOUNTING_REVIEW,
             LoanApplicationStatus.APPROVED,
           ],
         },
