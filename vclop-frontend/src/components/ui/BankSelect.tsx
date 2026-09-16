@@ -105,10 +105,17 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
   }, [isOpen]);
 
   const handleSelect = (bank: Bank) => {
+    console.log('BankSelect: Selected bank =', bank);
     onChange(bank.code);
     setIsOpen(false);
     setSearchQuery('');
   };
+
+  // DEBUG: Log when dropdown opens/closes
+  useEffect(() => {
+    console.log('BankSelect: isOpen =', isOpen);
+    console.log('BankSelect: filteredBanks count =', filteredBanks.length);
+  }, [isOpen, filteredBanks.length]);
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
