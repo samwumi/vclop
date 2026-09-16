@@ -150,107 +150,39 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
           </div>
 
           {/* Bank list */}
-          <div className="overflow-y-auto max-h-64">
-            {/* DEBUG */}
-            <div className="px-4 py-2 bg-yellow-50 text-xs">
-              DEBUG: filteredBanks.length = {filteredBanks.length}
-            </div>
+          <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '8px', backgroundColor: 'white' }}>
+            {/* DEBUG - Simple text that MUST show */}
+            <p style={{ padding: '8px', backgroundColor: 'yellow', margin: '4px 0' }}>
+              🔍 DEBUG: Total banks = {filteredBanks.length}
+            </p>
             
             {filteredBanks.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-gray-500">
+              <p style={{ padding: '16px', textAlign: 'center' }}>
                 No banks found matching "{searchQuery}"
-              </div>
+              </p>
             ) : (
-              <>
-                {/* Simple list first - test if grouping is the issue */}
-                <div>
-                  <div className="px-3 py-2 text-xs font-semibold bg-blue-50">
-                    All Banks ({filteredBanks.length})
-                  </div>
-                  {filteredBanks.slice(0, 10).map(bank => (
-                    <button
-                      key={bank.code}
-                      type="button"
-                      onClick={() => handleSelect(bank)}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-brand-50"
-                    >
-                      {bank.name} ({bank.code})
-                    </button>
-                  ))}
-                </div>
-
-                {/* Commercial Banks */}
-                {groupedBanks.commercial.length > 0 && (
-                  <div>
-                    <div className="sticky top-0 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-100">
-                      Commercial Banks
-                    </div>
-                    {groupedBanks.commercial.map(bank => (
-                      <button
-                        key={bank.code}
-                        type="button"
-                        onClick={() => handleSelect(bank)}
-                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-brand-50 transition-colors ${
-                          bank.code === value ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>{bank.name}</span>
-                          <span className="text-xs text-gray-400 font-mono">{bank.code}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Fintech Banks */}
-                {groupedBanks.fintech.length > 0 && (
-                  <div>
-                    <div className="sticky top-0 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 uppercase tracking-wide border-b border-emerald-100">
-                      Fintech Banks (OPay, PalmPay, Kuda, etc.)
-                    </div>
-                    {groupedBanks.fintech.map(bank => (
-                      <button
-                        key={bank.code}
-                        type="button"
-                        onClick={() => handleSelect(bank)}
-                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-brand-50 transition-colors ${
-                          bank.code === value ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>{bank.name}</span>
-                          <span className="text-xs text-gray-400 font-mono">{bank.code}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Microfinance Banks */}
-                {groupedBanks.microfinance.length > 0 && (
-                  <div>
-                    <div className="sticky top-0 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-100">
-                      Microfinance Banks
-                    </div>
-                    {groupedBanks.microfinance.map(bank => (
-                      <button
-                        key={bank.code}
-                        type="button"
-                        onClick={() => handleSelect(bank)}
-                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-brand-50 transition-colors ${
-                          bank.code === value ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>{bank.name}</span>
-                          <span className="text-xs text-gray-400 font-mono">{bank.code}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
+              <div>
+                <p style={{ padding: '8px', backgroundColor: 'lightblue', fontWeight: 'bold' }}>
+                  All Banks ({filteredBanks.length})
+                </p>
+                {filteredBanks.slice(0, 10).map(bank => (
+                  <button
+                    key={bank.code}
+                    type="button"
+                    onClick={() => handleSelect(bank)}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '12px',
+                      border: 'none',
+                      backgroundColor: 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {bank.name} ({bank.code})
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         </div>
