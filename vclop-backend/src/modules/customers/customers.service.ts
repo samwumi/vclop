@@ -301,12 +301,65 @@ export class CustomersService {
   async remove(id: string, actorId: string): Promise<void> {
     const customer = await this.assertExists(id);
 
+    // ── SAFETY VALIDATIONS: Prevent deletion of customers with financial records ──
+    
+    // Check for any loan applications
+    const applicationCount = await this.prisma.loanApplication.count({
+      where: { customerId: id },
+    });
+    
+    if (applicationCount > 0) {
+      throw new BusinessException(
+        `Cannot delete customer ${customer.customerNumber}. ` +
+        `Customer has ${applicationCount} loan application(s) on record. ` +
+        `Deleting customers with financial history is not allowed for compliance and audit purposes.`
+      );
+    }
+
+    // Check for any loans (via loan applications)
+    const loanCount = await this.prisma.loan.count({
+      where: { loanApplication: { customerId: id } },
+    });
+    
+    if (loanCount > 0) {
+      throw new BusinessException(
+        `Cannot delete customer ${customer.customerNumber}. ` +
+        `Customer has ${loanCount} loan(s) on record. ` +
+        `Deleting customers with loan history is not allowed for compliance and audit purposes.`
+      );
+    }
+
+    // Check for any customer documents uploaded
+    const documentCount = await this.prisma.customerDocument.count({
+      where: { customerId: id },
+    });
+    
+    if (documentCount > 0) {
+      throw new BusinessException(
+        `Cannot delete customer ${customer.customerNumber}. ` +
+        `Customer has ${documentCount} document(s) uploaded. ` +
+        `Please remove all documents first before deleting the customer.`
+      );
+    }
+
+    // Only allow deletion of PROSPECT or REGISTERED customers with no financial activity
+    const allowedStatuses: CustomerStatus[] = [CustomerStatus.PROSPECT, CustomerStatus.REGISTERED];
+    if (!allowedStatuses.includes(customer.status)) {
+      throw new BusinessException(
+        `Cannot delete customer ${customer.customerNumber}. ` +
+        `Only customers with status PROSPECT or REGISTERED can be deleted. ` +
+        `Current status: ${customer.status}. ` +
+        `Customers with ELIGIBLE, ACTIVE_BORROWER, or INELIGIBLE status have financial activity and cannot be deleted.`
+      );
+    }
+
+    // All checks passed - proceed with soft delete
     await this.prisma.customer.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
 
-    this.emitAudit(AuditAction.DELETE, actorId, id, `Deleted customer ${customer.customerNumber}`);
+    this.emitAudit(AuditAction.DELETE, actorId, id, `Deleted customer ${customer.customerNumber} (${customer.status})`);
   }
 
   isEligible(status: CustomerStatus): boolean {
