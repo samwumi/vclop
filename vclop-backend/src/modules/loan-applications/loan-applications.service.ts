@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AuditAction, InstallmentStatus, InterestType, LoanApplicationStatus, LoanStatus, RepaymentFrequency } from '@prisma/client';
+import { AuditAction, CustomerStatus, InstallmentStatus, InterestType, LoanApplicationStatus, LoanStatus, RepaymentFrequency } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { paginate } from '../../common/utils/pagination.util';
@@ -546,6 +546,12 @@ export class LoanApplicationsService {
       });
 
       await tx.loanApplication.update({ where: { id: application.id }, data: { status: LoanApplicationStatus.DISBURSED } });
+
+      // Update customer status to ACTIVE_BORROWER (they now have a disbursed loan)
+      await tx.customer.update({
+        where: { id: application.customerId },
+        data: { status: CustomerStatus.ACTIVE_BORROWER },
+      });
 
       return created;
     });
