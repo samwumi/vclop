@@ -265,25 +265,25 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
 
         {/* Header */}
         <div className="panel-header">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900 font-mono">{application.applicationNumber}</h2>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-semibold text-gray-900 font-mono truncate">{application.applicationNumber}</h2>
               {customer && (
-                <p className="text-sm text-gray-500 mt-0.5">
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5 truncate">
                   {customer.firstName} {customer.lastName}
-                  <span className="text-gray-400 ml-1">· {customer.phone}</span>
+                  <span className="text-gray-400 ml-1 hidden sm:inline">· {customer.phone}</span>
                 </p>
               )}
             </div>
-            <button onClick={onClose} className="btn-ghost btn-icon w-8 h-8 text-gray-400">✕</button>
+            <button onClick={onClose} className="btn-ghost btn-icon w-8 h-8 text-gray-400 flex-shrink-0">✕</button>
           </div>
-          <div className="flex gap-3 mt-2 text-xs text-gray-500">
-            <span>₦{Number(application.amount).toLocaleString()}</span>
-            <span>·</span>
+          <div className="flex flex-wrap gap-2 mt-3 text-xs text-gray-500">
+            <span className="font-medium">₦{Number(application.amount).toLocaleString()}</span>
+            <span className="hidden sm:inline">·</span>
             <span>{application.tenureDays} days</span>
-            <span>·</span>
-            <span>{application.loanProduct?.name ?? '—'}</span>
-            <span>·</span>
+            <span className="hidden sm:inline">·</span>
+            <span className="hidden sm:inline">{application.loanProduct?.name ?? '—'}</span>
+            <span className="hidden sm:inline">·</span>
             <Badge variant={application.status === 'COMPLIANCE_REVIEW' ? 'yellow' : application.status === 'AWAITING_INFORMATION' ? 'blue' : 'gray'}>
               {application.status.replace(/_/g, ' ')}
             </Badge>
@@ -297,8 +297,11 @@ export function ComplianceReviewPanel({ application, onClose }: Props) {
               key={id}
               onClick={() => setTab(id)}
               className={tab === id ? 'panel-tab-active' : 'panel-tab'}
+              title={label}
             >
-              <Icon className="w-3.5 h-3.5" />{label}
+              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">{label}</span>
+              <span className="sm:hidden">{label.split(' ')[0]}</span>
             </button>
           ))}
         </div>
