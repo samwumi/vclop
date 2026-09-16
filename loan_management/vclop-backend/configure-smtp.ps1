@@ -1,144 +1,200 @@
-# ============================================================================
-# SMTP Configuration Helper
-# ============================================================================
+# SMTP Configuration Helper Script
+# This script helps you quickly configure email settings
 
-Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host "SMTP Configuration Helper" -ForegroundColor Cyan
-Write-Host "========================================`n" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "   VCLOP Email Configuration Helper" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
 
-Write-Host "Choose your email service:`n" -ForegroundColor Yellow
-Write-Host "1. Mailtrap (Recommended for testing - FREE)" -ForegroundColor White
-Write-Host "2. Gmail (For testing only)" -ForegroundColor White
-Write-Host "3. SendGrid (Production)" -ForegroundColor White
-Write-Host "4. AWS SES (Production)" -ForegroundColor White
-Write-Host "5. Keep current settings" -ForegroundColor Gray
+# Check if .env file exists
+$envFile = ".env"
+if (-not (Test-Path $envFile)) {
+    Write-Host "❌ .env file not found!" -ForegroundColor Red
+    Write-Host ""
+    
+    if (Test-Path ".env.example") {
+        Write-Host "Creating .env from .env.example..." -ForegroundColor Yellow
+        Copy-Item ".env.example" ".env"
+        Write-Host "✅ .env file created!" -ForegroundColor Green
+    } else {
+        Write-Host "Creating new .env file..." -ForegroundColor Yellow
+        New-Item -Path ".env" -ItemType File
+        Write-Host "✅ .env file created!" -ForegroundColor Green
+    }
+    Write-Host ""
+}
 
-$choice = Read-Host "`nEnter choice (1-5)"
+Write-Host "Choose your email provider:" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  1. Mailtrap (Easiest - Testing only)" -ForegroundColor White
+Write-Host "     → Safe testing, no real emails sent" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  2. Gmail (Real emails)" -ForegroundColor White
+Write-Host "     → Requires App Password setup" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  3. SendGrid (Production)" -ForegroundColor White
+Write-Host "     → Best for production use" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  4. Custom SMTP" -ForegroundColor White
+Write-Host "     → Manual configuration" -ForegroundColor Gray
+Write-Host ""
 
-$envPath = ".env"
-$envContent = Get-Content $envPath -Raw
+$choice = Read-Host "Enter your choice (1-4)"
 
 switch ($choice) {
     "1" {
-        Write-Host "`n📧 Mailtrap Setup" -ForegroundColor Cyan
-        Write-Host "=================`n" -ForegroundColor Cyan
-        Write-Host "1. Go to https://mailtrap.io and sign up (free tier available)" -ForegroundColor White
-        Write-Host "2. Create a new inbox or use the default one" -ForegroundColor White
-        Write-Host "3. Click 'SMTP Settings' in your inbox" -ForegroundColor White
-        Write-Host "4. Copy the credentials and paste below`n" -ForegroundColor White
+        Write-Host ""
+        Write-Host "🔧 MAILTRAP CONFIGURATION" -ForegroundColor Cyan
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Follow these steps:" -ForegroundColor Yellow
+        Write-Host "1. Go to: https://mailtrap.io" -ForegroundColor White
+        Write-Host "2. Sign up for free" -ForegroundColor White
+        Write-Host "3. Go to Email Testing → Inboxes" -ForegroundColor White
+        Write-Host "4. Copy your SMTP credentials" -ForegroundColor White
+        Write-Host ""
         
         $username = Read-Host "Enter Mailtrap Username"
         $password = Read-Host "Enter Mailtrap Password" -AsSecureString
-        $passwordPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
-        )
+        $passwordText = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
         
-        $envContent = $envContent -replace 'MAIL_HOST=.*', 'MAIL_HOST=sandbox.smtp.mailtrap.io'
-        $envContent = $envContent -replace 'MAIL_PORT=.*', 'MAIL_PORT=2525'
-        $envContent = $envContent -replace 'MAIL_SECURE=.*', 'MAIL_SECURE=false'
-        $envContent = $envContent -replace 'MAIL_USER=.*', "MAIL_USER=$username"
-        $envContent = $envContent -replace 'MAIL_PASSWORD=.*', "MAIL_PASSWORD=$passwordPlain"
-        $envContent = $envContent -replace 'MAIL_FROM_EMAIL=.*', 'MAIL_FROM_EMAIL=noreply@vclop.local'
+        # Update .env file
+        $content = Get-Content $envFile -Raw
+        $content = $content -replace "MAIL_HOST=.*", "MAIL_HOST=sandbox.smtp.mailtrap.io"
+        $content = $content -replace "MAIL_PORT=.*", "MAIL_PORT=2525"
+        $content = $content -replace "MAIL_SECURE=.*", "MAIL_SECURE=false"
+        $content = $content -replace "MAIL_USER=.*", "MAIL_USER=$username"
+        $content = $content -replace "MAIL_PASSWORD=.*", "MAIL_PASSWORD=$passwordText"
+        $content = $content -replace "MAIL_FROM_NAME=.*", "MAIL_FROM_NAME=VCLOP"
+        $content = $content -replace "MAIL_FROM_EMAIL=.*", "MAIL_FROM_EMAIL=noreply@vclop.local"
         
-        Set-Content $envPath $envContent
-        Write-Host "`n✓ Mailtrap configured successfully!" -ForegroundColor Green
-        Write-Host "  All test emails will be caught by Mailtrap" -ForegroundColor White
+        Set-Content -Path $envFile -Value $content
+        
+        Write-Host ""
+        Write-Host "✅ Mailtrap configured successfully!" -ForegroundColor Green
     }
     
     "2" {
-        Write-Host "`n📧 Gmail Setup" -ForegroundColor Cyan
-        Write-Host "=============`n" -ForegroundColor Cyan
-        Write-Host "1. Enable 2-Factor Authentication on your Gmail account" -ForegroundColor White
-        Write-Host "2. Go to https://myaccount.google.com/apppasswords" -ForegroundColor White
-        Write-Host "3. Generate a new app password" -ForegroundColor White
-        Write-Host "4. Copy the 16-character password (no spaces)`n" -ForegroundColor White
+        Write-Host ""
+        Write-Host "🔧 GMAIL CONFIGURATION" -ForegroundColor Cyan
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "⚠️  IMPORTANT: You need a Gmail App Password!" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Follow these steps:" -ForegroundColor Yellow
+        Write-Host "1. Go to: https://myaccount.google.com/security" -ForegroundColor White
+        Write-Host "2. Enable 2-Step Verification" -ForegroundColor White
+        Write-Host "3. Go to: https://myaccount.google.com/apppasswords" -ForegroundColor White
+        Write-Host "4. Create an App Password for 'Mail'" -ForegroundColor White
+        Write-Host "5. Copy the 16-character password" -ForegroundColor White
+        Write-Host ""
         
         $email = Read-Host "Enter your Gmail address"
-        $appPassword = Read-Host "Enter App Password (16 characters)" -AsSecureString
-        $appPasswordPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($appPassword)
-        )
+        $password = Read-Host "Enter App Password (16 characters)" -AsSecureString
+        $passwordText = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
         
-        $envContent = $envContent -replace 'MAIL_HOST=.*', 'MAIL_HOST=smtp.gmail.com'
-        $envContent = $envContent -replace 'MAIL_PORT=.*', 'MAIL_PORT=587'
-        $envContent = $envContent -replace 'MAIL_SECURE=.*', 'MAIL_SECURE=false'
-        $envContent = $envContent -replace 'MAIL_USER=.*', "MAIL_USER=$email"
-        $envContent = $envContent -replace 'MAIL_PASSWORD=.*', "MAIL_PASSWORD=$appPasswordPlain"
-        $envContent = $envContent -replace 'MAIL_FROM_EMAIL=.*', "MAIL_FROM_EMAIL=$email"
+        # Update .env file
+        $content = Get-Content $envFile -Raw
+        $content = $content -replace "MAIL_HOST=.*", "MAIL_HOST=smtp.gmail.com"
+        $content = $content -replace "MAIL_PORT=.*", "MAIL_PORT=587"
+        $content = $content -replace "MAIL_SECURE=.*", "MAIL_SECURE=false"
+        $content = $content -replace "MAIL_USER=.*", "MAIL_USER=$email"
+        $content = $content -replace "MAIL_PASSWORD=.*", "MAIL_PASSWORD=$passwordText"
+        $content = $content -replace "MAIL_FROM_NAME=.*", "MAIL_FROM_NAME=VCLOP"
+        $content = $content -replace "MAIL_FROM_EMAIL=.*", "MAIL_FROM_EMAIL=$email"
         
-        Set-Content $envPath $envContent
-        Write-Host "`n✓ Gmail configured successfully!" -ForegroundColor Green
-        Write-Host "⚠ Note: Gmail has a limit of 500 emails/day" -ForegroundColor Yellow
+        Set-Content -Path $envFile -Value $content
+        
+        Write-Host ""
+        Write-Host "✅ Gmail configured successfully!" -ForegroundColor Green
     }
     
     "3" {
-        Write-Host "`n📧 SendGrid Setup" -ForegroundColor Cyan
-        Write-Host "================`n" -ForegroundColor Cyan
-        Write-Host "1. Sign up at https://sendgrid.com" -ForegroundColor White
-        Write-Host "2. Create an API key with 'Mail Send' permission" -ForegroundColor White
-        Write-Host "3. Verify your sender domain/email`n" -ForegroundColor White
+        Write-Host ""
+        Write-Host "🔧 SENDGRID CONFIGURATION" -ForegroundColor Cyan
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Follow these steps:" -ForegroundColor Yellow
+        Write-Host "1. Go to: https://sendgrid.com" -ForegroundColor White
+        Write-Host "2. Sign up (free: 100 emails/day)" -ForegroundColor White
+        Write-Host "3. Settings → API Keys → Create API Key" -ForegroundColor White
+        Write-Host "4. Copy the API key (starts with SG.)" -ForegroundColor White
+        Write-Host ""
         
         $apiKey = Read-Host "Enter SendGrid API Key" -AsSecureString
-        $apiKeyPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($apiKey)
-        )
-        $fromEmail = Read-Host "Enter FROM email address"
+        $apiKeyText = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($apiKey))
+        $fromEmail = Read-Host "Enter sender email (e.g., noreply@yourdomain.com)"
         
-        $envContent = $envContent -replace 'MAIL_HOST=.*', 'MAIL_HOST=smtp.sendgrid.net'
-        $envContent = $envContent -replace 'MAIL_PORT=.*', 'MAIL_PORT=587'
-        $envContent = $envContent -replace 'MAIL_SECURE=.*', 'MAIL_SECURE=false'
-        $envContent = $envContent -replace 'MAIL_USER=.*', 'MAIL_USER=apikey'
-        $envContent = $envContent -replace 'MAIL_PASSWORD=.*', "MAIL_PASSWORD=$apiKeyPlain"
-        $envContent = $envContent -replace 'MAIL_FROM_EMAIL=.*', "MAIL_FROM_EMAIL=$fromEmail"
+        # Update .env file
+        $content = Get-Content $envFile -Raw
+        $content = $content -replace "MAIL_HOST=.*", "MAIL_HOST=smtp.sendgrid.net"
+        $content = $content -replace "MAIL_PORT=.*", "MAIL_PORT=587"
+        $content = $content -replace "MAIL_SECURE=.*", "MAIL_SECURE=false"
+        $content = $content -replace "MAIL_USER=.*", "MAIL_USER=apikey"
+        $content = $content -replace "MAIL_PASSWORD=.*", "MAIL_PASSWORD=$apiKeyText"
+        $content = $content -replace "MAIL_FROM_NAME=.*", "MAIL_FROM_NAME=VCLOP"
+        $content = $content -replace "MAIL_FROM_EMAIL=.*", "MAIL_FROM_EMAIL=$fromEmail"
         
-        Set-Content $envPath $envContent
-        Write-Host "`n✓ SendGrid configured successfully!" -ForegroundColor Green
+        Set-Content -Path $envFile -Value $content
+        
+        Write-Host ""
+        Write-Host "✅ SendGrid configured successfully!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "⚠️  Remember to verify your sender email in SendGrid!" -ForegroundColor Yellow
     }
     
     "4" {
-        Write-Host "`n📧 AWS SES Setup" -ForegroundColor Cyan
-        Write-Host "===============`n" -ForegroundColor Cyan
-        Write-Host "1. Set up AWS SES in your AWS account" -ForegroundColor White
-        Write-Host "2. Verify your domain" -ForegroundColor White
-        Write-Host "3. Create SMTP credentials in SES console`n" -ForegroundColor White
+        Write-Host ""
+        Write-Host "🔧 CUSTOM SMTP CONFIGURATION" -ForegroundColor Cyan
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+        Write-Host ""
         
-        $region = Read-Host "Enter AWS region (e.g., us-east-1)"
-        $username = Read-Host "Enter SMTP Username"
+        $host = Read-Host "Enter SMTP Host (e.g., smtp.hostinger.com)"
+        $port = Read-Host "Enter SMTP Port (usually 587 or 465)"
+        $secure = Read-Host "Use SSL/TLS? (true/false)" 
+        $user = Read-Host "Enter SMTP Username"
         $password = Read-Host "Enter SMTP Password" -AsSecureString
-        $passwordPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
-        )
-        $fromEmail = Read-Host "Enter FROM email address"
+        $passwordText = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+        $fromEmail = Read-Host "Enter sender email"
         
-        $envContent = $envContent -replace 'MAIL_HOST=.*', "MAIL_HOST=email-smtp.$region.amazonaws.com"
-        $envContent = $envContent -replace 'MAIL_PORT=.*', 'MAIL_PORT=587'
-        $envContent = $envContent -replace 'MAIL_SECURE=.*', 'MAIL_SECURE=false'
-        $envContent = $envContent -replace 'MAIL_USER=.*', "MAIL_USER=$username"
-        $envContent = $envContent -replace 'MAIL_PASSWORD=.*', "MAIL_PASSWORD=$passwordPlain"
-        $envContent = $envContent -replace 'MAIL_FROM_EMAIL=.*', "MAIL_FROM_EMAIL=$fromEmail"
+        # Update .env file
+        $content = Get-Content $envFile -Raw
+        $content = $content -replace "MAIL_HOST=.*", "MAIL_HOST=$host"
+        $content = $content -replace "MAIL_PORT=.*", "MAIL_PORT=$port"
+        $content = $content -replace "MAIL_SECURE=.*", "MAIL_SECURE=$secure"
+        $content = $content -replace "MAIL_USER=.*", "MAIL_USER=$user"
+        $content = $content -replace "MAIL_PASSWORD=.*", "MAIL_PASSWORD=$passwordText"
+        $content = $content -replace "MAIL_FROM_NAME=.*", "MAIL_FROM_NAME=VCLOP"
+        $content = $content -replace "MAIL_FROM_EMAIL=.*", "MAIL_FROM_EMAIL=$fromEmail"
         
-        Set-Content $envPath $envContent
-        Write-Host "`n✓ AWS SES configured successfully!" -ForegroundColor Green
-    }
-    
-    "5" {
-        Write-Host "`nKeeping current SMTP settings..." -ForegroundColor Gray
+        Set-Content -Path $envFile -Value $content
+        
+        Write-Host ""
+        Write-Host "✅ Custom SMTP configured successfully!" -ForegroundColor Green
     }
     
     default {
-        Write-Host "`n✗ Invalid choice" -ForegroundColor Red
-        exit 1
+        Write-Host ""
+        Write-Host "❌ Invalid choice!" -ForegroundColor Red
+        exit
     }
 }
 
-if ($choice -ne "5") {
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "Configuration Complete!" -ForegroundColor Green
-    Write-Host "========================================`n" -ForegroundColor Cyan
-    
-    Write-Host "Your .env file has been updated." -ForegroundColor White
-    Write-Host "`nNext steps:" -ForegroundColor Yellow
-    Write-Host "1. Start the backend server: npm run start:dev" -ForegroundColor White
-    Write-Host "2. Test email sending (see setup-email-auth.md)" -ForegroundColor White
-    Write-Host "`n✓ Ready to send emails!`n" -ForegroundColor Green
-}
+Write-Host ""
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "📧 Email configuration saved to .env file" -ForegroundColor Green
+Write-Host ""
+Write-Host "Next steps:" -ForegroundColor Yellow
+Write-Host "  1. Restart your backend server" -ForegroundColor White
+Write-Host "  2. Test forgot password flow" -ForegroundColor White
+Write-Host "  3. Check email delivery" -ForegroundColor White
+Write-Host ""
+Write-Host "To restart backend:" -ForegroundColor Yellow
+Write-Host "  npm run start:dev" -ForegroundColor White
+Write-Host ""
+Write-Host "To test email:" -ForegroundColor Yellow
+Write-Host "  See CONFIGURE_SMTP_NOW.md for test commands" -ForegroundColor White
+Write-Host ""
+Write-Host "✅ Configuration complete!" -ForegroundColor Green
+Write-Host ""
