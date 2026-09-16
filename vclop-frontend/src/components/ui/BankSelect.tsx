@@ -126,10 +126,21 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-80 overflow-hidden">
+        <div style={{
+          position: 'absolute',
+          zIndex: 9999,
+          width: '100%',
+          marginTop: '4px',
+          backgroundColor: 'white',
+          border: '4px solid red',
+          borderRadius: '12px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+          maxHeight: '400px',
+          overflow: 'hidden'
+        }}>
           {/* Search input */}
-          <div className="sticky top-0 bg-white border-b border-gray-100 p-2">
-            <div className="relative">
+          <div style={{ position: 'sticky', top: 0, backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '8px' }}>
+            <div style={{ position: 'relative' }}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 ref={inputRef}
@@ -137,7 +148,16 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Type to search banks..."
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                style={{
+                  width: '100%',
+                  paddingLeft: '36px',
+                  paddingRight: '12px',
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                  fontSize: '14px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px'
+                }}
               />
             </div>
           </div>
