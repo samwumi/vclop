@@ -163,19 +163,35 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
           </div>
 
           {/* Bank list */}
-          <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '8px', backgroundColor: 'white' }}>
-            {/* DEBUG - Simple text that MUST show */}
-            <p style={{ padding: '8px', backgroundColor: 'yellow', margin: '4px 0' }}>
+          <div style={{ 
+            maxHeight: '300px', 
+            overflowY: 'auto', 
+            padding: '16px', 
+            backgroundColor: '#fff3cd',
+            border: '3px solid orange',
+            minHeight: '100px'
+          }}>
+            {/* DEBUG - This MUST be visible */}
+            <div style={{ 
+              padding: '12px', 
+              backgroundColor: 'yellow', 
+              margin: '8px 0',
+              border: '2px solid black',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}>
               🔍 DEBUG: Total banks = {filteredBanks.length}
-            </p>
+              <br />
+              Is array empty? {filteredBanks.length === 0 ? 'YES' : 'NO'}
+            </div>
             
             {filteredBanks.length === 0 ? (
-              <p style={{ padding: '16px', textAlign: 'center' }}>
+              <p style={{ padding: '16px', textAlign: 'center', fontSize: '14px', color: 'red', fontWeight: 'bold' }}>
                 No banks found matching "{searchQuery}"
               </p>
             ) : (
-              <div>
-                <p style={{ padding: '8px', backgroundColor: 'lightblue', fontWeight: 'bold' }}>
+              <div style={{ backgroundColor: '#e0f2fe', padding: '8px', border: '2px solid blue' }}>
+                <p style={{ padding: '8px', backgroundColor: 'lightblue', fontWeight: 'bold', fontSize: '14px' }}>
                   All Banks ({filteredBanks.length})
                 </p>
                 {filteredBanks.slice(0, 10).map(bank => (
@@ -184,13 +200,18 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
                     type="button"
                     onClick={() => handleSelect(bank)}
                     style={{
+                      display: 'block',
                       width: '100%',
                       textAlign: 'left',
                       padding: '12px',
-                      border: 'none',
-                      backgroundColor: 'white',
-                      cursor: 'pointer'
+                      margin: '4px 0',
+                      border: '1px solid #333',
+                      backgroundColor: '#fff',
+                      cursor: 'pointer',
+                      fontSize: '14px'
                     }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#fff'}
                   >
                     {bank.name} ({bank.code})
                   </button>
