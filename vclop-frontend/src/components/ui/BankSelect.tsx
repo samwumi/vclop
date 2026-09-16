@@ -62,6 +62,10 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // DEBUG: Log banks array
+  console.log('BankSelect: NIGERIAN_BANKS count =', NIGERIAN_BANKS.length);
+  console.log('BankSelect: First 3 banks =', NIGERIAN_BANKS.slice(0, 3));
+
   // Get selected bank
   const selectedBank = NIGERIAN_BANKS.find(b => b.code === value);
 
