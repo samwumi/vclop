@@ -136,11 +136,17 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
           border: '4px solid red',
           borderRadius: '12px',
           boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-          maxHeight: '400px',
-          overflow: 'visible'
+          maxHeight: '500px',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
           {/* Search input */}
-          <div style={{ position: 'sticky', top: 0, backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '8px' }}>
+          <div style={{ 
+            flexShrink: 0,
+            backgroundColor: 'white', 
+            borderBottom: '1px solid #e5e7eb', 
+            padding: '8px' 
+          }}>
             <div style={{ position: 'relative' }}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -165,15 +171,15 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
 
           {/* Bank list */}
           <div style={{ 
-            maxHeight: '300px', 
+            flex: 1,
             overflowY: 'auto', 
             padding: '16px', 
             backgroundColor: '#fff3cd',
-            border: '3px solid orange',
-            minHeight: '100px'
+            border: '3px solid orange'
           }}>
             {/* DEBUG - This MUST be visible */}
             <div style={{ 
+              display: 'block',
               padding: '12px', 
               backgroundColor: 'yellow', 
               margin: '8px 0',
@@ -184,6 +190,8 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
               🔍 DEBUG: Total banks = {filteredBanks.length}
               <br />
               Is array empty? {filteredBanks.length === 0 ? 'YES' : 'NO'}
+              <br />
+              This text should be visible!
             </div>
             
             {filteredBanks.length === 0 ? (
