@@ -9,6 +9,7 @@ import { BusinessException, ResourceNotFoundException } from '../../common/excep
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto, UpdateCustomerStatusDto } from './dto/update-customer.dto';
 import { FormSubmissionsService } from '../forms/form-submissions.service';
+import { calculateProfileCompletion } from './utils/profile-completion.util';
 
 // Stages a customer must have passed through before a loan application can be
 // opened against them. Kept here (not in the Business Rules Engine) because
@@ -118,6 +119,27 @@ export class CustomersService {
 
     const customerNumber = await this.generateCustomerNumber();
 
+    // Calculate profile completion percentage
+    const profileCompletion = calculateProfileCompletion({
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      phone: dto.phone,
+      email: dto.email ?? null,
+      dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
+      gender: dto.gender ?? null,
+      bvn: dto.bvn ?? null,
+      nin: dto.nin ?? null,
+      bankAccountNumber: dto.bankAccountNumber ?? null,
+      bankCode: dto.bankCode ?? null,
+      residentialAddress: dto.residentialAddress ?? null,
+      businessAddress: dto.businessAddress ?? null,
+      employerName: dto.employerName ?? null,
+      employmentType: dto.employmentType ?? null,
+      monthlyIncome: dto.monthlyIncome ? Number(dto.monthlyIncome) : null,
+      nokName: dto.nokName ?? null,
+      nokPhone: dto.nokPhone ?? null,
+    });
+
     const customer = await this.prisma.customer.create({
       data: {
         customerNumber,
@@ -164,6 +186,7 @@ export class CustomersService {
         consentVersion: 'v1.0',
         branchId: dto.branchId,
         assignedOfficerId: dto.assignedOfficerId ?? actorId,
+        profileCompletion,
         createdById: actorId,
         updatedById: actorId,
       },
@@ -179,6 +202,33 @@ export class CustomersService {
     if (dto.phone || dto.email || dto.bvn || dto.nin) {
       await this.assertNoDuplicates(dto.phone, dto.email, dto.bvn, dto.nin, id);
     }
+
+    // Fetch current customer data to calculate updated profile completion
+    const current = await this.prisma.customer.findUnique({ where: { id } });
+    if (!current) throw new ResourceNotFoundException('Customer', id);
+
+    // Merge current data with updates for profile completion calculation
+    const mergedData = {
+      firstName: dto.firstName ?? current.firstName,
+      lastName: dto.lastName ?? current.lastName,
+      phone: dto.phone ?? current.phone,
+      email: dto.email !== undefined ? dto.email : current.email,
+      dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : current.dateOfBirth,
+      gender: dto.gender ?? current.gender,
+      bvn: dto.bvn !== undefined ? dto.bvn : current.bvn,
+      nin: dto.nin !== undefined ? dto.nin : current.nin,
+      bankAccountNumber: dto.bankAccountNumber !== undefined ? dto.bankAccountNumber : current.bankAccountNumber,
+      bankCode: dto.bankCode !== undefined ? dto.bankCode : current.bankCode,
+      residentialAddress: dto.residentialAddress !== undefined ? dto.residentialAddress : current.residentialAddress,
+      businessAddress: dto.businessAddress !== undefined ? dto.businessAddress : current.businessAddress,
+      employerName: dto.employerName !== undefined ? dto.employerName : current.employerName,
+      employmentType: dto.employmentType !== undefined ? dto.employmentType : current.employmentType,
+      monthlyIncome: dto.monthlyIncome !== undefined ? Number(dto.monthlyIncome) : (current.monthlyIncome ? Number(current.monthlyIncome) : null),
+      nokName: dto.nokName !== undefined ? dto.nokName : current.nokName,
+      nokPhone: dto.nokPhone !== undefined ? dto.nokPhone : current.nokPhone,
+    };
+
+    const profileCompletion = calculateProfileCompletion(mergedData);
 
     const updated = await this.prisma.customer.update({
       where: { id },
@@ -214,6 +264,7 @@ export class CustomersService {
         ...(dto.nokAddress !== undefined && { nokAddress: dto.nokAddress }),
         ...(dto.bankAccountNumber !== undefined && { bankAccountNumber: dto.bankAccountNumber }),
         ...(dto.bankCode !== undefined && { bankCode: dto.bankCode }),
+        profileCompletion,
         updatedById: actorId,
       },
     });
