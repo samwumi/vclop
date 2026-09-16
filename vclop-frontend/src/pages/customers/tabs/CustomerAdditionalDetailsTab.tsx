@@ -360,15 +360,64 @@ export function CustomerAdditionalDetailsTab({ customerId, existingValues, profi
               />
             </div>
             <div>
-              <label className="form-label text-xs">Bank Code (CBN code)</label>
-              <input
+              <label className="form-label text-xs">Bank</label>
+              <select
                 className="form-input"
                 value={form.bankCode}
                 onChange={e => set('bankCode', e.target.value)}
-                placeholder="e.g. 044 (Access), 011 (First Bank)"
-                maxLength={6}
-              />
-              <p className="form-hint">3–6 digit CBN bank code. Common: Access=044, GTB=058, Zenith=057, UBA=033, First=011, Wema=035</p>
+              >
+                <option value="">-- Select Bank --</option>
+                <optgroup label="Commercial Banks">
+                  <option value="044">Access Bank (044)</option>
+                  <option value="011">First Bank of Nigeria (011)</option>
+                  <option value="058">Guaranty Trust Bank - GTBank (058)</option>
+                  <option value="057">Zenith Bank (057)</option>
+                  <option value="033">United Bank for Africa - UBA (033)</option>
+                  <option value="214">First City Monument Bank - FCMB (214)</option>
+                  <option value="070">Fidelity Bank (070)</option>
+                  <option value="221">Stanbic IBTC Bank (221)</option>
+                  <option value="232">Sterling Bank (232)</option>
+                  <option value="032">Union Bank of Nigeria (032)</option>
+                  <option value="035">Wema Bank (035)</option>
+                  <option value="050">Ecobank Nigeria (050)</option>
+                  <option value="030">Heritage Bank (030)</option>
+                  <option value="082">Keystone Bank (082)</option>
+                  <option value="076">Polaris Bank (076)</option>
+                  <option value="101">Providus Bank (101)</option>
+                  <option value="215">Unity Bank (215)</option>
+                  <option value="023">Citibank Nigeria (023)</option>
+                  <option value="068">Standard Chartered Bank (068)</option>
+                  <option value="102">Titan Trust Bank (102)</option>
+                  <option value="100">SunTrust Bank (100)</option>
+                  <option value="00103">Globus Bank (00103)</option>
+                </optgroup>
+                <optgroup label="Fintech Banks (OPay, PalmPay, Kuda, etc.)">
+                  <option value="999992">OPay (999992)</option>
+                  <option value="999991">PalmPay (999991)</option>
+                  <option value="50211">Kuda Bank (50211)</option>
+                  <option value="50515">Moniepoint (50515)</option>
+                  <option value="565">Carbon (565)</option>
+                  <option value="125">Rubies Bank (125)</option>
+                  <option value="566">VFD Microfinance Bank (566)</option>
+                </optgroup>
+                <optgroup label="Microfinance Banks">
+                  <option value="50563">LAPO Microfinance Bank (50563)</option>
+                  <option value="602">Accion Microfinance Bank (602)</option>
+                  <option value="51204">AB Microfinance Bank (51204)</option>
+                  <option value="551">Covenant Microfinance Bank (551)</option>
+                  <option value="562">Ekondo Microfinance Bank (562)</option>
+                  <option value="608">Fina Trust Microfinance Bank (608)</option>
+                  <option value="501">Fortis Microfinance Bank (501)</option>
+                  <option value="51244">IBILE Microfinance Bank (51244)</option>
+                  <option value="50457">Infinity MFB (50457)</option>
+                  <option value="50552">Mutual Benefits MFB (50552)</option>
+                  <option value="552">NPF Microfinance Bank (552)</option>
+                  <option value="50767">Regent Microfinance Bank (50767)</option>
+                  <option value="50994">Rephidim Microfinance Bank (50994)</option>
+                  <option value="50746">Page Financials (50746)</option>
+                </optgroup>
+              </select>
+              <p className="form-hint">Select the customer's bank. Includes OPay, PalmPay, Kuda, and all Nigerian banks.</p>
             </div>
           </div>
         </div>
