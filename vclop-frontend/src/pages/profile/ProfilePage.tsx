@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { User, Lock, Save, Mail, Clock } from 'lucide-react';
 import { api } from '@/lib/axios';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
-import { OtpInput } from '@/components/auth/OtpInput';
 import { useAuthStore } from '@/stores/auth.store';
 import type { ApiResponse } from '@/types/api.types';
 import type { AuthUser } from '@/types/auth.types';
@@ -322,16 +321,30 @@ export function ProfilePage() {
                   </p>
                 </div>
 
-                <div className="py-2">
-                  <OtpInput
+                <div className="py-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
+                    Enter 6-Digit OTP Code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
                     value={otpCode}
-                    onChange={(value) => {
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                       setOtpCode(value);
                       setOtpError('');
                     }}
                     disabled={passwordMutation.isPending}
-                    error={!!otpError}
                     autoFocus
+                    placeholder="123456"
+                    className="w-full max-w-xs mx-auto block text-center text-2xl font-mono tracking-widest px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                    style={{
+                      letterSpacing: '0.5em',
+                      fontSize: '28px',
+                      height: '60px',
+                      borderColor: otpError ? '#ef4444' : '#d1d5db'
+                    }}
                   />
                 </div>
 
