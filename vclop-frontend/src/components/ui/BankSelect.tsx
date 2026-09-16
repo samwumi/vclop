@@ -125,7 +125,8 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
           border: '1px solid #e5e7eb',
           borderRadius: '12px',
           boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-          maxHeight: '320px',
+          maxHeight: '380px',
+          minHeight: '320px',
           display: 'flex',
           flexDirection: 'column'
         }}>
