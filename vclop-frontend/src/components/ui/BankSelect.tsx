@@ -78,13 +78,6 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
       )
     : NIGERIAN_BANKS;
 
-  // Group filtered banks by type
-  const groupedBanks = {
-    commercial: filteredBanks.filter(b => b.type === 'commercial'),
-    fintech: filteredBanks.filter(b => b.type === 'fintech'),
-    microfinance: filteredBanks.filter(b => b.type === 'microfinance'),
-  };
-
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
