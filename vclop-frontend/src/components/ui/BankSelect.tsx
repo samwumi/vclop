@@ -125,7 +125,7 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
           border: '1px solid #e5e7eb',
           borderRadius: '12px',
           boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-          maxHeight: '400px',
+          maxHeight: '320px',
           display: 'flex',
           flexDirection: 'column'
         }}>
@@ -181,7 +181,7 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
                       display: 'block',
                       width: '100%',
                       textAlign: 'left',
-                      padding: '10px 12px',
+                      padding: '12px 12px',
                       margin: '2px 0',
                       border: 'none',
                       backgroundColor: bank.code === value ? '#eff6ff' : 'white',
