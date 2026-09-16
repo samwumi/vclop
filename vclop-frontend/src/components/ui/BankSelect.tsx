@@ -151,12 +151,34 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
 
           {/* Bank list */}
           <div className="overflow-y-auto max-h-64">
+            {/* DEBUG */}
+            <div className="px-4 py-2 bg-yellow-50 text-xs">
+              DEBUG: filteredBanks.length = {filteredBanks.length}
+            </div>
+            
             {filteredBanks.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-gray-500">
                 No banks found matching "{searchQuery}"
               </div>
             ) : (
               <>
+                {/* Simple list first - test if grouping is the issue */}
+                <div>
+                  <div className="px-3 py-2 text-xs font-semibold bg-blue-50">
+                    All Banks ({filteredBanks.length})
+                  </div>
+                  {filteredBanks.slice(0, 10).map(bank => (
+                    <button
+                      key={bank.code}
+                      type="button"
+                      onClick={() => handleSelect(bank)}
+                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-brand-50"
+                    >
+                      {bank.name} ({bank.code})
+                    </button>
+                  ))}
+                </div>
+
                 {/* Commercial Banks */}
                 {groupedBanks.commercial.length > 0 && (
                   <div>
