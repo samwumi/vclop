@@ -124,19 +124,20 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
+      {/* Dropdown - FIXED positioning to avoid parent overflow clipping */}
+      {isOpen && containerRef.current && (
         <div style={{
-          position: 'absolute',
+          position: 'fixed',
+          top: containerRef.current.getBoundingClientRect().bottom + window.scrollY + 4,
+          left: containerRef.current.getBoundingClientRect().left + window.scrollX,
+          width: containerRef.current.offsetWidth,
           zIndex: 9999,
-          width: '100%',
-          marginTop: '4px',
           backgroundColor: 'white',
           border: '4px solid red',
           borderRadius: '12px',
           boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
           maxHeight: '400px',
-          overflow: 'hidden'
+          overflow: 'visible'
         }}>
           {/* Search input */}
           <div style={{ position: 'sticky', top: 0, backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '8px' }}>
