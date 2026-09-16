@@ -6,6 +6,7 @@ import {
   ApiTags, ApiOperation, ApiBearerAuth, ApiResponse,
 } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -27,7 +28,10 @@ import { ok } from '../../common/utils/response.util';
 @ApiTags('Auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly config: ConfigService,
+  ) {}
 
   // ──────────────────────────────────────────────────────────────────────────
   // POST /api/v1/auth/login
@@ -181,11 +185,14 @@ export class AuthController {
   })
   async requestPasswordChangeOTP(
     @CurrentUser() user: RequestUser,
-  ): Promise<{ message: string; data: { expiresIn: string; maskedEmail: string } }> {
+  ): Promise<{ message: string; data: { expiresInSeconds: number; expiresIn: string; maskedEmail: string } }> {
     const { maskedEmail } = await this.authService.requestPasswordChangeOTP(user.id);
+    const expiresInMinutes = this.config.get<number>('auth.otpExpiresIn') ?? 10;
+    const expiresInSeconds = expiresInMinutes * 60;
     return ok(
       { 
-        expiresIn: '10 minutes', 
+        expiresInSeconds,
+        expiresIn: `${expiresInMinutes} minutes`, 
         maskedEmail 
       }, 
       'OTP has been sent to your registered email address'
