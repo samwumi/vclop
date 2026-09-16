@@ -318,17 +318,25 @@ export class AuthService {
     // Generate and store OTP
     const otp = await this.tokenService.issuePasswordChangeOTP(userId);
 
+    // DEBUG: Log OTP and variables
+    this.logger.log(`Generated OTP: ${otp} for user ${userId}`);
+    this.logger.log(`User details: ${user.firstName} ${user.email}`);
+
     // Send OTP via email
+    const otpVariables = {
+      firstName: user.firstName,
+      otp: otp,
+      expiresIn: `${this.config.get<number>('auth.otpExpiresIn') ?? 10} minutes`,
+      year: new Date().getFullYear(),
+    };
+    
+    this.logger.log(`Emitting event with variables: ${JSON.stringify(otpVariables)}`);
+    
     this.events.emit('notification.send', {
       recipientId: user.id,
       recipientEmail: user.email,
       event: 'auth.password_change_otp',
-      variables: {
-        firstName: user.firstName,
-        otp: otp,
-        expiresIn: `${this.config.get<number>('auth.otpExpiresIn') ?? 10} minutes`,
-        year: new Date().getFullYear(),
-      },
+      variables: otpVariables,
     });
 
     // Mask email for privacy (show first 2 and last domain)

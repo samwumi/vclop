@@ -84,6 +84,10 @@ export class NotificationsService {
       return;
     }
 
+    // DEBUG: Log variables before Handlebars compilation
+    this.logger.log(`Variables received: ${JSON.stringify(payload.variables)}`);
+    this.logger.log(`Template event: ${payload.event}`);
+
     const subject = template.subject
       ? Handlebars.compile(template.subject)(payload.variables ?? {})
       : undefined;
@@ -109,9 +113,15 @@ export class NotificationsService {
 
     try {
       if (channel === NotificationChannel.EMAIL && payload.recipientEmail) {
-        await this.sendEmail(payload.recipientEmail, subject ?? '', template.bodyHtml
+        const compiledHtml = template.bodyHtml
           ? Handlebars.compile(template.bodyHtml)(payload.variables ?? {})
-          : (body ?? ''));
+          : (body ?? '');
+        
+        // DEBUG: Log compiled HTML to see if variables were replaced
+        this.logger.log(`Compiled HTML length: ${compiledHtml.length}`);
+        this.logger.log(`HTML contains placeholders: ${compiledHtml.includes('{{')}`);
+        
+        await this.sendEmail(payload.recipientEmail, subject ?? '', compiledHtml);
       }
 
       await this.prisma.notificationLog.update({
