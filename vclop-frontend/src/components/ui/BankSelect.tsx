@@ -62,10 +62,6 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // DEBUG: Log banks array
-  console.log('BankSelect: NIGERIAN_BANKS count =', NIGERIAN_BANKS.length);
-  console.log('BankSelect: First 3 banks =', NIGERIAN_BANKS.slice(0, 3));
-
   // Get selected bank
   const selectedBank = NIGERIAN_BANKS.find(b => b.code === value);
 
@@ -98,17 +94,10 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
   }, [isOpen]);
 
   const handleSelect = (bank: Bank) => {
-    console.log('BankSelect: Selected bank =', bank);
     onChange(bank.code);
     setIsOpen(false);
     setSearchQuery('');
   };
-
-  // DEBUG: Log when dropdown opens/closes
-  useEffect(() => {
-    console.log('BankSelect: isOpen =', isOpen);
-    console.log('BankSelect: filteredBanks count =', filteredBanks.length);
-  }, [isOpen, filteredBanks.length]);
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -124,7 +113,7 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Dropdown - FIXED positioning to avoid parent overflow clipping */}
+      {/* Dropdown */}
       {isOpen && containerRef.current && (
         <div style={{
           position: 'fixed',
@@ -133,10 +122,10 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
           width: containerRef.current.offsetWidth,
           zIndex: 9999,
           backgroundColor: 'white',
-          border: '4px solid red',
+          border: '1px solid #e5e7eb',
           borderRadius: '12px',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-          maxHeight: '500px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+          maxHeight: '400px',
           display: 'flex',
           flexDirection: 'column'
         }}>
@@ -145,7 +134,8 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
             flexShrink: 0,
             backgroundColor: 'white', 
             borderBottom: '1px solid #e5e7eb', 
-            padding: '8px' 
+            padding: '8px',
+            borderRadius: '12px 12px 0 0'
           }}>
             <div style={{ position: 'relative' }}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -163,7 +153,8 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
                   paddingBottom: '8px',
                   fontSize: '14px',
                   border: '1px solid #d1d5db',
-                  borderRadius: '8px'
+                  borderRadius: '8px',
+                  outline: 'none'
                 }}
               />
             </div>
@@ -173,37 +164,15 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
           <div style={{ 
             flex: 1,
             overflowY: 'auto', 
-            padding: '16px', 
-            backgroundColor: '#fff3cd',
-            border: '3px solid orange'
+            padding: '4px'
           }}>
-            {/* DEBUG - This MUST be visible */}
-            <div style={{ 
-              display: 'block',
-              padding: '12px', 
-              backgroundColor: 'yellow', 
-              margin: '8px 0',
-              border: '2px solid black',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}>
-              🔍 DEBUG: Total banks = {filteredBanks.length}
-              <br />
-              Is array empty? {filteredBanks.length === 0 ? 'YES' : 'NO'}
-              <br />
-              This text should be visible!
-            </div>
-            
             {filteredBanks.length === 0 ? (
-              <p style={{ padding: '16px', textAlign: 'center', fontSize: '14px', color: 'red', fontWeight: 'bold' }}>
+              <p style={{ padding: '24px 16px', textAlign: 'center', fontSize: '14px', color: '#9ca3af' }}>
                 No banks found matching "{searchQuery}"
               </p>
             ) : (
-              <div style={{ backgroundColor: '#e0f2fe', padding: '8px', border: '2px solid blue' }}>
-                <p style={{ padding: '8px', backgroundColor: 'lightblue', fontWeight: 'bold', fontSize: '14px' }}>
-                  All Banks ({filteredBanks.length})
-                </p>
-                {filteredBanks.slice(0, 10).map(bank => (
+              <div>
+                {filteredBanks.map(bank => (
                   <button
                     key={bank.code}
                     type="button"
@@ -212,17 +181,27 @@ export function BankSelect({ value, onChange, className = '', placeholder = 'Sea
                       display: 'block',
                       width: '100%',
                       textAlign: 'left',
-                      padding: '12px',
-                      margin: '4px 0',
-                      border: '1px solid #333',
-                      backgroundColor: '#fff',
+                      padding: '10px 12px',
+                      margin: '2px 0',
+                      border: 'none',
+                      backgroundColor: bank.code === value ? '#eff6ff' : 'white',
                       cursor: 'pointer',
-                      fontSize: '14px'
+                      fontSize: '14px',
+                      borderRadius: '6px',
+                      color: bank.code === value ? '#1e40af' : '#374151',
+                      fontWeight: bank.code === value ? '500' : '400'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+                    onMouseOver={(e) => {
+                      if (bank.code !== value) e.currentTarget.style.backgroundColor = '#f9fafb';
+                    }}
+                    onMouseOut={(e) => {
+                      if (bank.code !== value) e.currentTarget.style.backgroundColor = 'white';
+                    }}
                   >
-                    {bank.name} ({bank.code})
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{bank.name}</span>
+                      <span style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace' }}>{bank.code}</span>
+                    </div>
                   </button>
                 ))}
               </div>
