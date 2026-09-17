@@ -837,7 +837,7 @@ export class LoanApplicationsService {
    * Compliance Officer reviews application and documents
    * Can APPROVE (proceed), REJECT (end), or REQUEST_CHANGES (return to LO)
    */
-  async complianceReview(applicationId: string, dto: { decision: string; feedback?: string }, actor: { id: string; branchId?: string }): Promise<unknown> {
+  async complianceReview(applicationId: string, dto: { decision: string; feedback?: string }, actor: { id: string; branchId?: string | null }): Promise<unknown> {
     const application = await this.prisma.loanApplication.findFirst({ 
       where: { id: applicationId, deletedAt: null },
       include: { customer: true, loanProduct: true }
