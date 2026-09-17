@@ -78,9 +78,22 @@ export class DashboardService {
     const canManage  = isAdministrator || user.permissions.has('settings:update');
     const ownedApplications = !canReview && !canDisburse && !canIC && !canManage;
     const applicationScope  = ownedApplications ? { submittedById: user.id } : {};
-    const [myTasks, applications, complianceQueue, icQueue, approvedLoans, collectionCases, transportRequests, overdueInstallments] = await Promise.all([
+    
+    const [
+      myTasks, 
+      applications, 
+      complianceQueue, 
+      needsAttention,  // NEW: Applications returned to LO
+      icQueue, 
+      approvedLoans, 
+      collectionCases, 
+      transportRequests, 
+      overdueInstallments
+    ] = await Promise.all([
       this.prisma.workflowTask.count({ where: { assignedToId: user.id, status: { in: ['PENDING', 'IN_PROGRESS', 'OVERDUE'] } } }),
       this.prisma.loanApplication.count({ where: { deletedAt: null, ...applicationScope } }),
+      
+      // Compliance queue: applications awaiting CO review
       canReview ? this.prisma.loanApplication.count({
         where: {
           deletedAt: null,
@@ -89,6 +102,16 @@ export class DashboardService {
           ...(user.branchId && !isAdministrator ? { customer: { branchId: user.branchId } } : {}),
         },
       }) : 0,
+      
+      // NEW: Loan Officer's applications that need attention
+      ownedApplications ? this.prisma.loanApplication.count({
+        where: {
+          deletedAt: null,
+          status: 'NEEDS_ATTENTION',
+          assignedToId: user.id, // Only show apps assigned to this LO
+        },
+      }) : 0,
+      
       canIC     ? this.prisma.loanApplication.count({ where: { deletedAt: null, status: 'INTERNAL_CONTROL_REVIEW' } }) : 0,
       canDisburse ? this.prisma.loanApplication.count({ where: { deletedAt: null, status: 'APPROVED' } }) : 0,
       canCollect  ? this.prisma.collectionCase.count({ where: { status: { in: ['OPEN', 'PROMISE_TO_PAY', 'BROKEN_PROMISE', 'LEGAL'] } } }) : 0,
@@ -103,7 +126,18 @@ export class DashboardService {
       : canCollect  ? 'COLLECTIONS'
       : 'LOAN_OFFICER';
 
-    return { role, myTasks, applications, complianceQueue, icQueue, approvedLoans, collectionCases, transportRequests, overdueInstallments };
+    return { 
+      role, 
+      myTasks, 
+      applications, 
+      complianceQueue, 
+      needsAttention,  // NEW: Include in response
+      icQueue, 
+      approvedLoans, 
+      collectionCases, 
+      transportRequests, 
+      overdueInstallments 
+    };
   }
 
   // ────────────────────────────────────────────────────────────────────────────
