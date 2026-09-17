@@ -19,12 +19,12 @@ export class TransportService {
 
     if (!requests.length) return requests;
 
-    const appIds = [...new Set(requests.map((r) => r.loanApplicationId))];
+    const appIds = [...new Set(requests.filter(r => r.loanApplicationId).map((r) => r.loanApplicationId!))];
     const requesterIds = [...new Set(requests.map((r) => r.requestedById))];
     const reviewerIds = [...new Set(requests.filter((r) => r.reviewedById).map((r) => r.reviewedById!))];
 
     const [applications, requesters, reviewers] = await Promise.all([
-      this.prisma.loanApplication.findMany({
+      appIds.length ? this.prisma.loanApplication.findMany({
         where: { id: { in: appIds } },
         select: {
           id: true,
@@ -36,7 +36,7 @@ export class TransportService {
             },
           },
         },
-      }),
+      }) : [],
       this.prisma.user.findMany({ where: { id: { in: requesterIds } }, select: { id: true, firstName: true, lastName: true, branchId: true } }),
       reviewerIds.length ? this.prisma.user.findMany({ where: { id: { in: reviewerIds } }, select: { id: true, firstName: true, lastName: true } }) : [],
     ]);
@@ -46,7 +46,7 @@ export class TransportService {
 
     let enriched = requests.map((r) => ({
       ...r,
-      loanApplication: appMap[r.loanApplicationId] ?? null,
+      loanApplication: r.loanApplicationId ? (appMap[r.loanApplicationId] ?? null) : null,
       requestedBy: userMap[r.requestedById] ?? null,
       reviewedBy: r.reviewedById ? (userMap[r.reviewedById] ?? null) : null,
     }));
@@ -61,9 +61,13 @@ export class TransportService {
 
     return enriched;
   }
-  async create(payload: { loanApplicationId: string; purpose: string; location: string; customerCount?: number; distanceKm?: number; estimatedCost?: number; suggestedAmount?: number }, actorId: string) {
-    const application = await this.prisma.loanApplication.findFirst({ where: { id: payload.loanApplicationId, deletedAt: null } });
-    if (!application) throw new ResourceNotFoundException('Loan application', payload.loanApplicationId);
+  async create(payload: { loanApplicationId?: string; purpose: string; location: string; customerCount?: number; distanceKm?: number; estimatedCost?: number; suggestedAmount?: number }, actorId: string) {
+    // Validate loan application if provided
+    if (payload.loanApplicationId) {
+      const application = await this.prisma.loanApplication.findFirst({ where: { id: payload.loanApplicationId, deletedAt: null } });
+      if (!application) throw new ResourceNotFoundException('Loan application', payload.loanApplicationId);
+    }
+    
     const request = await this.prisma.transportRequest.create({
       data: { ...payload, customerCount: payload.customerCount ?? 1, requestedById: actorId },
     });
