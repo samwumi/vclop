@@ -79,7 +79,6 @@ export const loansService = {
     a.click();
     URL.revokeObjectURL(href);
   },
-};
 
   // NEW: Compliance Officer review workflow
   async complianceReview(applicationId: string, decision: 'APPROVE' | 'REQUEST_CHANGES' | 'REJECT', feedback?: string): Promise<LoanApplication> {
@@ -92,3 +91,4 @@ export const loansService = {
     const { data } = await api.patch<ApiResponse<LoanApplication>>(`/loan-applications/${applicationId}/resubmit`, { resubmissionNotes });
     return data.data!;
   },
+};
