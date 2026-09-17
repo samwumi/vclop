@@ -254,6 +254,7 @@ export interface Customer360 {
   timeline: CustomerTimelineEntry[];
 }
 
+// Domain types for VCLOP frontend - Updated with NEEDS_ATTENTION workflow
 export type LoanApplicationStatus = 'DRAFT' | 'SUBMITTED' | 'COMPLIANCE_REVIEW' | 'NEEDS_ATTENTION' | 'AWAITING_INFORMATION' | 'INTERNAL_CONTROL_REVIEW' | 'ACCOUNTING_REVIEW' | 'APPROVED' | 'REJECTED' | 'RETURNED' | 'ESCALATED' | 'DISBURSED' | 'CANCELLED';
 export type LoanStatus = 'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'WRITTEN_OFF';
 export type InstallmentStatus = 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE';
