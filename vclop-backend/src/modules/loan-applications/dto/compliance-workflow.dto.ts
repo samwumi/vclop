@@ -14,7 +14,7 @@ export class ComplianceReviewDto {
   })
   @IsEnum(ComplianceDecision)
   @IsNotEmpty()
-  decision: ComplianceDecision;
+  decision!: ComplianceDecision;
 
   @ApiProperty({ required: false, description: 'Reason for rejection or changes needed' })
   @IsString()
@@ -28,5 +28,5 @@ export class ResubmitApplicationDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
-  resubmissionNotes: string;
+  resubmissionNotes!: string;
 }

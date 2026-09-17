@@ -828,11 +828,6 @@ export class LoanApplicationsService {
       userId, action, module: 'loan-applications', entityId, entityType: 'LoanApplication', description, isSuccess: true,
     });
   }
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
   // ────────────────────────────────────────────────────────────────────────────
   // NEW COMPLIANCE WORKFLOW: LO → CO → LO (if changes needed) → CO → Proceed
@@ -996,3 +991,8 @@ function round2(value: number): number {
 
     return this.findOne(applicationId);
   }
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
