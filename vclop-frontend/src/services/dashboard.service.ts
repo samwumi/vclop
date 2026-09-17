@@ -25,6 +25,7 @@ export interface OperationalSummary {
   collectionCases: number;
   transportRequests: number;
   overdueInstallments: number;
+  needsAttention: number;
 }
 
 export interface LoginActivityPoint {

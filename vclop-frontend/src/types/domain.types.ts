@@ -254,7 +254,7 @@ export interface Customer360 {
   timeline: CustomerTimelineEntry[];
 }
 
-export type LoanApplicationStatus = 'DRAFT' | 'SUBMITTED' | 'COMPLIANCE_REVIEW' | 'AWAITING_INFORMATION' | 'INTERNAL_CONTROL_REVIEW' | 'ACCOUNTING_REVIEW' | 'APPROVED' | 'REJECTED' | 'RETURNED' | 'ESCALATED' | 'DISBURSED' | 'CANCELLED';
+export type LoanApplicationStatus = 'DRAFT' | 'SUBMITTED' | 'COMPLIANCE_REVIEW' | 'NEEDS_ATTENTION' | 'AWAITING_INFORMATION' | 'INTERNAL_CONTROL_REVIEW' | 'ACCOUNTING_REVIEW' | 'APPROVED' | 'REJECTED' | 'RETURNED' | 'ESCALATED' | 'DISBURSED' | 'CANCELLED';
 export type LoanStatus = 'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'WRITTEN_OFF';
 export type InstallmentStatus = 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE';
 export type InterestType = 'FLAT' | 'REDUCING_BALANCE';
@@ -393,6 +393,8 @@ export interface LoanApplication {
   reviewedAt: string | null;
   reviewNotes: string | null;
   rejectionReason: string | null;
+  assignedToId: string | null;
+  complianceFeedback: string | null;
   createdAt: string;
   updatedAt: string;
   customer?: Pick<Customer, 'id' | 'customerNumber' | 'firstName' | 'lastName' | 'phone' | 'status'>;
