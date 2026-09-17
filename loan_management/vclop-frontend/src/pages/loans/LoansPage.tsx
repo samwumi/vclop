@@ -13,6 +13,7 @@ const STATUS_VARIANT: Record<LoanApplicationStatus, 'green' | 'red' | 'yellow' |
   DRAFT: 'gray',
   SUBMITTED: 'yellow',
   COMPLIANCE_REVIEW: 'yellow',
+  NEEDS_ATTENTION: 'red',
   AWAITING_INFORMATION: 'yellow',
   INTERNAL_CONTROL_REVIEW: 'yellow',
   ACCOUNTING_REVIEW: 'blue',

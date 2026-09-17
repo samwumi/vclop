@@ -10,7 +10,7 @@ import { formatDate } from '@/lib/utils';
 import type { LoanApplicationStatus } from '@/types/domain.types';
 
 const STATUS_VARIANT: Record<LoanApplicationStatus, 'green' | 'red' | 'yellow' | 'blue' | 'gray'> = {
-  DRAFT: 'gray', SUBMITTED: 'yellow', COMPLIANCE_REVIEW: 'yellow', AWAITING_INFORMATION: 'yellow', INTERNAL_CONTROL_REVIEW: 'yellow', ACCOUNTING_REVIEW: 'blue', APPROVED: 'blue', DISBURSED: 'green', REJECTED: 'red', RETURNED: 'yellow', ESCALATED: 'red', CANCELLED: 'gray',
+  DRAFT: 'gray', SUBMITTED: 'yellow', COMPLIANCE_REVIEW: 'yellow', NEEDS_ATTENTION: 'red', AWAITING_INFORMATION: 'yellow', INTERNAL_CONTROL_REVIEW: 'yellow', ACCOUNTING_REVIEW: 'blue', APPROVED: 'blue', DISBURSED: 'green', REJECTED: 'red', RETURNED: 'yellow', ESCALATED: 'red', CANCELLED: 'gray',
 };
 
 export function CustomerLoansTab({ customerId }: { customerId: string }) {

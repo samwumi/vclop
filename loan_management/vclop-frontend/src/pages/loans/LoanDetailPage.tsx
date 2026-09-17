@@ -15,7 +15,7 @@ import { formatDate, formatDateTime } from '@/lib/utils';
 import type { LoanApplicationStatus } from '@/types/domain.types';
 
 const STATUS_VARIANT: Record<LoanApplicationStatus, 'green' | 'red' | 'yellow' | 'blue' | 'gray'> = {
-  DRAFT: 'gray', SUBMITTED: 'yellow', COMPLIANCE_REVIEW: 'yellow', AWAITING_INFORMATION: 'yellow', INTERNAL_CONTROL_REVIEW: 'yellow', ACCOUNTING_REVIEW: 'blue', APPROVED: 'blue', REJECTED: 'red', RETURNED: 'yellow', ESCALATED: 'red', DISBURSED: 'green', CANCELLED: 'gray',
+  DRAFT: 'gray', SUBMITTED: 'yellow', COMPLIANCE_REVIEW: 'yellow', NEEDS_ATTENTION: 'red', AWAITING_INFORMATION: 'yellow', INTERNAL_CONTROL_REVIEW: 'yellow', ACCOUNTING_REVIEW: 'blue', APPROVED: 'blue', REJECTED: 'red', RETURNED: 'yellow', ESCALATED: 'red', DISBURSED: 'green', CANCELLED: 'gray',
 };
 
 export function LoanDetailPage() {
