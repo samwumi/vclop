@@ -133,8 +133,7 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
             </div>
 
             <div className="text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <strong>Note:</strong> This is a general transport request not tied to a specific loan application. 
-              It will go through the standard approval workflow.
+              <strong>Note:</strong> Transport requests are standalone and will go through the standard approval workflow.
             </div>
           </div>
 

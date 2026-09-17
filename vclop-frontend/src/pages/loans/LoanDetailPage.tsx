@@ -7,7 +7,6 @@ import { loansService } from '@/services/loans.service';
 import { virtualAccountsService } from '@/services/virtual-accounts.service';
 import { receiptsService } from '@/services/receipts.service';
 import { workflowsService, type WorkflowAction } from '@/services/workflows.service';
-import { transportService } from '@/services/transport.service';
 import { customersService } from '@/services/customers.service';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Badge } from '@/components/ui/Badge';
@@ -49,10 +48,6 @@ export function LoanDetailPage() {
   const [editingGuarantor, setEditingGuarantor] = useState<{ id: string; firstName: string; lastName: string; phone: string; relationship: string } | null>(null);
   const [collateralForm, setCollateralForm] = useState({ description: '', estimatedValue: '' });
   const [repaymentAmount, setRepaymentAmount] = useState('');
-  const [transportForm, setTransportForm] = useState({
-    purpose: '', location: '', customerCount: '', distanceKm: '', estimatedCost: '', suggestedAmount: '',
-  });
-  const [showTransportForm, setShowTransportForm] = useState(false);
   const [showCustomerSection, setShowCustomerSection] = useState(false);
 
   const { data: application, isLoading } = useQuery({
@@ -186,24 +181,6 @@ export function LoanDetailPage() {
     mutationFn: () => loansService.recordRepayment(application!.loan!.id, { amount: Number(repaymentAmount) }),
     onSuccess: () => { toast.success('Repayment recorded'); setRepaymentAmount(''); invalidate(); },
     onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to record repayment'),
-  });
-
-  const transportMutation = useMutation({
-    mutationFn: () => transportService.create({
-      loanApplicationId: id!,
-      purpose: transportForm.purpose,
-      location: transportForm.location,
-      ...(transportForm.customerCount && { customerCount: Number(transportForm.customerCount) }),
-      ...(transportForm.distanceKm && { distanceKm: Number(transportForm.distanceKm) }),
-      ...(transportForm.estimatedCost && { estimatedCost: Number(transportForm.estimatedCost) }),
-      ...(transportForm.suggestedAmount && { suggestedAmount: Number(transportForm.suggestedAmount) }),
-    }),
-    onSuccess: () => {
-      toast.success('Transport request submitted');
-      setTransportForm({ purpose: '', location: '', customerCount: '', distanceKm: '', estimatedCost: '', suggestedAmount: '' });
-      setShowTransportForm(false);
-    },
-    onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to submit transport request'),
   });
 
   // ── Customer completeness for DRAFT submit gate ───────────────────────────
@@ -883,64 +860,6 @@ export function LoanDetailPage() {
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Transport Request — visible to compliance officers for active applications */}
-      {hasPermission('loan_applications:compliance_review') && application.status !== 'DRAFT' && application.status !== 'CANCELLED' && (
-        <div className="card">
-          <div className="card-header flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Car className="w-4 h-4 text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-700">Transport Request</h3>
-            </div>
-            {!showTransportForm && (
-              <button onClick={() => setShowTransportForm(true)} className="btn-secondary btn-sm gap-1.5">
-                <Car className="w-3.5 h-3.5" /> Request Transport
-              </button>
-            )}
-          </div>
-
-          {showTransportForm && (
-            <div className="card-body space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="form-label">Purpose <span className="text-red-500">*</span></label>
-                  <input className="form-input" placeholder="e.g. Field verification visit" value={transportForm.purpose} onChange={(e) => setTransportForm((f) => ({ ...f, purpose: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="form-label">Location <span className="text-red-500">*</span></label>
-                  <input className="form-input" placeholder="Customer address or area" value={transportForm.location} onChange={(e) => setTransportForm((f) => ({ ...f, location: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="form-label">Number of Customers to Visit <span className="text-red-500">*</span></label>
-                  <input type="number" min="1" className="form-input" placeholder="e.g. 5" value={transportForm.customerCount} onChange={(e) => setTransportForm((f) => ({ ...f, customerCount: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="form-label">Distance (km)</label>
-                  <input type="number" className="form-input" placeholder="Estimated km" value={transportForm.distanceKm} onChange={(e) => setTransportForm((f) => ({ ...f, distanceKm: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="form-label">Estimated Cost (₦)</label>
-                  <input type="number" className="form-input" placeholder="Your cost estimate" value={transportForm.estimatedCost} onChange={(e) => setTransportForm((f) => ({ ...f, estimatedCost: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="form-label">Suggested Allowance (₦)</label>
-                  <input type="number" className="form-input" placeholder="Amount you are requesting" value={transportForm.suggestedAmount} onChange={(e) => setTransportForm((f) => ({ ...f, suggestedAmount: e.target.value }))} />
-                </div>
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => transportMutation.mutate()}
-                  disabled={!transportForm.purpose || !transportForm.location || !transportForm.customerCount || transportMutation.isPending}
-                  className="btn-primary btn-sm disabled:opacity-50"
-                >
-                  {transportMutation.isPending ? 'Submitting…' : 'Submit Request'}
-                </button>
-                <button onClick={() => setShowTransportForm(false)} className="btn-ghost btn-sm">Cancel</button>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

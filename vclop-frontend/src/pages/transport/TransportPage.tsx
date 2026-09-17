@@ -177,9 +177,7 @@ export function TransportPage() {
           ] : []
         }
         columns={[
-          { key: 'ref',       label: 'Application #' },
           { key: 'officer',   label: 'Requested By' },
-          { key: 'customer',  label: 'Customer' },
           { key: 'purpose',   label: 'Purpose' },
           { key: 'count',     label: '# Customers', width: '110px' },
           { key: 'amount',    label: 'Amount',       width: '130px' },
@@ -207,20 +205,10 @@ export function TransportPage() {
           <>
             {requests.map((req) => (
               <tr key={req.id}>
-                <td className="font-mono text-xs text-brand-600 font-semibold">
-                  {req.loanApplication?.applicationNumber ?? (
-                    <span className="text-gray-400 italic">General</span>
-                  )}
-                </td>
                 <td className="text-sm text-gray-800">
                   {req.requestedBy
                     ? `${req.requestedBy.firstName} ${req.requestedBy.lastName}`
                     : '—'}
-                </td>
-                <td className="text-sm text-gray-600">
-                  {req.loanApplication?.customer
-                    ? `${req.loanApplication.customer.firstName} ${req.loanApplication.customer.lastName}`
-                    : <span className="text-gray-400 italic">N/A</span>}
                 </td>
                 <td className="text-xs text-gray-600 max-w-[200px] truncate" title={req.purpose}>
                   {req.purpose}
