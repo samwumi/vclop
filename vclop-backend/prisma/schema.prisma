@@ -711,12 +711,14 @@ model LoanApplication {
   tenureDays        Int
   purpose           String?               @db.VarChar(500)
   status            LoanApplicationStatus @default(DRAFT)
+  assignedToId      String?               @db.VarChar(36)  // Loan officer who created/owns this
   submittedById     String?               @db.VarChar(36)
   submittedAt       DateTime?
   reviewedById      String?               @db.VarChar(36)
   reviewedAt        DateTime?
   reviewNotes       String?               @db.VarChar(500)
   rejectionReason   String?               @db.VarChar(500)
+  complianceFeedback String?              @db.Text          // Detailed feedback from CO when returning to LO
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
   deletedAt         DateTime?
@@ -729,6 +731,7 @@ model LoanApplication {
   @@index([customerId])
   @@index([loanProductId])
   @@index([status])
+  @@index([assignedToId])
   @@index([deletedAt])
   @@map("loan_applications")
 }
@@ -1262,6 +1265,7 @@ enum LoanApplicationStatus {
   DRAFT
   SUBMITTED
   COMPLIANCE_REVIEW
+  NEEDS_ATTENTION        // Application returned to LO for corrections
   AWAITING_INFORMATION
   INTERNAL_CONTROL_REVIEW
   ACCOUNTING_REVIEW

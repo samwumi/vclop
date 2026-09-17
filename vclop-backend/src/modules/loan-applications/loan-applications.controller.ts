@@ -171,4 +171,28 @@ export class LoanApplicationsController {
   async getFieldVisits(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.getFieldVisitsForApplication(id);
   }
+
+  // ── NEW COMPLIANCE WORKFLOW ENDPOINTS ─────────────────────────────────────
+
+  @Patch(':id/compliance-review')
+  @RequirePermissions('loan_applications:compliance_review')
+  @ApiOperation({ summary: 'Compliance Officer reviews application - can approve, reject, or request changes' })
+  async complianceReview(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: any,
+    @CurrentUser() actor: RequestUser
+  ) {
+    return ok(await this.service.complianceReview(id, dto, actor), 'Compliance review completed');
+  }
+
+  @Patch(':id/resubmit')
+  @RequirePermissions('loan_applications:update')
+  @ApiOperation({ summary: 'Loan Officer resubmits application after addressing compliance feedback' })
+  async resubmitApplication(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: any,
+    @CurrentUser() actor: RequestUser
+  ) {
+    return ok(await this.service.resubmitApplication(id, dto, actor.id), 'Application resubmitted');
+  }
 }

@@ -156,13 +156,12 @@ export class LoanApplicationsService {
       );
     }
     
-    // ── STRICT VALIDATION: Customer must be at least KYC_VERIFIED ────────────
-    // REGISTERED and KYC_PENDING customers cannot apply for loans until compliance verifies their KYC
-    const LOAN_ELIGIBLE_STATUSES: string[] = ['KYC_VERIFIED', 'ELIGIBLE'];
-    if (!LOAN_ELIGIBLE_STATUSES.includes(customer.status)) {
+    // ── VALIDATION: Customer must be at least REGISTERED ────────────
+    // Loan officers can create applications immediately after registration
+    // Compliance will verify documents as part of the application review process
+    if (customer.status === 'BLACKLISTED') {
       throw new BusinessException(
-        `Customer status is ${customer.status}. Only customers with KYC_VERIFIED or ELIGIBLE status can apply for loans. ` +
-        `Please complete KYC verification first.`
+        `Customer is BLACKLISTED and cannot apply for loans.`
       );
     }
 
@@ -201,18 +200,18 @@ export class LoanApplicationsService {
       );
     }
 
-    // ── STRICT VALIDATION: Document requirements ──────────────────────────────
-    const verifiedDocCount = await this.prisma.customerDocument.count({
+    // ── VALIDATION: Document requirements ──────────────────────────────
+    // At least one document should be uploaded (verification happens during compliance review)
+    const docCount = await this.prisma.customerDocument.count({
       where: {
         customerId: dto.customerId,
-        status: 'VERIFIED', // Only VERIFIED documents count
       },
     });
 
-    if (verifiedDocCount === 0) {
+    if (docCount === 0) {
       throw new BusinessException(
-        'At least one VERIFIED document is required before applying for a loan. ' +
-        'Please upload and verify customer documents first.'
+        'At least one document must be uploaded before applying for a loan. ' +
+        'Documents will be verified by the Compliance Officer during application review.'
       );
     }
 
@@ -236,11 +235,26 @@ export class LoanApplicationsService {
         amount: dto.amount,
         tenureDays: dto.tenureDays,
         purpose: dto.purpose,
-        status: LoanApplicationStatus.DRAFT,
+        status: LoanApplicationStatus.COMPLIANCE_REVIEW, // Goes directly to compliance officer
+        assignedToId: actorId, // Track the loan officer who created it
       },
     });
 
-    this.emitAudit(AuditAction.CREATE, actorId, application.id, `Created loan application ${application.applicationNumber}`);
+    this.emitAudit(AuditAction.CREATE, actorId, application.id, `Created loan application ${application.applicationNumber} - sent to compliance review`);
+    
+    // Notify compliance officers at the customer's branch
+    this.events.emit('notification.send', {
+      recipientRole: 'COMPLIANCE_OFFICER',
+      branchId: customer.branchId,
+      event: 'loan_application.submitted_for_review',
+      variables: {
+        applicationNumber: application.applicationNumber,
+        customerName: `${customer.firstName} ${customer.lastName}`,
+        loanProduct: product.name,
+        amount: dto.amount,
+      },
+    });
+    
     return this.findOne(application.id);
   }
 
@@ -819,3 +833,166 @@ export class LoanApplicationsService {
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // NEW COMPLIANCE WORKFLOW: LO → CO → LO (if changes needed) → CO → Proceed
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Compliance Officer reviews application and documents
+   * Can APPROVE (proceed), REJECT (end), or REQUEST_CHANGES (return to LO)
+   */
+  async complianceReview(applicationId: string, dto: { decision: string; feedback?: string }, actor: { id: string; branchId?: string }): Promise<unknown> {
+    const application = await this.prisma.loanApplication.findFirst({ 
+      where: { id: applicationId, deletedAt: null },
+      include: { customer: true, loanProduct: true }
+    });
+    
+    if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
+
+    if (application.status !== LoanApplicationStatus.COMPLIANCE_REVIEW) {
+      throw new BusinessException(
+        `Application is not in COMPLIANCE_REVIEW status. Current status: ${application.status}`
+      );
+    }
+
+    const { decision, feedback } = dto;
+
+    if (decision === 'APPROVE') {
+      // Move to next stage (Internal Control Review)
+      await this.prisma.loanApplication.update({
+        where: { id: applicationId },
+        data: {
+          status: LoanApplicationStatus.INTERNAL_CONTROL_REVIEW,
+          reviewedById: actor.id,
+          reviewedAt: new Date(),
+          reviewNotes: feedback || 'Compliance approved',
+        },
+      });
+
+      this.emitAudit(AuditAction.APPROVE, actor.id, applicationId, `Compliance approved ${application.applicationNumber}`);
+      
+      // Notify Internal Control officers at the branch
+      this.events.emit('notification.send', {
+        recipientRole: 'INTERNAL_CONTROL_OFFICER',
+        branchId: application.customer.branchId,
+        event: 'loan_application.sent_to_internal_control',
+        variables: {
+          applicationNumber: application.applicationNumber,
+          customerName: `${application.customer.firstName} ${application.customer.lastName}`,
+          loanProduct: application.loanProduct.name,
+        },
+      });
+
+    } else if (decision === 'REQUEST_CHANGES') {
+      // Return to loan officer for corrections
+      await this.prisma.loanApplication.update({
+        where: { id: applicationId },
+        data: {
+          status: LoanApplicationStatus.NEEDS_ATTENTION,
+          complianceFeedback: feedback || 'Please review and correct',
+          reviewedById: actor.id,
+          reviewedAt: new Date(),
+        },
+      });
+
+      this.emitAudit(AuditAction.UPDATE, actor.id, applicationId, `Returned ${application.applicationNumber} to loan officer for corrections`);
+      
+      // Notify the loan officer who created the application
+      if (application.assignedToId) {
+        this.events.emit('notification.send', {
+          recipientId: application.assignedToId,
+          event: 'loan_application.needs_attention',
+          variables: {
+            applicationNumber: application.applicationNumber,
+            customerName: `${application.customer.firstName} ${application.customer.lastName}`,
+            feedback: feedback || 'Please review compliance feedback',
+          },
+        });
+      }
+
+    } else if (decision === 'REJECT') {
+      // Permanently reject
+      await this.prisma.loanApplication.update({
+        where: { id: applicationId },
+        data: {
+          status: LoanApplicationStatus.REJECTED,
+          rejectionReason: feedback || 'Rejected by compliance',
+          reviewedById: actor.id,
+          reviewedAt: new Date(),
+        },
+      });
+
+      this.emitAudit(AuditAction.REJECT, actor.id, applicationId, `Rejected ${application.applicationNumber}: ${feedback}`);
+      
+      // Notify loan officer
+      if (application.assignedToId) {
+        this.events.emit('notification.send', {
+          recipientId: application.assignedToId,
+          event: 'loan_application.rejected',
+          variables: {
+            applicationNumber: application.applicationNumber,
+            customerName: `${application.customer.firstName} ${application.customer.lastName}`,
+            reason: feedback || 'Application rejected',
+          },
+        });
+      }
+    } else {
+      throw new BusinessException(`Invalid decision: ${decision}`);
+    }
+
+    return this.findOne(applicationId);
+  }
+
+  /**
+   * Loan Officer resubmits application after addressing compliance feedback
+   * Moves from NEEDS_ATTENTION back to COMPLIANCE_REVIEW
+   */
+  async resubmitApplication(applicationId: string, dto: { resubmissionNotes: string }, actorId: string): Promise<unknown> {
+    const application = await this.prisma.loanApplication.findFirst({ 
+      where: { id: applicationId, deletedAt: null },
+      include: { customer: true, loanProduct: true }
+    });
+    
+    if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
+
+    // Only the assigned loan officer can resubmit
+    if (application.assignedToId !== actorId) {
+      throw new BusinessException(
+        'You can only resubmit applications that you created'
+      );
+    }
+
+    if (application.status !== LoanApplicationStatus.NEEDS_ATTENTION) {
+      throw new BusinessException(
+        `Application is not in NEEDS_ATTENTION status. Current status: ${application.status}`
+      );
+    }
+
+    await this.prisma.loanApplication.update({
+      where: { id: applicationId },
+      data: {
+        status: LoanApplicationStatus.COMPLIANCE_REVIEW,
+        reviewNotes: dto.resubmissionNotes,
+        submittedAt: new Date(),
+        complianceFeedback: null, // Clear previous feedback
+      },
+    });
+
+    this.emitAudit(AuditAction.UPDATE, actorId, applicationId, `Resubmitted ${application.applicationNumber} to compliance: ${dto.resubmissionNotes}`);
+    
+    // Notify compliance officers at the branch
+    this.events.emit('notification.send', {
+      recipientRole: 'COMPLIANCE_OFFICER',
+      branchId: application.customer.branchId,
+      event: 'loan_application.resubmitted',
+      variables: {
+        applicationNumber: application.applicationNumber,
+        customerName: `${application.customer.firstName} ${application.customer.lastName}`,
+        loanProduct: application.loanProduct.name,
+        notes: dto.resubmissionNotes,
+      },
+    });
+
+    return this.findOne(applicationId);
+  }
