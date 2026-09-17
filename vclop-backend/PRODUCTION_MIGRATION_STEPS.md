@@ -29,19 +29,20 @@ mysql -h srv1461.hstgr.io -P 3306 -u u215495167_vclop -p u215495167_vclop < migr
 - LO can fix and resubmit applications
 - Feedback loop between CO and LO
 
-### 2. Make Transport Requests Independent
+### 2. Make Transport Requests Standalone
 ```bash
 mysql -h srv1461.hstgr.io -P 3306 -u u215495167_vclop -p u215495167_vclop < migrations/make_transport_loan_optional.sql
 ```
 
 **What this does:**
 - Changes `loan_application_id` column from NOT NULL to NULL
-- Allows transport requests without a specific loan application
+- Removes dependency between transport requests and loan applications
 
 **Features enabled:**
-- Compliance Officers can create general transport requests
-- Transport requests no longer require loan application
-- "Create Request" button appears on Transport page for COs
+- Transport is now a standalone feature (not tied to loans)
+- Users create transport requests from dedicated Transport page
+- Transport request form removed from loan detail page
+- "Create Request" button on Transport page for all authorized users
 
 ## Verification Steps
 
@@ -83,17 +84,19 @@ WHERE TABLE_NAME = 'transport_requests'
 8. Login as CO → Application back in queue
 
 ### Test Transport Requests:
-1. Login as Compliance Officer
-2. Go to Transport page
+1. Login as any authorized user (Compliance Officer, Loan Officer, etc.)
+2. Go to Transport page (standalone module)
 3. Click "Create Request" button (green, top-right)
-4. Fill form (no loan application needed):
+4. Fill form (no loan application field):
    - Purpose: "Branch visit for customer verification"
    - Location: "Lagos - Ibadan route"
    - Customer Count: 3
    - Distance: 150 km
    - Estimated Cost: 25000
-5. Submit → Request appears in list with "General" in Application # column
-6. IC Officer can review and approve as normal
+5. Submit → Request appears in list
+6. Table shows: Requested By | Purpose | # Customers | Amount | Status | Date
+7. IC Officer can review and approve as normal
+8. **Note:** Transport request form no longer appears on loan detail page
 
 ## Rollback (If Needed)
 
