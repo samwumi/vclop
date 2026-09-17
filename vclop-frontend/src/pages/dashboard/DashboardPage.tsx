@@ -81,6 +81,15 @@ function LoanOfficerPanel({ summary, performance }: {
       {/* KPIs - Mobile Responsive Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
         <OpCard title="My Applications" value={summary.applications} icon={FileText} color="bg-blue-50 text-blue-600" onClick={() => navigate('/loans')} />
+        {summary.needsAttention > 0 && (
+          <OpCard 
+            title="⚠️ Needs Attention" 
+            value={summary.needsAttention} 
+            icon={AlertTriangle} 
+            color="bg-red-50 text-red-600" 
+            onClick={() => navigate('/loans?status=NEEDS_ATTENTION')} 
+          />
+        )}
         <OpCard title="Pending Tasks" value={summary.myTasks} icon={ClipboardList} color="bg-violet-50 text-violet-600" />
         <OpCard title="Disbursed (MTD)" value={performance?.monthlyDisbursements ?? 0} icon={Banknote} color="bg-emerald-50 text-emerald-600" />
         <OpCard title={`Week ${weekNo} Allowance`} value={`₦${(performance?.weeklyAllowance ?? 0).toLocaleString()}`} icon={Wallet} color="bg-orange-50 text-orange-600" onClick={() => navigate('/performance')} />

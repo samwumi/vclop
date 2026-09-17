@@ -18,16 +18,33 @@ import { formatDate, formatDateTime } from '@/lib/utils';
 import type { LoanApplicationStatus, Customer } from '@/types/domain.types';
 
 const STATUS_VARIANT: Record<LoanApplicationStatus, 'green' | 'red' | 'yellow' | 'blue' | 'gray'> = {
-  DRAFT: 'gray', SUBMITTED: 'yellow', COMPLIANCE_REVIEW: 'yellow', AWAITING_INFORMATION: 'yellow', INTERNAL_CONTROL_REVIEW: 'yellow', ACCOUNTING_REVIEW: 'blue', APPROVED: 'blue', REJECTED: 'red', RETURNED: 'yellow', ESCALATED: 'red', DISBURSED: 'green', CANCELLED: 'gray',
+  DRAFT: 'gray', 
+  SUBMITTED: 'yellow', 
+  COMPLIANCE_REVIEW: 'yellow', 
+  NEEDS_ATTENTION: 'red',  // NEW: Returned to LO for fixes
+  AWAITING_INFORMATION: 'yellow', 
+  INTERNAL_CONTROL_REVIEW: 'yellow', 
+  ACCOUNTING_REVIEW: 'blue', 
+  APPROVED: 'blue', 
+  REJECTED: 'red', 
+  RETURNED: 'yellow', 
+  ESCALATED: 'red', 
+  DISBURSED: 'green', 
+  CANCELLED: 'gray',
 };
 
 export function LoanDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { hasPermission } = useAuthStore();
+  const { hasPermission, user } = useAuthStore();
+  const userId = user?.id;
   const qc = useQueryClient();
   const [reviewNotes, setReviewNotes] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [showReject, setShowReject] = useState(false);
+  const [showComplianceActions, setShowComplianceActions] = useState(false);
+  const [complianceFeedback, setComplianceFeedback] = useState('');
+  const [resubmissionNotes, setResubmissionNotes] = useState('');
+  const [showResubmit, setShowResubmit] = useState(false);
   const [guarantorForm, setGuarantorForm] = useState({ firstName: '', lastName: '', phone: '', relationship: '' });
   const [editingGuarantor, setEditingGuarantor] = useState<{ id: string; firstName: string; lastName: string; phone: string; relationship: string } | null>(null);
   const [collateralForm, setCollateralForm] = useState({ description: '', estimatedValue: '' });
@@ -135,6 +152,34 @@ export function LoanDetailPage() {
     mutationFn: () => loansService.disburse(id!),
     onSuccess: () => { toast.success('Loan disbursed — repayment schedule generated'); invalidate(); },
     onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Disbursement failed'),
+  });
+
+  // NEW: Compliance review workflow
+  const complianceReviewMutation = useMutation({
+    mutationFn: (decision: 'APPROVE' | 'REQUEST_CHANGES' | 'REJECT') => 
+      loansService.complianceReview(id!, decision, complianceFeedback || undefined),
+    onSuccess: (_, decision) => {
+      const msg = decision === 'APPROVE' ? 'Application approved - sent to Internal Control' 
+        : decision === 'REQUEST_CHANGES' ? 'Application returned to Loan Officer for corrections'
+        : 'Application rejected';
+      toast.success(msg);
+      setShowComplianceActions(false);
+      setComplianceFeedback('');
+      invalidate();
+    },
+    onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Compliance review failed'),
+  });
+
+  // NEW: Loan officer resubmit
+  const resubmitMutation = useMutation({
+    mutationFn: () => loansService.resubmit(id!, resubmissionNotes),
+    onSuccess: () => {
+      toast.success('Application resubmitted to Compliance Officer');
+      setShowResubmit(false);
+      setResubmissionNotes('');
+      invalidate();
+    },
+    onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Resubmission failed'),
   });
 
   const repaymentMutation = useMutation({
@@ -264,20 +309,97 @@ export function LoanDetailPage() {
               </button>
             </div>
           )}
-          {application.status === 'COMPLIANCE_REVIEW' && hasPermission('loan_applications:compliance_review') && !showReject && (
-            <div className="w-full space-y-2">
-              <input
-                className="form-input text-xs h-8 max-w-sm"
-                placeholder="Review notes (optional)"
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.target.value)}
+          {application.status === 'COMPLIANCE_REVIEW' && hasPermission('loan_applications:compliance_review') && !showComplianceActions && (
+            <div className="w-full">
+              <button 
+                onClick={() => setShowComplianceActions(true)} 
+                className="btn-primary btn-sm gap-1.5 w-full sm:w-auto"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" /> Review Application
+              </button>
+            </div>
+          )}
+
+          {showComplianceActions && (
+            <div className="w-full space-y-3 border-t border-gray-100 pt-4">
+              <textarea
+                className="form-input"
+                rows={3}
+                placeholder="Feedback for loan officer (optional for approval, required for changes/rejection)"
+                value={complianceFeedback}
+                onChange={(e) => setComplianceFeedback(e.target.value)}
+              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => complianceReviewMutation.mutate('APPROVE')}
+                  disabled={complianceReviewMutation.isPending}
+                  className="btn-primary btn-sm gap-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Approve (Send to IC)
+                </button>
+                <button
+                  onClick={() => complianceReviewMutation.mutate('REQUEST_CHANGES')}
+                  disabled={!complianceFeedback || complianceReviewMutation.isPending}
+                  className="btn-secondary btn-sm gap-1.5 text-orange-600"
+                >
+                  <XCircle className="w-3.5 h-3.5" /> Request Changes
+                </button>
+                <button
+                  onClick={() => complianceReviewMutation.mutate('REJECT')}
+                  disabled={!complianceFeedback || complianceReviewMutation.isPending}
+                  className="btn-secondary btn-sm gap-1.5 text-red-600"
+                >
+                  <XCircle className="w-3.5 h-3.5" /> Reject
+                </button>
+                <button 
+                  onClick={() => { setShowComplianceActions(false); setComplianceFeedback(''); }}
+                  className="btn-ghost btn-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* NEW: Loan Officer resubmit section */}
+          {application.status === 'NEEDS_ATTENTION' && application.assignedToId === userId && !showResubmit && (
+            <div className="w-full space-y-3">
+              {(application as any).complianceFeedback && (
+                <div className="banner-warning">
+                  <strong>Compliance Feedback:</strong> {(application as any).complianceFeedback}
+                </div>
+              )}
+              <button 
+                onClick={() => setShowResubmit(true)} 
+                className="btn-primary btn-sm gap-1.5 w-full sm:w-auto"
+              >
+                <Send className="w-3.5 h-3.5" /> Resubmit Application
+              </button>
+            </div>
+          )}
+
+          {showResubmit && (
+            <div className="w-full space-y-3 border-t border-gray-100 pt-4">
+              <textarea
+                className="form-input"
+                rows={3}
+                placeholder="Explain what you fixed or changed (required)"
+                value={resubmissionNotes}
+                onChange={(e) => setResubmissionNotes(e.target.value)}
               />
               <div className="flex gap-2">
-                <button onClick={() => reviewMutation.mutate('APPROVED')} disabled={reviewMutation.isPending} className="btn-primary btn-sm gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                <button
+                  onClick={() => resubmitMutation.mutate()}
+                  disabled={!resubmissionNotes || resubmitMutation.isPending}
+                  className="btn-primary btn-sm gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" /> {resubmitMutation.isPending ? 'Submitting...' : 'Resubmit to Compliance'}
                 </button>
-                <button onClick={() => setShowReject(true)} className="btn-secondary btn-sm gap-1.5 text-red-600">
-                  <XCircle className="w-3.5 h-3.5" /> Reject
+                <button 
+                  onClick={() => { setShowResubmit(false); setResubmissionNotes(''); }}
+                  className="btn-ghost btn-sm"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

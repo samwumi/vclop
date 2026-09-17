@@ -80,3 +80,15 @@ export const loansService = {
     URL.revokeObjectURL(href);
   },
 };
+
+  // NEW: Compliance Officer review workflow
+  async complianceReview(applicationId: string, decision: 'APPROVE' | 'REQUEST_CHANGES' | 'REJECT', feedback?: string): Promise<LoanApplication> {
+    const { data } = await api.patch<ApiResponse<LoanApplication>>(`/loan-applications/${applicationId}/compliance-review`, { decision, feedback });
+    return data.data!;
+  },
+
+  // NEW: Loan Officer resubmit after fixing issues  
+  async resubmit(applicationId: string, resubmissionNotes: string): Promise<LoanApplication> {
+    const { data } = await api.patch<ApiResponse<LoanApplication>>(`/loan-applications/${applicationId}/resubmit`, { resubmissionNotes });
+    return data.data!;
+  },
