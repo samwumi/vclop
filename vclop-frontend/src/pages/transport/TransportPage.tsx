@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Car, CheckCircle2, XCircle, Banknote } from 'lucide-react';
+import { Car, CheckCircle2, XCircle, Banknote, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModulePage } from '@/components/ui/ModulePage';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/auth.store';
 import { formatDate } from '@/lib/utils';
 import { transportService, type TransportRequestStatus } from '@/services/transport.service';
+import { CreateTransportRequestPanel } from './CreateTransportRequestPanel';
 
 const STATUS_VARIANT: Record<TransportRequestStatus, 'green' | 'red' | 'yellow' | 'blue' | 'gray'> = {
   PENDING: 'yellow',
@@ -125,6 +126,7 @@ export function TransportPage() {
   const [statusFilter, setStatusFilter] = useState<TransportRequestStatus | ''>('');
   const [search, setSearch] = useState('');
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [showCreatePanel, setShowCreatePanel] = useState(false);
   const { hasPermission } = useAuthStore();
   const qc = useQueryClient();
 
@@ -146,11 +148,16 @@ export function TransportPage() {
   // IC officers + admin can review; accounting head + admin can pay
   const canReview = hasPermission('transport:approve') || hasPermission('system:admin');
   const canPay    = hasPermission('loan_applications:disburse_head') || hasPermission('system:admin');
+  const canCreate = hasPermission('customers:kyc') || hasPermission('system:admin'); // Compliance officers can create
 
   return (
     <>
       {reviewingId && (
         <ReviewPanel requestId={reviewingId} onClose={() => setReviewingId(null)} />
+      )}
+      
+      {showCreatePanel && (
+        <CreateTransportRequestPanel onClose={() => setShowCreatePanel(false)} />
       )}
 
       <ModulePage
@@ -159,7 +166,16 @@ export function TransportPage() {
         icon={Car}
         search={search}
         onSearchChange={setSearch}
-        actions={[]}
+        actions={
+          canCreate ? [
+            {
+              label: 'Create Request',
+              onClick: () => setShowCreatePanel(true),
+              icon: Plus,
+              variant: 'primary' as const,
+            },
+          ] : []
+        }
         columns={[
           { key: 'ref',       label: 'Application #' },
           { key: 'officer',   label: 'Requested By' },
@@ -192,7 +208,9 @@ export function TransportPage() {
             {requests.map((req) => (
               <tr key={req.id}>
                 <td className="font-mono text-xs text-brand-600 font-semibold">
-                  {req.loanApplication?.applicationNumber ?? '—'}
+                  {req.loanApplication?.applicationNumber ?? (
+                    <span className="text-gray-400 italic">General</span>
+                  )}
                 </td>
                 <td className="text-sm text-gray-800">
                   {req.requestedBy
@@ -202,7 +220,7 @@ export function TransportPage() {
                 <td className="text-sm text-gray-600">
                   {req.loanApplication?.customer
                     ? `${req.loanApplication.customer.firstName} ${req.loanApplication.customer.lastName}`
-                    : '—'}
+                    : <span className="text-gray-400 italic">N/A</span>}
                 </td>
                 <td className="text-xs text-gray-600 max-w-[200px] truncate" title={req.purpose}>
                   {req.purpose}

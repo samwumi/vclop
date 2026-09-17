@@ -40,7 +40,7 @@ export const transportService = {
   },
 
   async create(payload: {
-    loanApplicationId: string;
+    loanApplicationId?: string;
     purpose: string;
     location: string;
     customerCount?: number;
