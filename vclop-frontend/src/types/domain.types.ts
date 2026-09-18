@@ -252,7 +252,7 @@ export interface Customer360 {
   documents: CustomerDocument[];
   formData: { id: string; isComplete: boolean; values: Record<string, unknown> } | null;
   timeline: CustomerTimelineEntry[];
-  branch?: { id: string; name: string; code: string; location?: string } | null;
+  branch?: { id: string; name: string; code: string; address?: string; city?: string } | null;
   loanOfficers?: { id: string; firstName: string; lastName: string }[];
   complianceOfficers?: { id: string; firstName: string; lastName: string }[];
 }

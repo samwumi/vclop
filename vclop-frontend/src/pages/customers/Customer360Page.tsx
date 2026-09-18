@@ -321,9 +321,22 @@ function CustomerOverviewTab({
           <h3 className="text-sm font-semibold text-gray-700">Branch & Officers</h3>
         </div>
         <div className="card-body grid grid-cols-1 gap-4">
-          <Field label="Branch/Location" value={data.branch?.name ?? '—'} />
-          <Field label="Loan Officer(s)" value={data.loanOfficers?.map((lo: any) => `${lo.firstName} ${lo.lastName}`).join(', ') ?? '—'} />
-          <Field label="Compliance Officer(s)" value={data.complianceOfficers?.map((co: any) => `${co.firstName} ${co.lastName}`).join(', ') ?? '—'} />
+          <Field 
+            label="Branch/Location" 
+            value={data.branch ? `${data.branch.name}${data.branch.city ? `, ${data.branch.city}` : ''}` : '—'} 
+          />
+          <Field 
+            label="Loan Officer(s)" 
+            value={data.loanOfficers && data.loanOfficers.length > 0 
+              ? data.loanOfficers.map((lo: any) => `${lo.firstName} ${lo.lastName}`).join(', ') 
+              : '—'} 
+          />
+          <Field 
+            label="Compliance Officer(s)" 
+            value={data.complianceOfficers && data.complianceOfficers.length > 0 
+              ? data.complianceOfficers.map((co: any) => `${co.firstName} ${co.lastName}`).join(', ') 
+              : '—'} 
+          />
         </div>
       </div>
 
