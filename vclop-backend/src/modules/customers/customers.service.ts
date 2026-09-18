@@ -67,7 +67,7 @@ export class CustomersService {
   async findOne(id: string): Promise<unknown> {
     const customer = await this.assertExists(id);
 
-    const [documents, formData, recentActivity] = await Promise.all([
+    const [documents, formData, recentActivity, branch, loanOfficers, complianceOfficers] = await Promise.all([
       this.prisma.customerDocument.findMany({
         where: { customerId: id },
         include: { documentType: true },
@@ -83,6 +83,33 @@ export class CustomersService {
         orderBy: { createdAt: 'desc' },
         take: 25,
       }),
+      // Get branch/location information
+      customer.branchId ? this.prisma.branch.findUnique({
+        where: { id: customer.branchId },
+        select: { id: true, name: true, code: true, location: true }
+      }) : null,
+      // Get loan officers who created applications for this customer
+      this.prisma.loanApplication.findMany({
+        where: { customerId: id, submittedById: { not: null } },
+        distinct: ['submittedById'],
+        select: {
+          submittedBy: {
+            select: { id: true, firstName: true, lastName: true }
+          }
+        },
+        take: 5
+      }),
+      // Get compliance officers who reviewed applications for this customer
+      this.prisma.loanApplication.findMany({
+        where: { customerId: id, reviewedById: { not: null } },
+        distinct: ['reviewedById'],
+        select: {
+          reviewedBy: {
+            select: { id: true, firstName: true, lastName: true }
+          }
+        },
+        take: 5
+      }),
     ]);
 
     return {
@@ -90,6 +117,9 @@ export class CustomersService {
       documents,
       formData,
       timeline: recentActivity,
+      branch: branch,
+      loanOfficers: loanOfficers.filter(lo => lo.submittedBy).map(lo => lo.submittedBy),
+      complianceOfficers: complianceOfficers.filter(co => co.reviewedBy).map(co => co.reviewedBy),
     };
   }
 

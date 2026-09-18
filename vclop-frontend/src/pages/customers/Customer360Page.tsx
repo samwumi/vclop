@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   User, Phone, MapPin, CreditCard, ShieldCheck,
-  Clock, FileText, Landmark, Edit, AlertTriangle, Wallet, Navigation,
+  Clock, FileText, Landmark, Edit, AlertTriangle, Wallet, Navigation, Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { customersService } from '@/services/customers.service';
@@ -308,6 +308,19 @@ function CustomerOverviewTab({
           <Field label="Residential Address" value={c.residentialAddress} />
           <Field label="Business Address"    value={c.businessAddress} />
           <Field label="GPS"                 value={c.gpsLat && c.gpsLng ? `${c.gpsLat}, ${c.gpsLng}` : null} />
+        </div>
+      </div>
+
+      {/* Branch & Officers */}
+      <div className="card">
+        <div className="card-header flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-gray-400" />
+          <h3 className="text-sm font-semibold text-gray-700">Branch & Officers</h3>
+        </div>
+        <div className="card-body grid grid-cols-1 gap-4">
+          <Field label="Branch/Location" value={c.branch?.name ?? '—'} />
+          <Field label="Loan Officer(s)" value={c.loanOfficers?.map((lo: any) => `${lo.firstName} ${lo.lastName}`).join(', ') ?? '—'} />
+          <Field label="Compliance Officer(s)" value={c.complianceOfficers?.map((co: any) => `${co.firstName} ${co.lastName}`).join(', ') ?? '—'} />
         </div>
       </div>
 
