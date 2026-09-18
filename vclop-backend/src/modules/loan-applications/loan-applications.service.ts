@@ -562,10 +562,16 @@ export class LoanApplicationsService {
       await tx.loanApplication.update({ where: { id: application.id }, data: { status: LoanApplicationStatus.DISBURSED } });
 
       // Update customer status to ACTIVE_BORROWER (they now have a disbursed loan)
-      await tx.customer.update({
-        where: { id: application.customerId },
-        data: { status: CustomerStatus.ACTIVE_BORROWER },
-      });
+      // Force update regardless of current status to fix any data issues
+      try {
+        await tx.customer.update({
+          where: { id: application.customerId },
+          data: { status: CustomerStatus.ACTIVE_BORROWER },
+        });
+      } catch (err) {
+        // If customer status update fails, log but don't block disbursement
+        console.warn(`Failed to update customer status for ${application.customerId}:`, err);
+      }
 
       return created;
     });
