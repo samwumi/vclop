@@ -252,6 +252,9 @@ export interface Customer360 {
   documents: CustomerDocument[];
   formData: { id: string; isComplete: boolean; values: Record<string, unknown> } | null;
   timeline: CustomerTimelineEntry[];
+  branch?: { id: string; name: string; code: string; location?: string } | null;
+  loanOfficers?: { id: string; firstName: string; lastName: string }[];
+  complianceOfficers?: { id: string; firstName: string; lastName: string }[];
 }
 
 // Domain types for VCLOP frontend - Updated with NEEDS_ATTENTION workflow
