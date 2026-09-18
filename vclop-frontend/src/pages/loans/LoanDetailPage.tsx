@@ -806,35 +806,72 @@ export function LoanDetailPage() {
       {/* Repayment schedule + record-payment — only once disbursed */}
       {application.loan && (
         <div className="card">
-          <div className="card-header flex items-center justify-between">
+          <div className="card-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <h3 className="text-sm font-semibold text-gray-700">Loan {application.loan.loanNumber} — {application.loan.status}</h3>
             <p className="text-xs text-gray-500">Total repayable: ₦{Number(application.loan.totalRepayable).toLocaleString()}</p>
           </div>
           <div className="card-body">
-            <table className="table text-xs mb-4">
-              <thead><tr><th>#</th><th>Due</th><th>Principal</th><th>Interest</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
-              <tbody>
-                {application.loan.installments.map((inst) => (
-                  <tr key={inst.id}>
-                    <td>{inst.installmentNumber}</td>
-                    <td>{formatDate(inst.dueDate)}</td>
-                    <td>₦{Number(inst.principalDue).toLocaleString()}</td>
-                    <td>₦{Number(inst.interestDue).toLocaleString()}</td>
-                    <td className="font-medium">₦{Number(inst.totalDue).toLocaleString()}</td>
-                    <td>₦{Number(inst.amountPaid).toLocaleString()}</td>
-                    <td><Badge variant={inst.status === 'PAID' ? 'green' : inst.status === 'PARTIALLY_PAID' ? 'yellow' : 'gray'}>{inst.status}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* Desktop table view */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="table text-xs mb-4">
+                <thead><tr><th>#</th><th>Due</th><th>Principal</th><th>Interest</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
+                <tbody>
+                  {application.loan.installments.map((inst) => (
+                    <tr key={inst.id}>
+                      <td>{inst.installmentNumber}</td>
+                      <td>{formatDate(inst.dueDate)}</td>
+                      <td>₦{Number(inst.principalDue).toLocaleString()}</td>
+                      <td>₦{Number(inst.interestDue).toLocaleString()}</td>
+                      <td className="font-medium">₦{Number(inst.totalDue).toLocaleString()}</td>
+                      <td>₦{Number(inst.amountPaid).toLocaleString()}</td>
+                      <td><Badge variant={inst.status === 'PAID' ? 'green' : inst.status === 'PARTIALLY_PAID' ? 'yellow' : 'gray'}>{inst.status}</Badge></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card view */}
+            <div className="md:hidden space-y-3 mb-4">
+              {application.loan.installments.map((inst) => (
+                <div key={inst.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-700">Installment #{inst.installmentNumber}</span>
+                    <Badge variant={inst.status === 'PAID' ? 'green' : inst.status === 'PARTIALLY_PAID' ? 'yellow' : 'gray'}>{inst.status}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <p className="text-gray-500">Due Date</p>
+                      <p className="font-medium text-gray-800">{formatDate(inst.dueDate)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Total Due</p>
+                      <p className="font-medium text-gray-800">₦{Number(inst.totalDue).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Principal</p>
+                      <p className="font-medium text-gray-800">₦{Number(inst.principalDue).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Interest</p>
+                      <p className="font-medium text-gray-800">₦{Number(inst.interestDue).toLocaleString()}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-gray-500">Amount Paid</p>
+                      <p className="font-medium text-emerald-600">₦{Number(inst.amountPaid).toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             {application.loan.status === 'ACTIVE' && hasPermission('loan_applications:record_repayment') && (
-              <div className="flex items-end gap-2 pt-3 border-t border-gray-100">
-                <div>
+              <div className="flex flex-col sm:flex-row sm:items-end gap-2 pt-3 border-t border-gray-100">
+                <div className="flex-1 sm:flex-none">
                   <label className="form-label text-xs">Record a repayment</label>
-                  <input type="number" className="form-input h-9 w-40" placeholder="Amount" value={repaymentAmount} onChange={(e) => setRepaymentAmount(e.target.value)} />
+                  <input type="number" className="form-input h-9 w-full sm:w-40" placeholder="Amount" value={repaymentAmount} onChange={(e) => setRepaymentAmount(e.target.value)} />
                 </div>
-                <button onClick={() => repaymentMutation.mutate()} disabled={!repaymentAmount || repaymentMutation.isPending} className="btn-primary btn-sm disabled:opacity-50">
+                <button onClick={() => repaymentMutation.mutate()} disabled={!repaymentAmount || repaymentMutation.isPending} className="btn-primary btn-sm disabled:opacity-50 w-full sm:w-auto">
                   {repaymentMutation.isPending ? 'Recording…' : 'Record Payment'}
                 </button>
               </div>
@@ -844,9 +881,9 @@ export function LoanDetailPage() {
               <div className="mt-4 pt-3 border-t border-gray-100">
                 <p className="text-xs font-medium text-gray-600 mb-2">Payment History</p>
                 {application.loan.transactions.map((tx) => (
-                  <div key={tx.id} className="flex justify-between items-center text-xs py-1.5 text-gray-600 border-b border-gray-50 last:border-0">
-                    <span>₦{Number(tx.amount).toLocaleString()} ({tx.method}){tx.receiptNumber && <span className="text-gray-400 font-mono"> · {tx.receiptNumber}</span>}</span>
-                    <div className="flex items-center gap-3">
+                  <div key={tx.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs py-2 text-gray-600 border-b border-gray-50 last:border-0">
+                    <span className="font-medium">₦{Number(tx.amount).toLocaleString()} ({tx.method}){tx.receiptNumber && <span className="text-gray-400 font-mono"> · {tx.receiptNumber}</span>}</span>
+                    <div className="flex items-center justify-between sm:gap-3">
                       <span className="text-gray-400">{formatDateTime(tx.createdAt)}</span>
                       <button
                         onClick={() => receiptsService.viewReceipt(tx.id).catch(() => toast.error('Failed to load receipt'))}
