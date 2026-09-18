@@ -476,7 +476,21 @@ export class LoanApplicationsService {
   async disburse(applicationId: string, actorId: string): Promise<unknown> {
     const application = await this.prisma.loanApplication.findFirst({
       where: { id: applicationId, deletedAt: null },
-      include: { loanProduct: true, customer: true },
+      include: { 
+        loanProduct: true, 
+        customer: { 
+          select: { 
+            id: true, 
+            customerNumber: true, 
+            firstName: true, 
+            lastName: true, 
+            phone: true,
+            bankAccountNumber: true,
+            bankCode: true,
+            branchId: true
+          } 
+        } 
+      },
     });
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
     if (application.status !== LoanApplicationStatus.APPROVED) {
@@ -846,7 +860,18 @@ export class LoanApplicationsService {
   async complianceReview(applicationId: string, dto: { decision: string; feedback?: string }, actor: { id: string; branchId?: string | null }): Promise<unknown> {
     const application = await this.prisma.loanApplication.findFirst({ 
       where: { id: applicationId, deletedAt: null },
-      include: { customer: true, loanProduct: true }
+      include: { 
+        customer: { 
+          select: { 
+            id: true, 
+            customerNumber: true, 
+            firstName: true, 
+            lastName: true, 
+            branchId: true 
+          } 
+        }, 
+        loanProduct: true 
+      }
     });
     
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
@@ -952,7 +977,18 @@ export class LoanApplicationsService {
   async resubmitApplication(applicationId: string, dto: { resubmissionNotes: string }, actorId: string): Promise<unknown> {
     const application = await this.prisma.loanApplication.findFirst({ 
       where: { id: applicationId, deletedAt: null },
-      include: { customer: true, loanProduct: true }
+      include: { 
+        customer: { 
+          select: { 
+            id: true, 
+            customerNumber: true, 
+            firstName: true, 
+            lastName: true, 
+            branchId: true 
+          } 
+        }, 
+        loanProduct: true 
+      }
     });
     
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
