@@ -766,7 +766,7 @@ async function main(): Promise<void> {
       stages: { create: [
         { code: 'COMPLIANCE_REVIEW', name: 'Underwriter / Compliance Review', sortOrder: 1, isInitial: true, requiredPermission: 'loan_applications:compliance_review', departmentCode: 'COMPLIANCE', slaHours: 24 },
         { code: 'INTERNAL_CONTROL_REVIEW', name: 'Internal Control Review', sortOrder: 2, requiredPermission: 'loan_applications:internal_control_approve', departmentCode: 'INTERNAL_CONTROL', slaHours: 24 },
-        { code: 'ACCOUNTING_REVIEW', name: 'Accounting Disbursement Review', sortOrder: 3, requiredPermission: 'loan_applications:disburse', departmentCode: 'ACCOUNTING', slaHours: 12 },
+        { code: 'ACCOUNTING_REVIEW', name: 'Awaiting Disbursement', sortOrder: 3, requiredPermission: null, departmentCode: 'ACCOUNTING', slaHours: 12 },
         { code: 'APPROVED', name: 'Approved for Disbursement', sortOrder: 4, isTerminal: true },
         { code: 'REJECTED', name: 'Rejected', sortOrder: 5, isTerminal: true },
       ] },
@@ -775,7 +775,6 @@ async function main(): Promise<void> {
   await Promise.all([
     ['COMPLIANCE_REVIEW', 'loan_applications:compliance_review'],
     ['INTERNAL_CONTROL_REVIEW', 'loan_applications:internal_control_approve'],
-    ['ACCOUNTING_REVIEW', 'loan_applications:disburse'],
   ].map(([code, requiredPermission]) => prisma.workflowStage.updateMany({
     where: { workflowDefinitionId: loanWorkflow.id, code }, data: { requiredPermission },
   })));
