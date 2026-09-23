@@ -382,7 +382,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
                 <label className="form-label">Decision</label>
                 <div className="space-y-2">
                   {([
-                    { value: 'APPROVE' as WorkflowAction, label: 'Approve — Send to Accounting', icon: CheckCircle2, cls: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
+                    { value: 'APPROVE' as WorkflowAction, label: 'Approve Application', icon: CheckCircle2, cls: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
                     { value: 'REJECT'  as WorkflowAction, label: 'Reject Application',           icon: XCircle,      cls: 'border-red-300 text-red-700 hover:bg-red-50' },
                     { value: 'RETURN'  as WorkflowAction, label: 'Return to Compliance',         icon: RotateCcw,    cls: 'border-amber-300 text-amber-700 hover:bg-amber-50' },
                   ]).map(({ value, label, icon: Icon, cls }) => (
