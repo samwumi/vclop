@@ -29,24 +29,24 @@ export class LoanApplicationsController {
       isAdmin ||
       actor.permissions.has('loan_applications:compliance_review') ||
       actor.permissions.has('loan_applications:internal_control_approve') ||
-      actor.permissions.has('loan_applications:disburse_head');
+      actor.permissions.has('customers:manage');
 
-    // Regular accountants: scope to their primary branch only
-    const isAccountant =
-      !isAdmin &&
-      actor.permissions.has('loan_applications:disburse') &&
-      !actor.permissions.has('loan_applications:disburse_head');
+    // Users with full view access
+    if (canViewAll) {
+      return this.service.findAll(query, actor.id);
+    }
 
-    if (!canViewAll && !isAccountant && !query.submittedById) {
-      // Loan officer — see only own submissions
+    // Users with branch-scoped access
+    if (actor.branchId && !query.branchId) {
+      query.branchId = actor.branchId;
+      return this.service.findAll(query, actor.id);
+    }
+
+    // Loan officer — see only own submissions
+    if (!query.submittedById) {
       query.submittedById = actor.id;
     }
 
-    if (isAccountant && actor.branchId && !query.branchId) {
-      query.branchId = actor.branchId;
-    }
-
-    // Pass actorId to enable location-based filtering for compliance/IC officers
     return this.service.findAll(query, actor.id);
   }
 

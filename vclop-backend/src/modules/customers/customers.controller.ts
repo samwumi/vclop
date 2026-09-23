@@ -40,19 +40,16 @@ export class CustomersController {
   findAll(@Query() query: QueryCustomersDto, @CurrentUser() actor: RequestUser) {
     const isAdmin = actor.permissions.has('system:admin');
     const isIC = actor.permissions.has('loan_applications:internal_control_approve');
-    const isAcctHead = actor.permissions.has('loan_applications:disburse_head');
-
-    // Compliance officers and accountants — scope to their assigned branches
     const isCompliance = actor.permissions.has('loan_applications:compliance_review');
-    const isAccountant = actor.permissions.has('loan_applications:disburse') && !isAcctHead;
+    const canViewAll = actor.permissions.has('customers:manage');
 
-    if (isAdmin || isIC || isAcctHead) {
-      // Admin, IC, Accounting Head — see all customers across all branches
+    // Admin, IC, or customers:manage — see all customers across all branches
+    if (isAdmin || isIC || canViewAll) {
       return this.service.findAll(query);
     }
 
-    if (isCompliance || isAccountant) {
-      // Compliance / Accountant — scope to their branches
+    // Compliance / Others with branch restrictions — scope to their branches
+    if (isCompliance || actor.branchId || (actor.managedBranchIds && actor.managedBranchIds.length > 0)) {
       if (!query.branchId) {
         const branchIds = [
           ...(actor.branchId ? [actor.branchId] : []),
