@@ -67,7 +67,7 @@ function ReviewPanel({ application, onClose }: { application: LoanApplication; o
     }),
     onSuccess: () => {
       toast.success(
-        action === 'APPROVE' ? 'Approved — sent to Accounting Head for disbursement'
+        action === 'APPROVE' ? 'Application approved'
         : action === 'REJECT' ? 'Application rejected'
         : 'Returned to Compliance',
       );
