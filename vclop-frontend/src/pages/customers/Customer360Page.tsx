@@ -49,8 +49,10 @@ export function Customer360Page() {
     hasPermission('customers:manage');
   const isIC      = hasPermission('loan_applications:internal_control_approve');
   const isAdmin   = hasPermission('system:admin');
-  const canVerify = isCompliance || isAdmin;
-  const canViewVerification = canVerify || isIC;
+  
+  // Verification tab visibility: CO can log, IC+ can only view
+  const canLogVerification = isCompliance || isAdmin;  // CO and Admin can use the form
+  const canViewVerification = canLogVerification || isIC;  // IC can view read-only
 
   const TABS = [
     { id: 'overview',     label: 'Overview',           icon: User,        show: true },
@@ -243,7 +245,7 @@ export function Customer360Page() {
         />
       )}
       {activeTab === 'verification' && canViewVerification && (
-        <CustomerFieldVerificationTab customerId={id!} canLog={canVerify} />
+        <CustomerFieldVerificationTab customerId={id!} canLog={canLogVerification} />
       )}
       {activeTab === 'loans'    && <CustomerLoansTab customerId={id!} />}
       {activeTab === 'timeline' && <CustomerTimelineTab entries={data.timeline} />}

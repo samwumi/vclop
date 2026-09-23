@@ -255,9 +255,13 @@ export function CustomerFieldVerificationTab({ customerId, canLog }: Props) {
             <div className="py-8 text-center border border-dashed border-gray-200 rounded-lg">
               <Navigation className="w-8 h-8 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-400">No field visits logged yet.</p>
-              {canLog && (
+              {canLog ? (
                 <p className="text-xs text-gray-400 mt-1">
                   Use the form above to log a visit with GPS and photos.
+                </p>
+              ) : (
+                <p className="text-xs text-gray-400 mt-1">
+                  Compliance Officers will log field verification visits here.
                 </p>
               )}
             </div>
