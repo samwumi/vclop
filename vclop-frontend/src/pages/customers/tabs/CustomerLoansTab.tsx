@@ -194,7 +194,7 @@ function LoanReviewControls({
         >
           <CheckCircle2 className="w-3.5 h-3.5" />
           {isCompliance && 'Approve to IC'}
-          {isIC && 'Approve to Accounting'}
+          {isIC && 'Approve'}
         </button>
         <button
           onClick={() => setShowReject(true)}
