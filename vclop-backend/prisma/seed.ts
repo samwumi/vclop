@@ -393,13 +393,13 @@ async function main(): Promise<void> {
     {
       code: 'ACCOUNTING_HEAD',
       name: 'Accounting Head',
-      description: 'Head of Accounting — only role that can disburse loans and pay transport allowances',
+      description: 'Head of Accounting — can view loans, manage virtual accounts, and access reports (disbursement done by admin)',
       sortOrder: 8,
       permCodes: [
         'dashboard:read', 'notifications:read',
         'customers:read',
         'loan_products:read',
-        'loan_applications:read', 'loan_applications:disburse', 'loan_applications:disburse_head',
+        'loan_applications:read',
         'virtual_accounts:read', 'virtual_accounts:reconcile', 'virtual_accounts:simulate',
         'reports:read', 'reports:export',
         'audit:read',
@@ -797,7 +797,7 @@ async function main(): Promise<void> {
   console.log('   compliance@vclop.local   →  Compliance Officer');
   console.log('   control@vclop.local      →  Internal Control Officer');
   console.log('   accounting@vclop.local   →  Accountant (view only, cannot disburse)');
-  console.log('   accthead@vclop.local     →  Accounting Head (disburses loans + pays transport)');
+  console.log('   accthead@vclop.local     →  Accounting Head (view reports, cannot disburse)');
   console.log('   collections@vclop.local  →  Collections Officer');
   console.log('');
   console.log('   ⚠  All users must change password on first login.\n');
