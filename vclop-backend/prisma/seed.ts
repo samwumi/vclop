@@ -398,6 +398,7 @@ async function main(): Promise<void> {
       permCodes: [
         'dashboard:read', 'notifications:read',
         'customers:read',
+        'documents:read',
         'loan_products:read',
         'loan_applications:read',
         'virtual_accounts:read', 'virtual_accounts:reconcile', 'virtual_accounts:simulate',
@@ -766,9 +767,8 @@ async function main(): Promise<void> {
       stages: { create: [
         { code: 'COMPLIANCE_REVIEW', name: 'Underwriter / Compliance Review', sortOrder: 1, isInitial: true, requiredPermission: 'loan_applications:compliance_review', departmentCode: 'COMPLIANCE', slaHours: 24 },
         { code: 'INTERNAL_CONTROL_REVIEW', name: 'Internal Control Review', sortOrder: 2, requiredPermission: 'loan_applications:internal_control_approve', departmentCode: 'INTERNAL_CONTROL', slaHours: 24 },
-        { code: 'ACCOUNTING_REVIEW', name: 'Awaiting Disbursement', sortOrder: 3, requiredPermission: null, departmentCode: 'ACCOUNTING', slaHours: 12 },
-        { code: 'APPROVED', name: 'Approved for Disbursement', sortOrder: 4, isTerminal: true },
-        { code: 'REJECTED', name: 'Rejected', sortOrder: 5, isTerminal: true },
+        { code: 'APPROVED', name: 'Approved for Disbursement', sortOrder: 3, isTerminal: true },
+        { code: 'REJECTED', name: 'Rejected', sortOrder: 4, isTerminal: true },
       ] },
     }, include: { stages: true },
   });
@@ -781,8 +781,7 @@ async function main(): Promise<void> {
   const stageId = Object.fromEntries(loanWorkflow.stages.map((stage) => [stage.code, stage.id]));
   const workflowTransitions: Array<[string, string, string, boolean]> = [
     ['COMPLIANCE_REVIEW', 'INTERNAL_CONTROL_REVIEW', 'APPROVE', false], ['COMPLIANCE_REVIEW', 'REJECTED', 'REJECT', true],
-    ['INTERNAL_CONTROL_REVIEW', 'ACCOUNTING_REVIEW', 'APPROVE', false], ['INTERNAL_CONTROL_REVIEW', 'REJECTED', 'REJECT', true], ['INTERNAL_CONTROL_REVIEW', 'COMPLIANCE_REVIEW', 'RETURN', true],
-    ['ACCOUNTING_REVIEW', 'APPROVED', 'APPROVE', false], ['ACCOUNTING_REVIEW', 'REJECTED', 'REJECT', true], ['ACCOUNTING_REVIEW', 'INTERNAL_CONTROL_REVIEW', 'RETURN', true],
+    ['INTERNAL_CONTROL_REVIEW', 'APPROVED', 'APPROVE', false], ['INTERNAL_CONTROL_REVIEW', 'REJECTED', 'REJECT', true], ['INTERNAL_CONTROL_REVIEW', 'COMPLIANCE_REVIEW', 'RETURN', true],
   ];
   await prisma.workflowTransition.createMany({ skipDuplicates: true, data: workflowTransitions.map(([from, to, action, requiresReason]) => ({ fromStageId: stageId[from]!, toStageId: stageId[to]!, action: action as any, requiresReason })) });
   console.log(`✔  Loan products seeded`);
