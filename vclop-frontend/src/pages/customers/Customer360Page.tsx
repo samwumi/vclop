@@ -191,7 +191,7 @@ export function Customer360Page() {
           )}
 
           {/* Compliance nudge to do field visit before marking eligible */}
-          {canVerify && c.status === 'KYC_PENDING' && (
+          {canLogVerification && c.status === 'KYC_PENDING' && (
             <div className="mt-3 banner-info flex items-start gap-2">
               <Navigation className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-blue-700">
