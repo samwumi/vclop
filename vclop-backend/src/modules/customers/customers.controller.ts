@@ -59,6 +59,9 @@ export class CustomersController {
         if (uniqueBranchIds.length > 0) {
           // Pass all branch IDs to service for OR query
           (query as typeof query & { branchIds?: string[] }).branchIds = uniqueBranchIds;
+        } else {
+          // Has permission but no branches assigned - see all
+          return this.service.findAll(query);
         }
       }
       return this.service.findAll(query);
