@@ -9,13 +9,21 @@ interface SidebarProps {
 }
 
 export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
-  const { hasPermission } = useAuthStore();
+  const { hasPermission, user } = useAuthStore();
+
+  console.log('[Sidebar] Rendering with user permissions:', user?.permissions);
 
   const accessible = APP_ROUTES.filter((r) => {
     if (r.hidden) return false;
     if (!r.permission && !r.anyPermission) return true;
-    if (r.anyPermission) return r.anyPermission.some((p) => hasPermission(p));
-    return hasPermission(r.permission!);
+    if (r.anyPermission) {
+      const hasAny = r.anyPermission.some((p) => hasPermission(p));
+      console.log(`[Sidebar] Route ${r.path} (anyPermission):`, { anyPermission: r.anyPermission, hasAny });
+      return hasAny;
+    }
+    const hasPerm = hasPermission(r.permission!);
+    console.log(`[Sidebar] Route ${r.path}:`, { permission: r.permission, hasPerm });
+    return hasPerm;
   });
 
   const groups = accessible.reduce<Record<string, RouteConfig[]>>((acc, route) => {
@@ -24,6 +32,9 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     acc[g].push(route);
     return acc;
   }, {});
+
+  console.log('[Sidebar] Accessible routes:', accessible.map(r => r.path));
+  console.log('[Sidebar] Groups:', Object.keys(groups));
 
   return (
     <>

@@ -42,10 +42,10 @@ export class LoanApplicationsController {
       return this.service.findAll(query, actor.id);
     }
 
-    // Users with loan_applications:read but no specific role/branch - see all
+    // Users with loan_applications:read but no branch/role - see all
     // This handles cases like accounting head with no branch assignment
-    const hasReadPermission = actor.permissions.has('loan_applications:read');
-    if (hasReadPermission && !actor.branchId) {
+    if (!actor.branchId && !canViewAll) {
+      // Has read permission but no branch - see everything
       return this.service.findAll(query, actor.id);
     }
 

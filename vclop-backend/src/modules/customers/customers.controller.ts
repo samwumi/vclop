@@ -67,6 +67,11 @@ export class CustomersController {
       return this.service.findAll(query);
     }
 
+    // User with customers:read but no branch assignment - see all
+    if (!actor.branchId && !isCompliance) {
+      return this.service.findAll(query);
+    }
+
     // Loan officer / Collections — see only their own registered customers
     if (!query.assignedOfficerId) {
       query.assignedOfficerId = actor.id;
