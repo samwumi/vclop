@@ -31,13 +31,17 @@ export class LoanApplicationsController {
       actor.permissions.has('loan_applications:internal_control_approve') ||
       actor.permissions.has('customers:manage');
 
+    console.log('[LoanApps] User:', actor.email, 'branchId:', actor.branchId, 'canViewAll:', canViewAll);
+
     // Users with full view access
     if (canViewAll) {
+      console.log('[LoanApps] Path: canViewAll');
       return this.service.findAll(query, actor.id);
     }
 
     // Users with branch-scoped access
     if (actor.branchId && !query.branchId) {
+      console.log('[LoanApps] Path: branch-scoped');
       query.branchId = actor.branchId;
       return this.service.findAll(query, actor.id);
     }
@@ -45,11 +49,13 @@ export class LoanApplicationsController {
     // Users with loan_applications:read but no branch/role - see all
     // This handles cases like accounting head with no branch assignment
     if (!actor.branchId && !canViewAll) {
+      console.log('[LoanApps] Path: no-branch-see-all');
       // Has read permission but no branch - see everything
       return this.service.findAll(query, actor.id);
     }
 
     // Loan officer — see only own submissions
+    console.log('[LoanApps] Path: loan-officer-own-only, setting submittedById:', actor.id);
     if (!query.submittedById) {
       query.submittedById = actor.id;
     }
