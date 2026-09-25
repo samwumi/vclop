@@ -30,7 +30,7 @@ export class LoanApplicationsController {
       actor.permissions.has('loan_applications:compliance_review') ||
       actor.permissions.has('loan_applications:internal_control_approve') ||
       actor.permissions.has('customers:manage') ||
-      actor.permissions.has('reports:read'); // Accounting heads can view all loans
+      actor.permissions.has('audit:read'); // Accounting heads have audit:read
 
     console.log('[LoanApps] User:', actor.email, 'branchId:', actor.branchId, 'canViewAll:', canViewAll);
 
