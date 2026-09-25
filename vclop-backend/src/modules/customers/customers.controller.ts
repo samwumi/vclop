@@ -41,7 +41,8 @@ export class CustomersController {
     const isAdmin = actor.permissions.has('system:admin');
     const isIC = actor.permissions.has('loan_applications:internal_control_approve');
     const isCompliance = actor.permissions.has('loan_applications:compliance_review');
-    const canViewAll = actor.permissions.has('customers:manage') || actor.permissions.has('audit:read'); // Accounting heads have audit:read
+    const isAccounting = actor.permissions.has('virtual_accounts:reconcile'); // Only accounting roles have this
+    const canViewAll = actor.permissions.has('customers:manage') || isAccounting;
 
     // Admin, IC, or customers:manage — see all customers across all branches
     if (isAdmin || isIC || canViewAll) {

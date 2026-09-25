@@ -25,12 +25,13 @@ export class LoanApplicationsController {
   @ApiOperation({ summary: 'List/search loan applications' })
   findAll(@Query() query: QueryLoanApplicationsDto, @CurrentUser() actor: RequestUser) {
     const isAdmin = actor.permissions.has('system:admin');
+    const isAccounting = actor.permissions.has('virtual_accounts:reconcile'); // Only accounting roles have this
     const canViewAll =
       isAdmin ||
+      isAccounting ||
       actor.permissions.has('loan_applications:compliance_review') ||
       actor.permissions.has('loan_applications:internal_control_approve') ||
-      actor.permissions.has('customers:manage') ||
-      actor.permissions.has('audit:read'); // Accounting heads have audit:read
+      actor.permissions.has('customers:manage');
 
     console.log('[LoanApps] User:', actor.email, 'branchId:', actor.branchId, 'canViewAll:', canViewAll);
 
