@@ -24,10 +24,13 @@ export class CustomersService {
     private readonly formSubmissions: FormSubmissionsService,
   ) {}
 
-  async findAll(query: PaginationDto & { status?: CustomerStatus; branchId?: string; branchIds?: string[]; assignedOfficerId?: string }): Promise<PaginatedResult<unknown>> {
+  async findAll(query: PaginationDto & { status?: CustomerStatus | ''; branchId?: string; branchIds?: string[]; assignedOfficerId?: string }): Promise<PaginatedResult<unknown>> {
+    // Filter out empty status before building where clause
+    const validStatus = query.status !== '' ? query.status : undefined;
+    
     const where = {
       deletedAt: null,
-      ...(query.status && { status: query.status }),
+      ...(validStatus && { status: validStatus }),
       // Support single branchId or multiple branchIds
       ...(query.branchIds?.length
         ? { branchId: { in: query.branchIds } }
