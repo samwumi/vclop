@@ -39,6 +39,12 @@ export class CustomersController {
   @ApiQuery({ name: 'branchId', required: false })
   async findAll(@Query() query: QueryCustomersDto, @CurrentUser() actor: RequestUser) {
     try {
+      // Filter out empty status before processing - cast to any to handle edge case
+      const statusValue = query.status as any;
+      if (!statusValue || statusValue === '') {
+        delete query.status;
+      }
+      
       const isAdmin = actor.permissions.has('system:admin');
       const isIC = actor.permissions.has('loan_applications:internal_control_approve');
       const isCompliance = actor.permissions.has('loan_applications:compliance_review');
