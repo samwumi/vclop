@@ -37,55 +37,57 @@ export class CustomersController {
   @ApiOperation({ summary: 'Search/list customers' })
   @ApiQuery({ name: 'status', enum: CustomerStatus, required: false })
   @ApiQuery({ name: 'branchId', required: false })
-  findAll(@Query() query: QueryCustomersDto, @CurrentUser() actor: RequestUser) {
+  async findAll(@Query() query: QueryCustomersDto, @CurrentUser() actor: RequestUser) {
     try {
       const isAdmin = actor.permissions.has('system:admin');
       const isIC = actor.permissions.has('loan_applications:internal_control_approve');
       const isCompliance = actor.permissions.has('loan_applications:compliance_review');
-      const isAccounting = actor.permissions.has('virtual_accounts:reconcile'); // Only accounting roles have this
+      const isAccounting = actor.permissions.has('virtual_accounts:reconcile');
       const canViewAll = actor.permissions.has('customers:manage') || isAccounting;
       
-      console.log('[Customers] User:', actor.email, 'permissions:', Array.from(actor.permissions));
+      console.log('[Customers] User:', actor.email, 'isAdmin:', isAdmin, 'canViewAll:', canViewAll);
 
-    // Admin, IC, or customers:manage — see all customers across all branches
-    if (isAdmin || isIC || canViewAll) {
-      return this.service.findAll(query);
-    }
+      // Admin, IC, or customers:manage — see all customers across all branches
+      if (isAdmin || isIC || canViewAll) {
+        console.log('[Customers] Path: admin/IC/viewAll');
+        return this.service.findAll(query);
+      }
 
-    // Compliance / Others with branch restrictions — scope to their branches
-    if (isCompliance || actor.branchId || (actor.managedBranchIds && actor.managedBranchIds.length > 0)) {
-      if (!query.branchId) {
-        const branchIds = [
-          ...(actor.branchId ? [actor.branchId] : []),
-          ...(actor.managedBranchIds ?? []),
-        ];
-        const uniqueBranchIds = [...new Set(branchIds)];
-        if (uniqueBranchIds.length > 0) {
-          // Pass all branch IDs to service for OR query
-          (query as typeof query & { branchIds?: string[] }).branchIds = uniqueBranchIds;
-        } else {
-          // Has permission but no branches assigned - see all
-          return this.service.findAll(query);
+      // Compliance / Others with branch restrictions — scope to their branches
+      if (isCompliance || actor.branchId || (actor.managedBranchIds && actor.managedBranchIds.length > 0)) {
+        if (!query.branchId) {
+          const branchIds = [
+            ...(actor.branchId ? [actor.branchId] : []),
+            ...(actor.managedBranchIds ?? []),
+          ];
+          const uniqueBranchIds = [...new Set(branchIds)];
+          if (uniqueBranchIds.length > 0) {
+            // Pass all branch IDs to service for OR query
+            (query as typeof query & { branchIds?: string[] }).branchIds = uniqueBranchIds;
+          } else {
+            // Has permission but no branches assigned - see all
+            return this.service.findAll(query);
+          }
         }
+        return this.service.findAll(query);
+      }
+
+      // User with customers:read but no branch assignment - see all
+      if (!actor.branchId && !isCompliance) {
+        return this.service.findAll(query);
+      }
+
+      // Loan officer / Collections — see only their own registered customers
+      console.log('[Customers] Path: loan officer (own customers)');
+      if (!query.assignedOfficerId) {
+        query.assignedOfficerId = actor.id;
       }
       return this.service.findAll(query);
+    } catch (error) {
+      console.error('[Customers] ERROR:', error instanceof Error ? error.message : String(error));
+      throw error;
     }
-
-    // User with customers:read but no branch assignment - see all
-    if (!actor.branchId && !isCompliance) {
-      return this.service.findAll(query);
-    }
-
-    // Loan officer / Collections — see only their own registered customers
-    if (!query.assignedOfficerId) {
-      query.assignedOfficerId = actor.id;
-    }
-    return this.service.findAll(query);
-  } catch (error) {
-    console.error('[Customers] Error:', error);
-    throw error;
   }
-}
 
   @Get(':id')
   @RequirePermissions('customers:read')
