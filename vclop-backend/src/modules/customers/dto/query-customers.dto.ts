@@ -6,9 +6,9 @@ import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class QueryCustomersDto extends PaginationDto {
   @ApiPropertyOptional({ enum: CustomerStatus })
+  @Transform(({ value }) => value === '' ? undefined : value)
   @IsOptional()
   @IsEnum(CustomerStatus)
-  @Transform(({ value }) => value === '' ? undefined : value)
   status?: CustomerStatus;
 
   @ApiPropertyOptional()
