@@ -38,11 +38,14 @@ export class CustomersController {
   @ApiQuery({ name: 'status', enum: CustomerStatus, required: false })
   @ApiQuery({ name: 'branchId', required: false })
   findAll(@Query() query: QueryCustomersDto, @CurrentUser() actor: RequestUser) {
-    const isAdmin = actor.permissions.has('system:admin');
-    const isIC = actor.permissions.has('loan_applications:internal_control_approve');
-    const isCompliance = actor.permissions.has('loan_applications:compliance_review');
-    const isAccounting = actor.permissions.has('virtual_accounts:reconcile'); // Only accounting roles have this
-    const canViewAll = actor.permissions.has('customers:manage') || isAccounting;
+    try {
+      const isAdmin = actor.permissions.has('system:admin');
+      const isIC = actor.permissions.has('loan_applications:internal_control_approve');
+      const isCompliance = actor.permissions.has('loan_applications:compliance_review');
+      const isAccounting = actor.permissions.has('virtual_accounts:reconcile'); // Only accounting roles have this
+      const canViewAll = actor.permissions.has('customers:manage') || isAccounting;
+      
+      console.log('[Customers] User:', actor.email, 'permissions:', Array.from(actor.permissions));
 
     // Admin, IC, or customers:manage — see all customers across all branches
     if (isAdmin || isIC || canViewAll) {
@@ -78,7 +81,11 @@ export class CustomersController {
       query.assignedOfficerId = actor.id;
     }
     return this.service.findAll(query);
+  } catch (error) {
+    console.error('[Customers] Error:', error);
+    throw error;
   }
+}
 
   @Get(':id')
   @RequirePermissions('customers:read')
