@@ -41,9 +41,10 @@ export class CustomersController {
     try {
       // Filter out empty status before processing - cast to any to handle edge case
       const statusValue = query.status as any;
-      if (!statusValue || statusValue === '') {
+      if (!statusValue || statusValue === '' || statusValue === null) {
         delete query.status;
       }
+      console.log('[Customers] Status after filter:', query.status);
       
       const isAdmin = actor.permissions.has('system:admin');
       const isIC = actor.permissions.has('loan_applications:internal_control_approve');
