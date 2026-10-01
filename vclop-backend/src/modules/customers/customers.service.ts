@@ -28,6 +28,11 @@ export class CustomersService {
     // Transform decorator should have already converted empty string to undefined
     console.log('[CustomersService.findAll] query.status:', query.status);
     
+    // Extra safety: remove status from query if it's falsy
+    if (!query.status) {
+      delete query.status;
+    }
+    
     const where = {
       deletedAt: null,
       ...(query.status ? { status: query.status } : {}),
