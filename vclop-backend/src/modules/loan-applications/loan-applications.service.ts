@@ -883,7 +883,8 @@ export class LoanApplicationsService {
             branchId: true 
           } 
         }, 
-        loanProduct: true 
+        loanProduct: true,
+        guarantors: true
       }
     });
     
@@ -898,6 +899,47 @@ export class LoanApplicationsService {
     const { decision, feedback } = dto;
 
     if (decision === 'APPROVE') {
+      // ── VALIDATION: Document requirements before approval ──────────────────
+      // Check if at least 1 document is uploaded
+      const documentCount = await this.prisma.customerDocument.count({
+        where: {
+          customerId: application.customerId,
+          deletedAt: null,
+        },
+      });
+
+      if (documentCount === 0) {
+        throw new BusinessException(
+          'Cannot approve: No documents have been uploaded for this customer. ' +
+          'Please ensure customer has uploaded required documents before approval.'
+        );
+      }
+
+      // Check if at least 1 document is approved by compliance
+      const approvedDocCount = await this.prisma.customerDocument.count({
+        where: {
+          customerId: application.customerId,
+          status: 'APPROVED',
+          deletedAt: null,
+        },
+      });
+
+      if (approvedDocCount === 0) {
+        throw new BusinessException(
+          'Cannot approve: No documents have been verified and approved. ' +
+          'Please review and approve at least one customer document before approving the loan application.'
+        );
+      }
+
+      // ── VALIDATION: Guarantor requirements (if applicable) ─────────────────
+      if (application.loanProduct.requiresGuarantor && application.guarantors.length === 0) {
+        throw new BusinessException(
+          `Cannot approve: ${application.loanProduct.name} requires at least one guarantor. ` +
+          'Please ensure guarantor information is added before approval.'
+        );
+      }
+
+      // ── PROCEED WITH APPROVAL ──────────────────────────────────────────────
       // Move to next stage (Internal Control Review)
       await this.prisma.loanApplication.update({
         where: { id: applicationId },
