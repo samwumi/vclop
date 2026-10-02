@@ -405,7 +405,20 @@ export class LoanApplicationsService {
       where: { id: applicationId },
       data: { status: LoanApplicationStatus.COMPLIANCE_REVIEW, submittedById: actorId, submittedAt: new Date() },
     });
-    await this.workflowsService.start('loan-application-production', 'LOAN_APPLICATION', applicationId, actorId);
+    
+    // Start workflow - with explicit error handling
+    try {
+      await this.workflowsService.start('loan-application-production', 'LOAN_APPLICATION', applicationId, actorId);
+    } catch (error) {
+      // Rollback loan status if workflow fails
+      await this.prisma.loanApplication.update({
+        where: { id: applicationId },
+        data: { status: LoanApplicationStatus.DRAFT },
+      });
+      
+      const errorMessage = error instanceof Error ? error.message : 'Workflow initialization failed';
+      throw new BusinessException(`Failed to start workflow: ${errorMessage}`);
+    }
 
     this.emitAudit(AuditAction.UPDATE, actorId, applicationId, `Submitted ${application.applicationNumber}`);
     return this.findOne(applicationId);
