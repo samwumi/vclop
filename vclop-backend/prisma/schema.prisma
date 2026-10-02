@@ -581,8 +581,11 @@ model Customer {
   phone              String             @unique @db.VarChar(20)
   alternatePhone     String?            @db.VarChar(20)
   email              String?            @unique @db.VarChar(150)
-  bvn                String?            @unique @db.VarChar(11)
-  nin                String?            @unique @db.VarChar(11)
+  bvn                String?            @unique @db.VarChar(11) // Plain BVN (deprecated, use bvnEncrypted)
+  bvnEncrypted       String?            @db.Text // Encrypted BVN (format: encrypted$iv$authTag)
+  nin                String?            @unique @db.VarChar(11) // Plain NIN (deprecated, use ninEncrypted)
+  ninEncrypted       String?            @db.Text // Encrypted NIN (format: encrypted$iv$authTag)
+  encryptionKeyVersion Int?             @default(1) // For key rotation
   bankAccountNumber  String?            @db.VarChar(20)
   bankCode           String?            @db.VarChar(10)
   residentialAddress String?            @db.VarChar(500)

@@ -40,9 +40,13 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 import { PerformanceModule } from './modules/performance/performance.module';
 import { HealthModule } from './modules/health/health.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
+    // Common services (encryption, etc.)
+    CommonModule,
+    
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,

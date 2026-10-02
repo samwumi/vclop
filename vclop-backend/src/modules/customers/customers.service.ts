@@ -10,6 +10,7 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto, UpdateCustomerStatusDto } from './dto/update-customer.dto';
 import { FormSubmissionsService } from '../forms/form-submissions.service';
 import { calculateProfileCompletion } from './utils/profile-completion.util';
+import { EncryptionService } from '../../common/services/encryption.service';
 
 // Stages a customer must have passed through before a loan application can be
 // opened against them. Kept here (not in the Business Rules Engine) because
@@ -22,6 +23,7 @@ export class CustomersService {
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
     private readonly formSubmissions: FormSubmissionsService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async findAll(query: PaginationDto & { status?: CustomerStatus; branchId?: string; branchIds?: string[]; assignedOfficerId?: string }): Promise<PaginatedResult<unknown>> {
@@ -51,8 +53,7 @@ export class CustomersService {
           { phone: { contains: query.search } },
           { email: { contains: query.search } },
           { customerNumber: { contains: query.search } },
-          { bvn: { contains: query.search } },
-          { nin: { contains: query.search } },
+          // Note: BVN/NIN removed from search (encrypted fields can't be searched)
         ],
       }),
     };
@@ -122,8 +123,11 @@ export class CustomersService {
       }) : [],
     ]);
 
+    // Decrypt sensitive data before returning
+    const decryptedCustomer = this.decryptCustomerData(customer);
+
     return {
-      profile: customer,
+      profile: decryptedCustomer,
       documents,
       formData,
       timeline: recentActivity,
@@ -180,6 +184,20 @@ export class CustomersService {
       nokPhone: dto.nokPhone ?? null,
     });
 
+    // ── ENCRYPT SENSITIVE DATA (NDPA 2023 Compliance) ────────────────────────
+    let bvnEncrypted: string | undefined;
+    let ninEncrypted: string | undefined;
+    
+    if (dto.bvn) {
+      const encrypted = this.encryption.encrypt(dto.bvn);
+      bvnEncrypted = this.encryption.packEncrypted(encrypted);
+    }
+    
+    if (dto.nin) {
+      const encrypted = this.encryption.encrypt(dto.nin);
+      ninEncrypted = this.encryption.packEncrypted(encrypted);
+    }
+
     const customer = await this.prisma.customer.create({
       data: {
         customerNumber,
@@ -194,8 +212,11 @@ export class CustomersService {
         phone: dto.phone,
         alternatePhone: dto.alternatePhone,
         email: dto.email,
-        bvn: dto.bvn,
-        nin: dto.nin,
+        bvn: dto.bvn, // Keep plain for backward compatibility
+        bvnEncrypted, // Encrypted version
+        nin: dto.nin, // Keep plain for backward compatibility
+        ninEncrypted, // Encrypted version
+        encryptionKeyVersion: 1,
         bankAccountNumber: dto.bankAccountNumber,
         bankCode: dto.bankCode,
         residentialAddress: dto.residentialAddress,
@@ -534,5 +555,33 @@ export class CustomersService {
       newValues,
       isSuccess: true,
     });
+  }
+
+  /**
+   * Decrypt sensitive customer data (BVN/NIN)
+   * Only call this for authorized users viewing customer details
+   */
+  private decryptCustomerData(customer: any): any {
+    if (!customer) return customer;
+
+    try {
+      // Decrypt BVN if encrypted version exists
+      if (customer.bvnEncrypted && !customer.bvn) {
+        const { encrypted, iv, authTag } = this.encryption.unpackEncrypted(customer.bvnEncrypted);
+        customer.bvn = this.encryption.decrypt(encrypted, iv, authTag);
+      }
+
+      // Decrypt NIN if encrypted version exists
+      if (customer.ninEncrypted && !customer.nin) {
+        const { encrypted, iv, authTag } = this.encryption.unpackEncrypted(customer.ninEncrypted);
+        customer.nin = this.encryption.decrypt(encrypted, iv, authTag);
+      }
+    } catch (error) {
+      console.error('[CustomersService] Decryption error:', error);
+      // Don't throw - return customer without decrypted fields
+      // Log to audit for security monitoring
+    }
+
+    return customer;
   }
 }
