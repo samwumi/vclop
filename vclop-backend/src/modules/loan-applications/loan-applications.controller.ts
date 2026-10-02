@@ -25,7 +25,7 @@ export class LoanApplicationsController {
   @ApiOperation({ summary: 'List/search loan applications' })
   findAll(@Query() query: QueryLoanApplicationsDto, @CurrentUser() actor: RequestUser) {
     const isAdmin = actor.permissions.has('system:admin');
-    const isAccounting = actor.permissions.has('virtual_accounts:reconcile'); // Only accounting roles have this
+    const isAccounting = actor.permissions.has('virtual_accounts:reconcile');
     const canViewAll =
       isAdmin ||
       isAccounting ||
