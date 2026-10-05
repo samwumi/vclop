@@ -118,7 +118,7 @@ export function CustomerFieldVerificationTab({ customerId, canLog }: Props) {
   return (
     <div className="space-y-5">
 
-      {/* ── Log new visit ── */}
+      {/* ── Log new visit (Only for Compliance Officers) ── */}
       {canLog && (
         <div className="card">
           <div className="card-header flex items-center gap-2">
@@ -254,16 +254,22 @@ export function CustomerFieldVerificationTab({ customerId, canLog }: Props) {
           ) : visits.length === 0 ? (
             <div className="py-8 text-center border border-dashed border-gray-200 rounded-lg">
               <Navigation className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No field visits logged yet.</p>
               {canLog ? (
-                <p className="text-xs text-gray-400 mt-1">
-                  Use the form above to log a visit with GPS and photos.
-                </p>
+                <>
+                  <p className="text-sm text-gray-400">No field visits logged yet.</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Use the form above to log a visit with GPS and photos.
+                  </p>
+                </>
               ) : (
-                <p className="text-xs text-gray-400 mt-1">
-                  Compliance Officers will log field verification visits here.
-                </p>
+                <>
+                  <p className="text-sm text-gray-400">No field verification has been logged for this customer yet.</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Compliance Officers will log field visits here when they conduct verification.
+                  </p>
+                </>
               )}
+            </div>
             </div>
           ) : (
             <div className="space-y-3">
