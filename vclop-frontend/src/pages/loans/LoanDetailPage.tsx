@@ -602,7 +602,12 @@ export function LoanDetailPage() {
                   )}
                 </div>
               ))}
-              {application.status === 'DRAFT' && (
+              
+              {application.guarantors?.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">No guarantors added yet.</p>
+              )}
+              
+              {hasPermission('loan_applications:update') && application.status === 'DRAFT' && (
                 <div className="space-y-2 pt-2 border-t border-gray-100">
                   <div className="grid grid-cols-2 gap-2">
                     <input className="form-input text-xs h-8" placeholder="First name" value={guarantorForm.firstName} onChange={(e) => setGuarantorForm((f) => ({ ...f, firstName: e.target.value }))} />
