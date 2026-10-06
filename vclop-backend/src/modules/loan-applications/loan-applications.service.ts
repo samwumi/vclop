@@ -904,7 +904,6 @@ export class LoanApplicationsService {
       const documentCount = await this.prisma.customerDocument.count({
         where: {
           customerId: application.customerId,
-          deletedAt: null,
         },
       });
 
@@ -919,8 +918,7 @@ export class LoanApplicationsService {
       const approvedDocCount = await this.prisma.customerDocument.count({
         where: {
           customerId: application.customerId,
-          status: 'APPROVED',
-          deletedAt: null,
+          status: 'VERIFIED',
         },
       });
 
