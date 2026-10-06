@@ -108,13 +108,17 @@ export class CustomersService {
     ]);
 
     // Get unique officer IDs
-    const loanOfficerIds = [...new Set(loanApplications.filter(app => app.submittedById).map(app => app.submittedById))];
+    const loanOfficerIdsFromApps = [...new Set(loanApplications.filter(app => app.submittedById).map(app => app.submittedById))];
+    // Include the customer's assigned officer if set
+    const allLoanOfficerIds = customer.assignedOfficerId 
+      ? [...new Set([customer.assignedOfficerId, ...loanOfficerIdsFromApps])]
+      : loanOfficerIdsFromApps;
     const complianceOfficerIds = [...new Set(loanApplications.filter(app => app.reviewedById).map(app => app.reviewedById))];
 
     // Fetch user details
     const [loanOfficers, complianceOfficers] = await Promise.all([
-      loanOfficerIds.length > 0 ? this.prisma.user.findMany({
-        where: { id: { in: loanOfficerIds as string[] } },
+      allLoanOfficerIds.length > 0 ? this.prisma.user.findMany({
+        where: { id: { in: allLoanOfficerIds as string[] } },
         select: { id: true, firstName: true, lastName: true }
       }) : [],
       complianceOfficerIds.length > 0 ? this.prisma.user.findMany({
