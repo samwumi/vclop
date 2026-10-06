@@ -270,7 +270,6 @@ export function CustomerFieldVerificationTab({ customerId, canLog }: Props) {
                 </>
               )}
             </div>
-            </div>
           ) : (
             <div className="space-y-3">
               {visits.map((v: FieldVisit) => (
