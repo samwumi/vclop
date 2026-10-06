@@ -5,11 +5,12 @@ import { VirtualAccountsService } from './virtual-accounts.service';
 import { VirtualAccountProviderFactory } from './providers/virtual-account-provider.factory';
 import { LocalVirtualAccountProvider } from './providers/local-virtual-account.provider';
 import { PaystackVirtualAccountProvider } from './providers/paystack-virtual-account.provider';
+import { EncryptionService } from '../../common/services/encryption.service';
 
 @Module({
   imports: [LoanApplicationsModule],
   controllers: [VirtualAccountsController],
-  providers: [VirtualAccountsService, VirtualAccountProviderFactory, LocalVirtualAccountProvider, PaystackVirtualAccountProvider],
+  providers: [VirtualAccountsService, VirtualAccountProviderFactory, LocalVirtualAccountProvider, PaystackVirtualAccountProvider, EncryptionService],
   exports: [VirtualAccountsService],
 })
 export class VirtualAccountsModule {}

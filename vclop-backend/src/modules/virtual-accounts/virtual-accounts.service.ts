@@ -7,6 +7,7 @@ import { BusinessException, ResourceNotFoundException } from '../../common/excep
 import { LoanApplicationsService } from '../loan-applications/loan-applications.service';
 import { VirtualAccountProviderFactory } from './providers/virtual-account-provider.factory';
 import { SimulatePaymentDto } from './dto/simulate-payment.dto';
+import { EncryptionService } from '../../common/services/encryption.service';
 
 @Injectable()
 export class VirtualAccountsService {
@@ -18,6 +19,7 @@ export class VirtualAccountsService {
     private readonly providerFactory: VirtualAccountProviderFactory,
     private readonly loanApplicationsService: LoanApplicationsService,
     private readonly events: EventEmitter2,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async findAll(customerId?: string): Promise<unknown[]> {
@@ -86,6 +88,18 @@ export class VirtualAccountsService {
     const customer = await this.prisma.customer.findUnique({ where: { id: customerId } });
     if (!customer) throw new ResourceNotFoundException('Customer', customerId);
 
+    // Decrypt BVN if encrypted
+    let bvn = customer.bvn; // fallback to plain BVN
+    if (customer.bvnEncrypted) {
+      try {
+        const { encrypted, iv, authTag } = this.encryption.unpackEncrypted(customer.bvnEncrypted);
+        bvn = this.encryption.decrypt(encrypted, iv, authTag);
+      } catch (error) {
+        this.logger.error(`Failed to decrypt BVN for customer ${customerId}: ${(error as Error).message}`);
+        // Continue with plain BVN if available
+      }
+    }
+
     const provider = this.providerFactory.getActiveProvider();
     const result = await provider.createVirtualAccount({
       loanId,
@@ -93,7 +107,7 @@ export class VirtualAccountsService {
       customerName: customer.businessName ?? `${customer.firstName} ${customer.lastName}`,
       customerEmail: customer.email ?? undefined,
       customerPhone: customer.phone,
-      customerBvn: customer.bvn ?? undefined,
+      customerBvn: bvn ?? undefined,
       customerBankAccount: customer.bankAccountNumber ?? undefined,
       customerBankCode: customer.bankCode ?? undefined,
     });
