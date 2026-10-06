@@ -541,8 +541,8 @@ export function LoanDetailPage() {
         </div>
       )}
 
-      {/* Guarantors & Collateral — only editable while DRAFT */}
-      {(application.loanProduct || application.status === 'DRAFT') && (
+      {/* Guarantors & Collateral */}
+      {true && (
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="card">
             <div className="card-header"><h3 className="text-sm font-semibold text-gray-700">Guarantors</h3></div>
