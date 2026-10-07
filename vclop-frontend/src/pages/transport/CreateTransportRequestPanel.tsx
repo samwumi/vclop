@@ -35,7 +35,7 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
         purpose,
         location: selectedLocations.length > 0 
           ? branches.filter(b => selectedLocations.includes(b.id)).map(b => b.name).join(', ')
-          : undefined,
+          : '',
         customerCount: customerCount ? Number(customerCount) : 1,
         distanceKm: distanceKm ? Number(distanceKm) : undefined,
         estimatedCost: estimatedCost ? Number(estimatedCost) : undefined,
