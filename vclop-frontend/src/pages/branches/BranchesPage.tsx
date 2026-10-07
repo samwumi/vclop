@@ -66,8 +66,8 @@ function BranchForm({ onClose }: BranchFormProps) {
           <div>
             <label className="form-label">Branch Code <span className="text-red-500">*</span></label>
             <input className="form-input uppercase" placeholder="e.g. LOC-SURULERE" value={form.code}
-              onChange={e => set('code', e.target.value)} />
-            <p className="text-xs text-gray-400 mt-0.5">Short unique code — no spaces, uppercase.</p>
+              onChange={e => set('code', e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))} />
+            <p className="text-xs text-gray-400 mt-0.5">Only letters, numbers, hyphens, and underscores. Auto-capitalized.</p>
           </div>
           <div>
             <label className="form-label">Location Name <span className="text-red-500">*</span></label>
