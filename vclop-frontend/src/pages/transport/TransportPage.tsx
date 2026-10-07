@@ -209,8 +209,8 @@ export function TransportPage() {
                   {req.requestedBy ? (
                     <>
                       <div>{`${req.requestedBy.firstName} ${req.requestedBy.lastName}`}</div>
-                      {req.requestedBy.department && (
-                        <div className="text-xs text-gray-500">{req.requestedBy.department.name}</div>
+                      {(req.requestedBy as any).department && (
+                        <div className="text-xs text-gray-500">{(req.requestedBy as any).department.name}</div>
                       )}
                     </>
                   ) : '—'}
