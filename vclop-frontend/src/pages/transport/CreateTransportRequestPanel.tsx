@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { transportService } from '@/services/transport.service';
+import { api } from '@/lib/axios';
+import type { ApiResponse } from '@/types/api.types';
+import type { Branch } from '@/types/domain.types';
 
 interface CreateTransportRequestPanelProps {
   onClose: () => void;
@@ -9,7 +12,7 @@ interface CreateTransportRequestPanelProps {
 
 export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestPanelProps) {
   const [purpose, setPurpose] = useState('');
-  const [location, setLocation] = useState('');
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [customerCount, setCustomerCount] = useState('1');
   const [distanceKm, setDistanceKm] = useState('');
   const [estimatedCost, setEstimatedCost] = useState('');
@@ -17,11 +20,22 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
   
   const qc = useQueryClient();
 
+  // Fetch branches for location dropdown
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: async () => {
+      const { data } = await api.get<ApiResponse<Branch[]>>('/branches');
+      return data.data || [];
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: () =>
       transportService.create({
         purpose,
-        location,
+        location: selectedLocations.length > 0 
+          ? branches.filter(b => selectedLocations.includes(b.id)).map(b => b.name).join(', ')
+          : undefined,
         customerCount: customerCount ? Number(customerCount) : 1,
         distanceKm: distanceKm ? Number(distanceKm) : undefined,
         estimatedCost: estimatedCost ? Number(estimatedCost) : undefined,
@@ -38,8 +52,8 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!purpose.trim() || !location.trim()) {
-      toast.error('Please fill in purpose and location');
+    if (!purpose.trim() || selectedLocations.length === 0) {
+      toast.error('Please fill in purpose and select at least one location');
       return;
     }
     createMutation.mutate();
@@ -69,15 +83,35 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
             </div>
 
             <div>
-              <label className="form-label">Location <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                className="form-input"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Enter destination or route"
-                required
-              />
+              <label className="form-label">Location(s) <span className="text-red-500">*</span></label>
+              <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                {branches.map((branch) => (
+                  <label key={branch.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={selectedLocations.includes(branch.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedLocations([...selectedLocations, branch.id]);
+                        } else {
+                          setSelectedLocations(selectedLocations.filter(id => id !== branch.id));
+                        }
+                      }}
+                      className="form-checkbox h-4 w-4 text-brand-600"
+                    />
+                    <span className="text-sm text-gray-700">{branch.name}</span>
+                    <span className="text-xs text-gray-400">({branch.code})</span>
+                  </label>
+                ))}
+                {branches.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-2">No locations available</p>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {selectedLocations.length > 0 
+                  ? `${selectedLocations.length} location(s) selected`
+                  : 'Select one or more locations'}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -148,7 +182,7 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
               </button>
               <button
                 type="submit"
-                disabled={createMutation.isPending || !purpose.trim() || !location.trim()}
+                disabled={createMutation.isPending || !purpose.trim() || selectedLocations.length === 0}
                 className="btn-primary flex-1 disabled:opacity-50"
               >
                 {createMutation.isPending ? 'Creating…' : 'Create Request'}
