@@ -148,7 +148,7 @@ export function TransportPage() {
   // IC officers + admin can review; accounting head + admin can pay
   const canReview = hasPermission('transport:approve') || hasPermission('system:admin');
   const canPay    = hasPermission('loan_applications:disburse_head') || hasPermission('system:admin');
-  const canCreate = hasPermission('customers:kyc') || hasPermission('system:admin'); // Compliance officers can create
+  const canCreate = hasPermission('loan_applications:compliance_review') || hasPermission('system:admin'); // Compliance officers can create
 
   return (
     <>
