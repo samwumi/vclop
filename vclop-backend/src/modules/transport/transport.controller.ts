@@ -4,7 +4,7 @@ import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 import { TransportRequestStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'; import { PermissionsGuard } from '../../common/guards/permissions.guard'; import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'; import { CurrentUser } from '../../common/decorators/current-user.decorator'; import { RequestUser } from '../../common/interfaces/request-user.interface'; import { ok } from '../../common/utils/response.util'; import { TransportService } from './transport.service';
 class CreateTransportDto {
-  @IsString() loanApplicationId!: string;
+  @IsOptional() @IsString() loanApplicationId?: string;
   @IsString() purpose!: string;
   @IsString() location!: string;
   @IsOptional() @IsNumber() customerCount?: number;
