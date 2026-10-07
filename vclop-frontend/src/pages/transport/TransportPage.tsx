@@ -206,9 +206,14 @@ export function TransportPage() {
             {requests.map((req) => (
               <tr key={req.id}>
                 <td className="text-sm text-gray-800">
-                  {req.requestedBy
-                    ? `${req.requestedBy.firstName} ${req.requestedBy.lastName}`
-                    : '—'}
+                  {req.requestedBy ? (
+                    <>
+                      <div>{`${req.requestedBy.firstName} ${req.requestedBy.lastName}`}</div>
+                      {req.requestedBy.department && (
+                        <div className="text-xs text-gray-500">{req.requestedBy.department.name}</div>
+                      )}
+                    </>
+                  ) : '—'}
                 </td>
                 <td className="text-xs text-gray-600 max-w-[200px] truncate" title={req.purpose}>
                   {req.purpose}

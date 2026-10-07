@@ -37,7 +37,7 @@ export class TransportService {
           },
         },
       }) : [],
-      this.prisma.user.findMany({ where: { id: { in: requesterIds } }, select: { id: true, firstName: true, lastName: true, branchId: true } }),
+      this.prisma.user.findMany({ where: { id: { in: requesterIds } }, select: { id: true, firstName: true, lastName: true, branchId: true, department: { select: { id: true, code: true, name: true } } } }),
       reviewerIds.length ? this.prisma.user.findMany({ where: { id: { in: reviewerIds } }, select: { id: true, firstName: true, lastName: true } }) : [],
     ]);
 
