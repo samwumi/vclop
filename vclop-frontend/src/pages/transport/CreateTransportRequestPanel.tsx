@@ -20,11 +20,11 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
   
   const qc = useQueryClient();
 
-  // Fetch branches for location dropdown
+  // Fetch branches for location dropdown (use public locations endpoint)
   const { data: branches = [] } = useQuery({
-    queryKey: ['branches'],
+    queryKey: ['branch-locations'],
     queryFn: async () => {
-      const { data } = await api.get<ApiResponse<Branch[]>>('/branches');
+      const { data } = await api.get<ApiResponse<Branch[]>>('/branches/locations');
       return data.data || [];
     },
   });
@@ -87,7 +87,7 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
 
             <div>
               <label className="form-label">Location(s)</label>
-              <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+              <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-3">
                 {branches.map((branch) => (
                   <label key={branch.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
                     <input
