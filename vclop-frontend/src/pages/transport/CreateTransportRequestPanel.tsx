@@ -87,9 +87,9 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
 
             <div>
               <label className="form-label">Location(s)</label>
-              <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-3">
+              <div className="space-y-1 max-h-24 overflow-y-auto border border-gray-200 rounded-lg p-2">
                 {branches.map((branch) => (
-                  <label key={branch.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                  <label key={branch.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded">
                     <input
                       type="checkbox"
                       checked={selectedLocations.includes(branch.id)}
@@ -103,7 +103,6 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
                       className="form-checkbox h-4 w-4 text-brand-600"
                     />
                     <span className="text-sm text-gray-700">{branch.name}</span>
-                    <span className="text-xs text-gray-400">({branch.code})</span>
                   </label>
                 ))}
                 {branches.length === 0 && (
@@ -113,7 +112,7 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
               <p className="text-xs text-gray-400 mt-1">
                 {selectedLocations.length > 0 
                   ? `${selectedLocations.length} location(s) selected`
-                  : 'Optional - Select one or more locations'}
+                  : 'Optional'}
               </p>
             </div>
 
