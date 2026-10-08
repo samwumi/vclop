@@ -71,10 +71,10 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
           <button onClick={onClose} className="btn-ghost btn-icon w-8 h-8 text-gray-400">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-          <div className="flex-1 p-5 space-y-4 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 p-4 space-y-3 overflow-y-auto">
             <div>
-              <label className="form-label">Purpose <span className="text-red-500">*</span></label>
+              <label className="form-label text-xs">Purpose <span className="text-red-500">*</span></label>
               <textarea
                 className="form-input"
                 rows={3}
@@ -86,8 +86,8 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
             </div>
 
             <div>
-              <label className="form-label">Location(s)</label>
-              <div className="space-y-1 max-h-24 overflow-y-auto border border-gray-200 rounded-lg p-2">
+              <label className="form-label text-xs">Location(s)</label>
+              <div className="space-y-1 max-h-20 overflow-y-auto border border-gray-200 rounded p-2 text-sm">
                 {branches.map((branch) => (
                   <label key={branch.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded">
                     <input
@@ -116,9 +116,9 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="form-label">Number of Customers</label>
+                <label className="form-label text-xs">Number of Customers</label>
                 <input
                   type="number"
                   min="1"
@@ -129,7 +129,7 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
               </div>
 
               <div>
-                <label className="form-label">Distance (km)</label>
+                <label className="form-label text-xs">Distance (km)</label>
                 <input
                   type="number"
                   step="0.1"
@@ -142,9 +142,9 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="form-label">Estimated Cost (₦)</label>
+                <label className="form-label text-xs">Estimated Cost (₦)</label>
                 <input
                   type="number"
                   min="0"
@@ -156,7 +156,7 @@ export function CreateTransportRequestPanel({ onClose }: CreateTransportRequestP
               </div>
 
               <div>
-                <label className="form-label">Suggested Amount (₦)</label>
+                <label className="form-label text-xs">Suggested Amount (₦)</label>
                 <input
                   type="number"
                   min="0"
