@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  Target, TrendingUp, Banknote, FileText, CheckCircle2, Wallet,
+  Target, TrendingUp, Banknote, FileText, CheckCircle2, Wallet, Users,
 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { PageLoader } from '@/components/ui/LoadingScreen';
 import { performanceService } from '@/services/performance.service';
+import { officerTargetsService } from '@/services/officer-targets.service';
 import { useAuthStore } from '@/stores/auth.store';
 
 // ── Stat card ────────────────────────────────────────────────────────────────
@@ -76,6 +77,20 @@ export function PerformancePage() {
     refetchInterval: 120_000,
   });
 
+  // Fetch officer targets for current month
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  const { data: myTarget } = useQuery({
+    queryKey: ['officer-target', 'me', currentMonth],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      return officerTargetsService.getOne(user.id, currentMonth);
+    },
+    enabled: !!user?.id,
+    staleTime: 60_000,
+  });
+
   if (isLoading) return <PageLoader />;
 
   const now = new Date();
@@ -104,24 +119,24 @@ export function PerformancePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
           title="Monthly Target"
-          value={`₦${(perf?.monthlyTarget ?? 0).toLocaleString()}`}
-          sub={perf?.monthlyTarget ? 'Set by your manager' : 'No target set yet'}
+          value={`₦${(perf?.monthlyTarget ?? myTarget?.disbursementTarget ?? 0).toLocaleString()}`}
+          sub={perf?.monthlyTarget || myTarget ? 'Set by your manager' : 'No target set yet'}
           icon={Target}
           color="bg-brand-50 text-brand-600"
         />
         <KpiCard
           title="Achieved (MTD)"
-          value={`₦${(perf?.currentAchievement ?? 0).toLocaleString()}`}
+          value={`₦${(perf?.currentAchievement ?? myTarget?.disbursementAchieved ?? 0).toLocaleString()}`}
           sub={`${perf?.monthlyDisbursements ?? 0} loan${perf?.monthlyDisbursements !== 1 ? 's' : ''} disbursed`}
           icon={Banknote}
           color="bg-emerald-50 text-emerald-600"
         />
         <KpiCard
           title="Remaining"
-          value={`₦${(perf?.remainingTarget ?? 0).toLocaleString()}`}
-          sub={(perf?.remainingTarget ?? 0) === 0 ? '🎉 Target reached!' : 'to hit your target'}
+          value={`₦${(perf?.remainingTarget ?? (myTarget ? Number(myTarget.disbursementTarget) - Number(myTarget.disbursementAchieved) : 0)).toLocaleString()}`}
+          sub={(perf?.remainingTarget ?? (myTarget ? Number(myTarget.disbursementTarget) - Number(myTarget.disbursementAchieved) : 0)) <= 0 ? '🎉 Target reached!' : 'to hit your target'}
           icon={TrendingUp}
-          color={(perf?.remainingTarget ?? 0) === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}
+          color={(perf?.remainingTarget ?? (myTarget ? Number(myTarget.disbursementTarget) - Number(myTarget.disbursementAchieved) : 0)) <= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}
         />
         <KpiCard
           title="Applications (MTD)"
@@ -150,6 +165,71 @@ export function PerformancePage() {
         />
       </div>
 
+      {/* New Officer Targets Section */}
+      {myTarget && (
+        <div className="card p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            Officer Targets ({monthName})
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Disbursement Progress */}
+            <div className="space-y-2">
+              <ProgressBar
+                label="Disbursement Target"
+                value={Number(myTarget.disbursementAchieved)}
+                max={Number(myTarget.disbursementTarget)}
+                pct={myTarget.disbursementAchievementRate}
+                color={
+                  myTarget.disbursementAchievementRate >= 100
+                    ? 'bg-emerald-500'
+                    : myTarget.disbursementAchievementRate >= 75
+                      ? 'bg-blue-500'
+                      : myTarget.disbursementAchievementRate >= 50
+                        ? 'bg-amber-500'
+                        : 'bg-red-500'
+                }
+              />
+            </div>
+
+            {/* Customer Acquisition Progress */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center mb-1.5">
+                <p className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  <Users className="w-4 h-4" />
+                  Customer Target
+                </p>
+                <p className="text-sm font-bold text-gray-900">{myTarget.customerAchievementRate.toFixed(0)}%</p>
+              </div>
+              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    myTarget.customerAchievementRate >= 100
+                      ? 'bg-emerald-500'
+                      : myTarget.customerAchievementRate >= 75
+                        ? 'bg-blue-500'
+                        : myTarget.customerAchievementRate >= 50
+                          ? 'bg-amber-500'
+                          : 'bg-red-500'
+                  }`}
+                  style={{ width: `${Math.min(100, myTarget.customerAchievementRate)}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1 text-xs text-gray-400">
+                <span>{myTarget.customerAchieved} customers</span>
+                <span>{myTarget.customerTarget} target</span>
+              </div>
+            </div>
+          </div>
+          
+          {myTarget.notes && (
+            <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">
+              <strong>Note:</strong> {myTarget.notes}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Monthly target progress bar */}
       {(perf?.monthlyTarget ?? 0) > 0 && (
         <div className="card p-6 space-y-5">
@@ -176,7 +256,7 @@ export function PerformancePage() {
       )}
 
       {/* No target state */}
-      {(perf?.monthlyTarget ?? 0) === 0 && (
+      {(perf?.monthlyTarget ?? 0) === 0 && !myTarget && (
         <div className="card p-8 text-center">
           <Target className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-gray-700">No target set</h3>
