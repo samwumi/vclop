@@ -52,7 +52,7 @@ export class CustomersController {
       const isAccounting = actor.permissions.has('virtual_accounts:reconcile');
       const canViewAll = actor.permissions.has('customers:manage') || isAccounting;
       
-      console.log('[Customers] User:', actor.email, 'isAdmin:', isAdmin, 'canViewAll:', canViewAll);
+      console.log('[Customers] User:', actor.email, 'branchId:', actor.branchId, 'isAdmin:', isAdmin, 'isIC:', isIC, 'isCompliance:', isCompliance, 'canViewAll:', canViewAll);
 
       // Admin, IC, or customers:manage — see all customers across all branches
       if (isAdmin || isIC || canViewAll) {
@@ -60,8 +60,9 @@ export class CustomersController {
         return this.service.findAll(query);
       }
 
-      // Compliance / Others with branch restrictions — scope to their branches
-      if (isCompliance || actor.branchId || (actor.managedBranchIds && actor.managedBranchIds.length > 0)) {
+      // Compliance officers — scope to their branches
+      if (isCompliance) {
+        console.log('[Customers] Path: compliance (branch-scoped)');
         if (!query.branchId) {
           const branchIds = [
             ...(actor.branchId ? [actor.branchId] : []),
@@ -69,23 +70,17 @@ export class CustomersController {
           ];
           const uniqueBranchIds = [...new Set(branchIds)];
           if (uniqueBranchIds.length > 0) {
-            // Pass all branch IDs to service for OR query
             (query as typeof query & { branchIds?: string[] }).branchIds = uniqueBranchIds;
           } else {
-            // Has permission but no branches assigned - see all
+            // Compliance officer with no branches - see all
             return this.service.findAll(query);
           }
         }
         return this.service.findAll(query);
       }
 
-      // User with customers:read but no branch assignment - see all
-      if (!actor.branchId && !isCompliance) {
-        return this.service.findAll(query);
-      }
-
       // Loan officer / Collections — see only their own registered customers
-      console.log('[Customers] Path: loan officer (own customers)');
+      console.log('[Customers] Path: loan officer (own customers only), setting assignedOfficerId:', actor.id);
       if (!query.assignedOfficerId) {
         query.assignedOfficerId = actor.id;
       }
