@@ -77,9 +77,11 @@ export function PerformancePage() {
     refetchInterval: 120_000,
   });
 
-  // Fetch officer targets for current month
+  // Get current date for month calculations
+  const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   
+  // Fetch officer targets for current month
   const { data: myTarget } = useQuery({
     queryKey: ['officer-target', 'me', currentMonth],
     queryFn: async () => {
@@ -92,7 +94,6 @@ export function PerformancePage() {
 
   if (isLoading) return <PageLoader />;
 
-  const now = new Date();
   const monthName = now.toLocaleString('en-NG', { month: 'long', year: 'numeric' });
 
   // Which week of the month (1–5)
