@@ -172,6 +172,8 @@ export function PerformancePage() {
             <Target className="w-4 h-4" />
             Officer Targets ({monthName})
           </h2>
+          
+          {/* Progress Bars */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Disbursement Progress */}
             <div className="space-y-2">
@@ -220,6 +222,79 @@ export function PerformancePage() {
                 <span>{myTarget.customerTarget} target</span>
               </div>
             </div>
+          </div>
+
+          {/* Detailed Target Table */}
+          <div className="overflow-x-auto -mx-6 px-6">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Officer</th>
+                  <th>Branch</th>
+                  <th className="text-right">Disbursement Target</th>
+                  <th className="text-right">Achieved</th>
+                  <th className="text-right">Rate</th>
+                  <th className="text-right">Customer Target</th>
+                  <th className="text-right">Achieved</th>
+                  <th className="text-right">Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-900">
+                        {user?.firstName} {user?.lastName}
+                      </span>
+                      <span className="text-xs text-gray-500">{user?.email}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="badge badge-neutral">
+                      {myTarget.user?.branch?.name || 'N/A'}
+                    </span>
+                  </td>
+                  <td className="text-right font-medium">
+                    ₦{Number(myTarget.disbursementTarget).toLocaleString()}
+                  </td>
+                  <td className="text-right">
+                    ₦{Number(myTarget.disbursementAchieved).toLocaleString()}
+                  </td>
+                  <td className="text-right">
+                    <span
+                      className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                        myTarget.disbursementAchievementRate >= 100
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : myTarget.disbursementAchievementRate >= 75
+                            ? 'bg-blue-100 text-blue-700'
+                            : myTarget.disbursementAchievementRate >= 50
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {myTarget.disbursementAchievementRate.toFixed(1)}%
+                    </span>
+                  </td>
+                  <td className="text-right font-medium">{myTarget.customerTarget}</td>
+                  <td className="text-right">{myTarget.customerAchieved}</td>
+                  <td className="text-right">
+                    <span
+                      className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                        myTarget.customerAchievementRate >= 100
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : myTarget.customerAchievementRate >= 75
+                            ? 'bg-blue-100 text-blue-700'
+                            : myTarget.customerAchievementRate >= 50
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {myTarget.customerAchievementRate.toFixed(1)}%
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           
           {myTarget.notes && (
