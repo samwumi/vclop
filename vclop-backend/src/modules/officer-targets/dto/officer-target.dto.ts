@@ -14,7 +14,6 @@ export class SetTargetDto {
   targetMonth!: string;
 
   @ApiProperty({ description: 'Disbursement target amount', example: 5000000 })
-  @IsDecimal()
   @Type(() => Number)
   @Min(0)
   disbursementTarget!: number;
