@@ -119,24 +119,24 @@ export function PerformancePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
           title="Monthly Target"
-          value={`₦${(perf?.monthlyTarget ?? myTarget?.disbursementTarget ?? 0).toLocaleString()}`}
-          sub={perf?.monthlyTarget || myTarget ? 'Set by your manager' : 'No target set yet'}
+          value={`₦${(myTarget?.disbursementTarget ?? perf?.monthlyTarget ?? 0).toLocaleString()}`}
+          sub={myTarget || perf?.monthlyTarget ? 'Set by your manager' : 'No target set yet'}
           icon={Target}
           color="bg-brand-50 text-brand-600"
         />
         <KpiCard
           title="Achieved (MTD)"
-          value={`₦${(perf?.currentAchievement ?? myTarget?.disbursementAchieved ?? 0).toLocaleString()}`}
+          value={`₦${(myTarget?.disbursementAchieved ?? perf?.currentAchievement ?? 0).toLocaleString()}`}
           sub={`${perf?.monthlyDisbursements ?? 0} loan${perf?.monthlyDisbursements !== 1 ? 's' : ''} disbursed`}
           icon={Banknote}
           color="bg-emerald-50 text-emerald-600"
         />
         <KpiCard
           title="Remaining"
-          value={`₦${(perf?.remainingTarget ?? (myTarget ? Number(myTarget.disbursementTarget) - Number(myTarget.disbursementAchieved) : 0)).toLocaleString()}`}
-          sub={(perf?.remainingTarget ?? (myTarget ? Number(myTarget.disbursementTarget) - Number(myTarget.disbursementAchieved) : 0)) <= 0 ? '🎉 Target reached!' : 'to hit your target'}
+          value={`₦${(myTarget ? Number(myTarget.disbursementTarget) - Number(myTarget.disbursementAchieved) : perf?.remainingTarget ?? 0).toLocaleString()}`}
+          sub={(myTarget ? Number(myTarget.disbursementTarget) - Number(myTarget.disbursementAchieved) : perf?.remainingTarget ?? 0) <= 0 ? '🎉 Target reached!' : 'to hit your target'}
           icon={TrendingUp}
-          color={(perf?.remainingTarget ?? (myTarget ? Number(myTarget.disbursementTarget) - Number(myTarget.disbursementAchieved) : 0)) <= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}
+          color={(myTarget ? Number(myTarget.disbursementTarget) - Number(myTarget.disbursementAchieved) : perf?.remainingTarget ?? 0) <= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}
         />
         <KpiCard
           title="Applications (MTD)"
@@ -306,24 +306,30 @@ export function PerformancePage() {
       )}
 
       {/* Monthly target progress bar */}
-      {(perf?.monthlyTarget ?? 0) > 0 && (
+      {((myTarget?.disbursementTarget ?? perf?.monthlyTarget ?? 0) > 0) && (
         <div className="card p-6 space-y-5">
           <h2 className="text-sm font-semibold text-gray-800">Monthly Target Progress</h2>
           <ProgressBar
             label="Disbursed vs Target"
-            value={perf!.currentAchievement}
-            max={perf!.monthlyTarget}
-            pct={perf!.progressPercentage}
-            color={perf!.progressPercentage >= 100 ? 'bg-emerald-500' : perf!.progressPercentage >= 60 ? 'bg-brand-600' : 'bg-amber-500'}
+            value={myTarget ? Number(myTarget.disbursementAchieved) : perf!.currentAchievement}
+            max={myTarget ? Number(myTarget.disbursementTarget) : perf!.monthlyTarget}
+            pct={myTarget ? myTarget.disbursementAchievementRate : perf!.progressPercentage}
+            color={
+              (myTarget ? myTarget.disbursementAchievementRate : perf!.progressPercentage) >= 100
+                ? 'bg-emerald-500'
+                : (myTarget ? myTarget.disbursementAchievementRate : perf!.progressPercentage) >= 60
+                  ? 'bg-brand-600'
+                  : 'bg-amber-500'
+            }
           />
 
           {/* Weekly allowance bar */}
-          {perf!.allowancePerMillion > 0 && (
+          {(perf?.allowancePerMillion ?? 0) > 0 && (
             <ProgressBar
               label={`Week ${weekNo} Disbursements`}
               value={perf!.weeklyDisbursedAmount}
-              max={perf!.monthlyTarget / 4}          // rough "weekly share" of monthly target
-              pct={(perf!.weeklyDisbursedAmount / (perf!.monthlyTarget / 4)) * 100}
+              max={(myTarget ? Number(myTarget.disbursementTarget) : perf!.monthlyTarget) / 4}
+              pct={(perf!.weeklyDisbursedAmount / ((myTarget ? Number(myTarget.disbursementTarget) : perf!.monthlyTarget) / 4)) * 100}
               color="bg-orange-500"
             />
           )}
@@ -331,7 +337,7 @@ export function PerformancePage() {
       )}
 
       {/* No target state */}
-      {(perf?.monthlyTarget ?? 0) === 0 && !myTarget && (
+      {((myTarget?.disbursementTarget ?? perf?.monthlyTarget ?? 0) === 0) && (
         <div className="card p-8 text-center">
           <Target className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-gray-700">No target set</h3>
