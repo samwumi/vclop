@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/services/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { SetTargetDto, QueryTargetsDto } from './dto/officer-target.dto';
@@ -61,7 +61,7 @@ export class OfficerTargetsService {
       ],
     });
 
-    return targets.map(t => ({
+    return targets.map((t: any) => ({
       ...t,
       disbursementAchievementRate: t.disbursementTarget > 0 
         ? Number(((Number(t.disbursementAchieved) / Number(t.disbursementTarget)) * 100).toFixed(2))
@@ -262,13 +262,13 @@ export class OfficerTargetsService {
 
     const summary = {
       totalOfficers: targets.length,
-      totalDisbursementTarget: targets.reduce((sum, t) => sum + Number(t.disbursementTarget), 0),
-      totalDisbursementAchieved: targets.reduce((sum, t) => sum + Number(t.disbursementAchieved), 0),
-      totalCustomerTarget: targets.reduce((sum, t) => sum + t.customerTarget, 0),
-      totalCustomerAchieved: targets.reduce((sum, t) => sum + t.customerAchieved, 0),
-      officersMetDisbursementTarget: targets.filter(t => Number(t.disbursementAchieved) >= Number(t.disbursementTarget)).length,
-      officersMetCustomerTarget: targets.filter(t => t.customerAchieved >= t.customerTarget).length,
-      targets: targets.map(t => ({
+      totalDisbursementTarget: targets.reduce((sum: number, t: any) => sum + Number(t.disbursementTarget), 0),
+      totalDisbursementAchieved: targets.reduce((sum: number, t: any) => sum + Number(t.disbursementAchieved), 0),
+      totalCustomerTarget: targets.reduce((sum: number, t: any) => sum + t.customerTarget, 0),
+      totalCustomerAchieved: targets.reduce((sum: number, t: any) => sum + t.customerAchieved, 0),
+      officersMetDisbursementTarget: targets.filter((t: any) => Number(t.disbursementAchieved) >= Number(t.disbursementTarget)).length,
+      officersMetCustomerTarget: targets.filter((t: any) => t.customerAchieved >= t.customerTarget).length,
+      targets: targets.map((t: any) => ({
         officer: `${t.user.firstName} ${t.user.lastName}`,
         email: t.user.email,
         disbursementTarget: Number(t.disbursementTarget),

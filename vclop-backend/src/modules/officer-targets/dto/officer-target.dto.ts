@@ -6,24 +6,24 @@ export class SetTargetDto {
   @ApiProperty({ description: 'Officer user ID' })
   @IsUUID()
   @IsNotEmpty()
-  userId: string;
+  userId!: string;
 
   @ApiProperty({ description: 'Target month in YYYY-MM format', example: '2026-10' })
   @IsString()
   @IsNotEmpty()
-  targetMonth: string;
+  targetMonth!: string;
 
   @ApiProperty({ description: 'Disbursement target amount', example: 5000000 })
   @IsDecimal()
   @Type(() => Number)
   @Min(0)
-  disbursementTarget: number;
+  disbursementTarget!: number;
 
   @ApiProperty({ description: 'Customer acquisition target', example: 20 })
   @IsInt()
   @Type(() => Number)
   @Min(0)
-  customerTarget: number;
+  customerTarget!: number;
 
   @ApiPropertyOptional({ description: 'Additional notes' })
   @IsOptional()
