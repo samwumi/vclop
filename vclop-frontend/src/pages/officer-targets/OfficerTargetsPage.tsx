@@ -274,15 +274,27 @@ function SetTargetModal({
   const [notes, setNotes] = useState(editingTarget?.notes || '');
 
   // Fetch loan officers for dropdown
-  const { data: users } = useQuery({
+  const { data: users, isLoading: loadingUsers } = useQuery({
     queryKey: ['users-loan-officers'],
     queryFn: async () => {
-      const { data } = await api.get('/users');
-      // Filter loan officers on frontend
-      const allUsers = data.data?.data || [];
-      return allUsers.filter((u: any) => 
-        u.roles?.some((r: any) => r.role?.code === 'LOAN_OFFICER')
-      );
+      const { data } = await api.get('/users?limit=100');
+      console.log('[OfficerTargets] Users API response:', data);
+      
+      // Handle different response structures
+      const allUsers = data.data?.data || data.data || [];
+      console.log('[OfficerTargets] All users:', allUsers);
+      
+      // Filter loan officers
+      const officers = allUsers.filter((u: any) => {
+        const hasLORole = u.roles?.some((r: any) => 
+          r.role?.code === 'LOAN_OFFICER' || r.code === 'LOAN_OFFICER'
+        );
+        console.log(`[OfficerTargets] User ${u.firstName} ${u.lastName}: hasLORole=${hasLORole}`, u.roles);
+        return hasLORole;
+      });
+      
+      console.log('[OfficerTargets] Filtered loan officers:', officers);
+      return officers;
     },
     enabled: !editingTarget, // Only fetch if creating new target
   });
@@ -333,19 +345,28 @@ function SetTargetModal({
           {!editingTarget && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Loan Officer</label>
-              <select
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                className="input w-full"
-                required
-              >
-                <option value="">Select an officer...</option>
-                {users?.map((user: any) => (
-                  <option key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName} - {user.branch?.name || 'No Branch'}
-                  </option>
-                ))}
-              </select>
+              {loadingUsers ? (
+                <div className="input w-full flex items-center justify-center text-gray-500">
+                  Loading officers...
+                </div>
+              ) : (
+                <select
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  className="input w-full"
+                  required
+                >
+                  <option value="">Select an officer...</option>
+                  {users?.map((user: any) => (
+                    <option key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName} - {user.branch?.name || 'No Branch'}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {!loadingUsers && (!users || users.length === 0) && (
+                <p className="text-xs text-red-600 mt-1">No loan officers found</p>
+              )}
             </div>
           )}
 
