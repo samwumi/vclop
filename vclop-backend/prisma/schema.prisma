@@ -167,6 +167,7 @@ model User {
   department              Department?              @relation(fields: [departmentId], references: [id])
   supervisor              User?                    @relation("UserHierarchy", fields: [supervisorId], references: [id])
   subordinates            User[]                   @relation("UserHierarchy")
+  targets                 OfficerTarget[]          @relation("OfficerTargets")
 
   @@unique([email, deletedAt])
   @@unique([username, deletedAt])
@@ -247,6 +248,8 @@ model OfficerTarget {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   createdById           String?   @db.VarChar(36)
+
+  user                  User      @relation("OfficerTargets", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, targetMonth])
   @@index([userId])

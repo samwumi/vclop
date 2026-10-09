@@ -57,7 +57,7 @@ export class OfficerTargetsService {
       },
       orderBy: [
         { targetMonth: 'desc' },
-        { user: { firstName: 'asc' } },
+        { user: { firstName: 'asc' } } as any,
       ],
     });
 
@@ -118,7 +118,7 @@ export class OfficerTargetsService {
 
     return {
       ...target,
-      disbursementAchievementRate: target.disbursementTarget > 0
+      disbursementAchievementRate: Number(target.disbursementTarget) > 0
         ? Number(((Number(target.disbursementAchieved) / Number(target.disbursementTarget)) * 100).toFixed(2))
         : 0,
       customerAchievementRate: target.customerTarget > 0
