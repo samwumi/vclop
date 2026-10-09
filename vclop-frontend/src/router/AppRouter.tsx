@@ -48,6 +48,7 @@ import { FormEngineAdminPage } from '@/pages/admin/FormEngineAdminPage';
 // Phase 3 — transport + performance
 import { TransportPage } from '@/pages/transport/TransportPage';
 import { PerformancePage } from '@/pages/performance/PerformancePage';
+import { OfficerTargetsPage } from '@/pages/officer-targets/OfficerTargetsPage';
 import { InternalControlPage } from '@/pages/internal-control/InternalControlPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { LocationDrilldownPage } from '@/pages/reports/LocationDrilldownPage';
@@ -101,6 +102,7 @@ export function AppRouter() {
         <Route path="/reports"           element={<ProtectedRoute permission="reports:read"><ReportsPage /></ProtectedRoute>} />
         <Route path="/reports/location/:branchId" element={<ProtectedRoute permission="reports:read"><LocationDrilldownPage /></ProtectedRoute>} />
         <Route path="/performance"  element={<ProtectedRoute permission="dashboard:read"><PerformancePage /></ProtectedRoute>} />
+        <Route path="/officer-targets" element={<ProtectedRoute permission="reports:read"><OfficerTargetsPage /></ProtectedRoute>} />
         <Route path="/profile"      element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
         {/* Administration */}

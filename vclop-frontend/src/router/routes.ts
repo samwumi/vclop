@@ -33,6 +33,7 @@ export const APP_ROUTES: RouteConfig[] = [
   { path: '/collections',       label: 'Collections',      icon: TrendingDown, permission: 'loan_applications:record_repayment',          group: 'Operations' },
   { path: '/transport',         label: 'Transport',        icon: Car,          anyPermission: ['loan_applications:compliance_review', 'transport:approve', 'loan_applications:disburse_head'], group: 'Operations' },
   { path: '/performance',       label: 'My Performance',   icon: Target,       permission: 'dashboard:read',                              group: 'Operations' },
+  { path: '/officer-targets',   label: 'Officer Targets',  icon: Target,       permission: 'reports:read',                                group: 'Operations' },
 
   // hidden sub-routes — exist in router but not shown in sidebar
   { path: '/customers/new', label: 'New Customer', icon: Users,    hidden: true },
