@@ -6,6 +6,7 @@ import { officerTargetsService, type OfficerTarget } from '@/services/officer-ta
 import { useAuthStore } from '@/stores/auth.store';
 import { PageLoader } from '@/components/ui/LoadingScreen';
 import { formatCurrency } from '@/lib/utils';
+import { api } from '@/lib/axios';
 
 export function OfficerTargetsPage() {
   const { hasPermission } = useAuthStore();
@@ -272,6 +273,20 @@ function SetTargetModal({
   const [customerTarget, setCustomerTarget] = useState(editingTarget?.customerTarget?.toString() || '');
   const [notes, setNotes] = useState(editingTarget?.notes || '');
 
+  // Fetch loan officers for dropdown
+  const { data: users } = useQuery({
+    queryKey: ['users-loan-officers'],
+    queryFn: async () => {
+      const { data } = await api.get('/users');
+      // Filter loan officers on frontend
+      const allUsers = data.data?.data || [];
+      return allUsers.filter((u: any) => 
+        u.roles?.some((r: any) => r.role?.code === 'LOAN_OFFICER')
+      );
+    },
+    enabled: !editingTarget, // Only fetch if creating new target
+  });
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (editingTarget) {
@@ -317,16 +332,20 @@ function SetTargetModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {!editingTarget && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Officer</label>
-              <input
-                type="text"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Loan Officer</label>
+              <select
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                placeholder="Enter officer user ID"
                 className="input w-full"
                 required
-              />
-              <p className="text-xs text-gray-500 mt-1">Get the user ID from the Users page</p>
+              >
+                <option value="">Select an officer...</option>
+                {users?.map((user: any) => (
+                  <option key={user.id} value={user.id}>
+                    {user.firstName} {user.lastName} - {user.branch?.name || 'No Branch'}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
