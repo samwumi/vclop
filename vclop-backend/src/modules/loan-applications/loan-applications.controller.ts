@@ -41,21 +41,6 @@ export class LoanApplicationsController {
       return this.service.findAll(query, actor.id);
     }
 
-    // Users with branch-scoped access
-    if (actor.branchId && !query.branchId) {
-      console.log('[LoanApps] Path: branch-scoped');
-      query.branchId = actor.branchId;
-      return this.service.findAll(query, actor.id);
-    }
-
-    // Users with loan_applications:read but no branch/role - see all
-    // This handles cases like accounting head with no branch assignment
-    if (!actor.branchId && !canViewAll) {
-      console.log('[LoanApps] Path: no-branch-see-all');
-      // Has read permission but no branch - see everything
-      return this.service.findAll(query, actor.id);
-    }
-
     // Loan officer — see only own submissions
     console.log('[LoanApps] Path: loan-officer-own-only, setting submittedById:', actor.id);
     if (!query.submittedById) {
