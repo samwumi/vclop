@@ -260,7 +260,7 @@ export class LoanApplicationsService {
 
   async addGuarantor(applicationId: string, dto: AddGuarantorDto, actorId: string): Promise<unknown> {
     // Allow adding guarantors if:
-    // 1. Application is DRAFT or CHANGES_REQUESTED (LO can modify)
+    // 1. Application is DRAFT or NEEDS_ATTENTION (LO can modify)
     // 2. Application has 0 guarantors (CO can add to fix incomplete submission)
     const application = await this.prisma.loanApplication.findFirst({
       where: { id: applicationId, deletedAt: null },
@@ -269,10 +269,10 @@ export class LoanApplicationsService {
     
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
     
-    // Allow if DRAFT, CHANGES_REQUESTED, or no guarantors exist yet
+    // Allow if DRAFT, NEEDS_ATTENTION, or no guarantors exist yet
     const canModify = 
       application.status === LoanApplicationStatus.DRAFT || 
-      application.status === 'CHANGES_REQUESTED' ||
+      application.status === 'NEEDS_ATTENTION' ||
       application.guarantors.length === 0;
     
     if (!canModify) {
