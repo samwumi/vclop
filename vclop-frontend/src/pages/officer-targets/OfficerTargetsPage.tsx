@@ -278,22 +278,15 @@ function SetTargetModal({
     queryKey: ['users-loan-officers'],
     queryFn: async () => {
       const { data } = await api.get('/users?limit=100');
-      console.log('[OfficerTargets] Users API response:', data);
       
-      // Handle different response structures
-      const allUsers = data.data?.data || data.data || [];
-      console.log('[OfficerTargets] All users:', allUsers);
+      // Data is at data.data (array directly)
+      const allUsers = data.data || [];
       
-      // Filter loan officers
-      const officers = allUsers.filter((u: any) => {
-        const hasLORole = u.roles?.some((r: any) => 
-          r.role?.code === 'LOAN_OFFICER' || r.code === 'LOAN_OFFICER'
-        );
-        console.log(`[OfficerTargets] User ${u.firstName} ${u.lastName}: hasLORole=${hasLORole}`, u.roles);
-        return hasLORole;
-      });
+      // Filter loan officers - roles is array at top level
+      const officers = allUsers.filter((u: any) => 
+        u.roles?.some((r: any) => r.code === 'LOAN_OFFICER')
+      );
       
-      console.log('[OfficerTargets] Filtered loan officers:', officers);
       return officers;
     },
     enabled: !editingTarget, // Only fetch if creating new target
