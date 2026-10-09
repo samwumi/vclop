@@ -133,8 +133,9 @@ export function NewCustomerPage() {
       if (form.thirdPartyDataSharingConsent) payload.thirdPartyDataSharingConsent = form.thirdPartyDataSharingConsent;
       return customersService.create(payload);
     },
-    onSuccess: (customer) => {
-      toast.success(`Customer ${customer.customerNumber} registered successfully`);
+    onSuccess: (response: any) => {
+      const customer = response.profile || response;
+      toast.success(`Customer ${customer.firstName} ${customer.lastName} (${customer.customerNumber}) registered successfully`);
       qc.invalidateQueries({ queryKey: ['customers'] });
       // Go directly to Additional Details tab so officer can fill employment/NOK info
       navigate(`/customers/${customer.id}?tab=details`);
