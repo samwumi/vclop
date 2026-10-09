@@ -535,9 +535,43 @@ export class CustomersService {
   }
 
   private async generateCustomerNumber(): Promise<string> {
-    const count = await this.prisma.customer.count();
-    const next = (count + 1).toString().padStart(6, '0');
-    return `VC-${next}`;
+    // Get the highest existing customer number
+    const lastCustomer = await this.prisma.customer.findFirst({
+      where: {
+        customerNumber: { startsWith: 'VC-' }
+      },
+      orderBy: { customerNumber: 'desc' },
+      select: { customerNumber: true }
+    });
+
+    let nextNumber = 1;
+    if (lastCustomer?.customerNumber) {
+      const match = lastCustomer.customerNumber.match(/VC-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    // Keep trying until we find a unique number (handles edge cases)
+    let attempts = 0;
+    while (attempts < 10) {
+      const candidate = `VC-${nextNumber.toString().padStart(6, '0')}`;
+      const exists = await this.prisma.customer.findUnique({
+        where: { customerNumber: candidate },
+        select: { id: true }
+      });
+      
+      if (!exists) {
+        return candidate;
+      }
+      
+      nextNumber++;
+      attempts++;
+    }
+
+    // Fallback: use timestamp-based unique number
+    const timestamp = Date.now().toString().slice(-8);
+    return `VC-${timestamp}`;
   }
 
   private async getDefaultCustomerFormId(): Promise<string | undefined> {
