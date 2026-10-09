@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { BusinessException } from '../../common/exceptions/business.exception';
+import { BusinessException } from '../../common/exceptions/app.exceptions';
 import { SetTargetDto, QueryTargetsDto } from './dto/officer-target.dto';
 
 @Injectable()
