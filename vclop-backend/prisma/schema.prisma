@@ -235,6 +235,25 @@ model UserPermission {
   @@map("user_permissions")
 }
 
+model OfficerTarget {
+  id                    String    @id @default(uuid()) @db.VarChar(36)
+  userId                String    @db.VarChar(36)
+  targetMonth           DateTime  @db.Date // First day of the target month
+  disbursementTarget    Decimal   @default(0) @db.Decimal(15, 2) // Target disbursement amount
+  customerTarget        Int       @default(0) // Target number of new customers
+  disbursementAchieved  Decimal   @default(0) @db.Decimal(15, 2) // Actual disbursement amount
+  customerAchieved      Int       @default(0) // Actual number of customers registered
+  notes                 String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdById           String?   @db.VarChar(36)
+
+  @@unique([userId, targetMonth])
+  @@index([userId])
+  @@index([targetMonth])
+  @@map("officer_targets")
+}
+
 model Token {
   id          String    @id @default(uuid()) @db.VarChar(36)
   userId      String    @db.VarChar(36)

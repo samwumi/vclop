@@ -41,6 +41,7 @@ import { ReconciliationModule } from './modules/reconciliation/reconciliation.mo
 import { PerformanceModule } from './modules/performance/performance.module';
 import { HealthModule } from './modules/health/health.module';
 import { CommonModule } from './common/common.module';
+import { OfficerTargetsModule } from './modules/officer-targets/officer-targets.module';
 
 @Module({
   imports: [
@@ -125,6 +126,7 @@ import { CommonModule } from './common/common.module';
     ReconciliationModule,
     PerformanceModule,
     HealthModule,
+    OfficerTargetsModule,
   ],
   providers: [
     // ── Global guards (applied to every route in declaration order) ──────
