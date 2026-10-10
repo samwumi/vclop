@@ -607,7 +607,7 @@ export function LoanDetailPage() {
                 <p className="text-sm text-gray-400 text-center py-4">No guarantors added yet.</p>
               )}
               
-              {hasPermission('loan_applications:update') && (application.status === 'DRAFT' || application.status === 'NEEDS_ATTENTION' || (application.guarantors?.length === 0 && hasPermission('loan_applications:compliance_review'))) && (
+              {hasPermission('loan_applications:update') && (application.status === 'DRAFT' || application.status === 'NEEDS_ATTENTION' || application.status === 'COMPLIANCE_REVIEW' || (application.guarantors?.length === 0 && hasPermission('loan_applications:compliance_review'))) && (
                 <div className="space-y-2 pt-2 border-t border-gray-100">
                   <div className="grid grid-cols-2 gap-2">
                     <input className="form-input text-xs h-8" placeholder="First name" value={guarantorForm.firstName} onChange={(e) => setGuarantorForm((f) => ({ ...f, firstName: e.target.value }))} />
@@ -638,7 +638,7 @@ export function LoanDetailPage() {
                   {c.estimatedValue && <p className="text-gray-500">Est. ₦{Number(c.estimatedValue).toLocaleString()}</p>}
                 </div>
               ))}
-              {application.status === 'DRAFT' && (
+              {(application.status === 'DRAFT' || application.status === 'NEEDS_ATTENTION' || application.status === 'COMPLIANCE_REVIEW') && hasPermission('loan_applications:update') && (
                 <div className="space-y-2 pt-2 border-t border-gray-100">
                   <input className="form-input text-xs h-8" placeholder="Description" value={collateralForm.description} onChange={(e) => setCollateralForm((f) => ({ ...f, description: e.target.value }))} />
                   <input type="number" className="form-input text-xs h-8" placeholder="Estimated value" value={collateralForm.estimatedValue} onChange={(e) => setCollateralForm((f) => ({ ...f, estimatedValue: e.target.value }))} />
