@@ -195,4 +195,11 @@ export class LoanApplicationsController {
   ) {
     return ok(await this.service.resubmitApplication(id, dto, actor.id), 'Application resubmitted');
   }
+
+  @Delete(':id')
+  @RequirePermissions('system:admin')
+  @ApiOperation({ summary: 'Delete a loan application (Admin only) - soft delete with cascade' })
+  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: RequestUser) {
+    return ok(await this.service.remove(id, actor.id), 'Loan application deleted');
+  }
 }

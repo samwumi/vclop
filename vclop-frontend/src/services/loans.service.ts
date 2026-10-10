@@ -91,4 +91,10 @@ export const loansService = {
     const { data } = await api.patch<ApiResponse<LoanApplication>>(`/loan-applications/${applicationId}/resubmit`, { resubmissionNotes });
     return data.data!;
   },
+
+  // Admin delete loan application
+  async delete(applicationId: string): Promise<{ deleted: boolean }> {
+    const { data } = await api.delete<ApiResponse<{ deleted: boolean }>>(`/loan-applications/${applicationId}`);
+    return data.data!;
+  },
 };

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Copy, Receipt, User, ChevronDown, ChevronUp, FileText as FileIcon, Eye, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Copy, Receipt, User, ChevronDown, ChevronUp, FileText as FileIcon, Eye, AlertTriangle, Trash2 } from 'lucide-react';
 import { loansService } from '@/services/loans.service';
 import { virtualAccountsService } from '@/services/virtual-accounts.service';
 import { receiptsService } from '@/services/receipts.service';
@@ -183,6 +183,16 @@ export function LoanDetailPage() {
     onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to record repayment'),
   });
 
+  // Admin delete application
+  const deleteMutation = useMutation({
+    mutationFn: () => loansService.delete(id!),
+    onSuccess: () => {
+      toast.success('Application deleted');
+      window.location.href = '/loans';
+    },
+    onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to delete application'),
+  });
+
   // ── Customer completeness for DRAFT submit gate ───────────────────────────
   const { data: customer360ForSubmit } = useQuery({
     queryKey: ['customer360-submit-check', application?.customer?.id],
@@ -227,7 +237,23 @@ export function LoanDetailPage() {
                 {application.customer?.firstName} {application.customer?.lastName} · {application.loanProduct?.name}
               </p>
             </div>
-            <Badge variant={STATUS_VARIANT[application.status]}>{application.status}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={STATUS_VARIANT[application.status]}>{application.status}</Badge>
+              {hasPermission('system:admin') && application.status !== 'DISBURSED' && (
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Delete application ${application.applicationNumber}? This cannot be undone.`)) {
+                      deleteMutation.mutate();
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                  className="btn-ghost btn-icon w-8 h-8 text-red-600 hover:bg-red-50"
+                  title="Delete application"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">

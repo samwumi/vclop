@@ -1203,3 +1203,81 @@ export class LoanApplicationsService {
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
+
+  /**
+   * Delete a loan application (admin only)
+   * Soft delete with cascade to related entities
+   */
+  async remove(applicationId: string, actorId: string): Promise<{ deleted: boolean }> {
+    const application = await this.prisma.loanApplication.findFirst({
+      where: { id: applicationId, deletedAt: null },
+      include: { 
+        loan: { select: { id: true, loanNumber: true } },
+        guarantors: { select: { id: true } },
+        collaterals: { select: { id: true } },
+      },
+    });
+
+    if (!application) {
+      throw new ResourceNotFoundException('Loan application', applicationId);
+    }
+
+    // Prevent deletion if loan is disbursed
+    if (application.loan && application.status === LoanApplicationStatus.DISBURSED) {
+      throw new BusinessException(
+        'Cannot delete a disbursed loan application. Disbursed loans must be managed through the loans module.'
+      );
+    }
+
+    const now = new Date();
+
+    // Soft delete application and related entities
+    await this.prisma.$transaction([
+      // Delete guarantors
+      this.prisma.guarantor.updateMany({
+        where: { loanApplicationId: applicationId },
+        data: { deletedAt: now },
+      }),
+      // Delete collaterals
+      this.prisma.collateral.updateMany({
+        where: { loanApplicationId: applicationId },
+        data: { deletedAt: now },
+      }),
+      // Delete workflow instance if exists
+      this.prisma.workflowInstance.updateMany({
+        where: { entityId: applicationId, entityType: 'LOAN_APPLICATION' },
+        data: { deletedAt: now },
+      }),
+      // Delete virtual account if exists and not active
+      this.prisma.virtualAccount.updateMany({
+        where: { 
+          loanId: application.loanId,
+          accountNumber: { startsWith: 'PENDING-' },
+        },
+        data: { deletedAt: now },
+      }),
+      // Delete loan if exists and not disbursed
+      ...(application.loan && application.status !== LoanApplicationStatus.DISBURSED
+        ? [this.prisma.loan.update({
+            where: { id: application.loan.id },
+            data: { deletedAt: now },
+          })]
+        : []),
+      // Delete the application itself
+      this.prisma.loanApplication.update({
+        where: { id: applicationId },
+        data: { deletedAt: now },
+      }),
+    ]);
+
+    this.emitAudit(
+      AuditAction.DELETE,
+      actorId,
+      applicationId,
+      `Deleted loan application ${application.applicationNumber}`,
+    );
+
+    this.logger.log(`Admin ${actorId} deleted application ${application.applicationNumber}`);
+
+    return { deleted: true };
+  }
