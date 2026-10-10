@@ -273,7 +273,7 @@ export class VirtualAccountsService {
       try {
         const { encrypted, iv, authTag } = this.encryption.unpackEncrypted(customer.bvnEncrypted);
         bvn = this.encryption.decrypt(encrypted, iv, authTag);
-        this.logger.log(`Successfully decrypted BVN for customer ${customerId}`);
+        this.logger.log(`Successfully decrypted BVN for customer ${customerId}: ${bvn?.substring(0, 3)}***${bvn?.substring(bvn.length - 2)}`);
       } catch (error) {
         this.logger.error(`Failed to decrypt BVN for customer ${customerId}: ${(error as Error).message}`);
         // Continue with plain BVN if available
@@ -287,6 +287,12 @@ export class VirtualAccountsService {
     if (!bvn) {
       throw new BusinessException('Customer BVN is required to create a virtual account. Please update the customer profile.');
     }
+    
+    // Validate BVN format (11 digits)
+    if (!/^\d{11}$/.test(bvn)) {
+      this.logger.error(`Invalid BVN format for customer ${customerId}: length=${bvn.length}, pattern=${bvn.substring(0, 3)}...`);
+      throw new BusinessException('BVN must be exactly 11 digits. Please verify the customer\'s BVN.');
+    }
 
     const provider = this.providerFactory.getActiveProvider();
     
@@ -298,6 +304,8 @@ export class VirtualAccountsService {
     if (isOpay) {
       this.logger.log(`Skipping OPay bank details for customer ${customerId} - not supported by Paystack`);
     }
+    
+    this.logger.log(`Creating virtual account for ${customer.firstName} ${customer.lastName} with BVN ${bvn.substring(0, 3)}***, bankCode: ${bankCode ?? 'N/A'}, account: ${bankAccount ?? 'N/A'}`);
     
     const result = await provider.createVirtualAccount({
       loanId,
