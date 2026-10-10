@@ -225,6 +225,12 @@ export class LoanApplicationsService {
       throw new BusinessException(`Tenure must be between ${product.minTenureDays} and ${product.maxTenureDays} days for ${product.name}`);
     }
 
+    // ── VALIDATION: Guarantor requirement ──────────────────────────────────
+    // Set status to DRAFT if guarantor/collateral required (LO must add them before submission)
+    const initialStatus = (product.requiresGuarantor || product.requiresCollateral) 
+      ? LoanApplicationStatus.DRAFT 
+      : LoanApplicationStatus.COMPLIANCE_REVIEW;
+
     const applicationNumber = await this.generateApplicationNumber();
 
     const application = await this.prisma.loanApplication.create({
@@ -235,32 +241,41 @@ export class LoanApplicationsService {
         amount: dto.amount,
         tenureDays: dto.tenureDays,
         purpose: dto.purpose,
-        status: LoanApplicationStatus.COMPLIANCE_REVIEW, // Goes directly to compliance officer
-        assignedToId: actorId, // Track the loan officer who created it
+        status: initialStatus, // DRAFT if requires guarantor/collateral, otherwise COMPLIANCE_REVIEW
+        assignedToId: actorId,
       },
     });
 
-    this.emitAudit(AuditAction.CREATE, actorId, application.id, `Created loan application ${application.applicationNumber} - sent to compliance review`);
+    this.emitAudit(
+      AuditAction.CREATE, 
+      actorId, 
+      application.id, 
+      initialStatus === LoanApplicationStatus.DRAFT
+        ? `Created loan application ${application.applicationNumber} - requires guarantor/collateral before submission`
+        : `Created loan application ${application.applicationNumber} - sent to compliance review`
+    );
     
-    // Notify compliance officers at the customer's branch
-    this.events.emit('notification.send', {
-      recipientRole: 'COMPLIANCE_OFFICER',
-      branchId: customer.branchId,
-      event: 'loan_application.submitted_for_review',
-      variables: {
-        applicationNumber: application.applicationNumber,
-        customerName: `${customer.firstName} ${customer.lastName}`,
-        loanProduct: product.name,
-        amount: dto.amount,
-      },
-    });
+    // Only notify compliance if going directly to review (no guarantor/collateral required)
+    if (initialStatus === LoanApplicationStatus.COMPLIANCE_REVIEW) {
+      this.events.emit('notification.send', {
+        recipientRole: 'COMPLIANCE_OFFICER',
+        branchId: customer.branchId,
+        event: 'loan_application.submitted_for_review',
+        variables: {
+          applicationNumber: application.applicationNumber,
+          customerName: `${customer.firstName} ${customer.lastName}`,
+          loanProduct: product.name,
+          amount: dto.amount,
+        },
+      });
+    }
     
     return this.findOne(application.id);
   }
 
   async addGuarantor(applicationId: string, dto: AddGuarantorDto, actorId: string): Promise<unknown> {
     // Allow adding guarantors if:
-    // 1. Application is DRAFT or NEEDS_ATTENTION (LO can modify)
+    // 1. Application is DRAFT, NEEDS_ATTENTION, or COMPLIANCE_REVIEW (LO can modify before final approval)
     // 2. Application has 0 guarantors (CO can add to fix incomplete submission)
     const application = await this.prisma.loanApplication.findFirst({
       where: { id: applicationId, deletedAt: null },
@@ -269,14 +284,15 @@ export class LoanApplicationsService {
     
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
     
-    // Allow if DRAFT, NEEDS_ATTENTION, or no guarantors exist yet
+    // Allow if DRAFT, NEEDS_ATTENTION, COMPLIANCE_REVIEW, or no guarantors exist yet
     const canModify = 
       application.status === LoanApplicationStatus.DRAFT || 
       application.status === 'NEEDS_ATTENTION' ||
+      application.status === LoanApplicationStatus.COMPLIANCE_REVIEW ||
       application.guarantors.length === 0;
     
     if (!canModify) {
-      throw new BusinessException(`Cannot modify ${application.applicationNumber} — it has been submitted and is under review`);
+      throw new BusinessException(`Cannot modify ${application.applicationNumber} — it has passed compliance review`);
     }
 
     await this.prisma.guarantor.create({
