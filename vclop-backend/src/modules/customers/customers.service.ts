@@ -335,6 +335,22 @@ export class CustomersService {
     });
 
     this.emitAudit(AuditAction.UPDATE, actorId, id, `Updated customer ${updated.customerNumber}`, dto);
+    
+    // Emit event for syncing with external services (e.g., Paystack)
+    if (dto.firstName || dto.lastName || dto.phone || dto.email || dto.bvn) {
+      this.events.emit('customer.details_updated', {
+        customerId: id,
+        updates: {
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+          email: dto.email,
+          bvn: dto.bvn,
+        },
+        actorId,
+      });
+    }
+    
     return this.findOne(id);
   }
 
