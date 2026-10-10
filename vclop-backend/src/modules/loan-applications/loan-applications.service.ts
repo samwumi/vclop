@@ -1198,11 +1198,6 @@ export class LoanApplicationsService {
 
     return this.findOne(applicationId);
   }
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
   /**
    * Delete a loan application (admin only)
@@ -1281,3 +1276,8 @@ function round2(value: number): number {
 
     return { deleted: true };
   }
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
