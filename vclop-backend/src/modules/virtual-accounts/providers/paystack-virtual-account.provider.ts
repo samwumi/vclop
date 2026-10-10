@@ -54,7 +54,15 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
       );
     }
 
-    // The /assign endpoint validates BVN + bank account asynchronously.
+    // OPTION: Try multi-step approach for live mode as well
+    // Some Paystack accounts may need customer to be created first before BVN validation
+    try {
+      return await this.createViaMultiStep(firstName, lastName, email, phone, input);
+    } catch (multiStepErr) {
+      this.logger.warn(`Multi-step failed, trying /assign: ${(multiStepErr as Error).message}`);
+    }
+
+    // Fallback: The /assign endpoint validates BVN + bank account asynchronously.
     // bank_code and account_number improve validation accuracy and are REQUIRED for live mode.
     const payload: Record<string, string> = {
       email,
@@ -81,8 +89,11 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
       const msg = (err as Error).message ?? '';
       if (msg.includes('not identified') || msg.includes('Customer has not been identified')) {
         throw new BusinessException(
-          'BVN validation failed — the customer\'s BVN does not match NIBSS records. ' +
-          'Verify the BVN is the correct 11-digit number for this customer.',
+          'BVN validation failed. This could mean:\n' +
+          '1. The BVN does not match NIBSS records\n' +
+          '2. The BVN format is incorrect (must be 11 digits)\n' +
+          '3. The name on the BVN doesn\'t match the customer name\n\n' +
+          'Please verify the customer\'s BVN with them and try again.',
         );
       }
       if (msg.includes('generate account number') || msg.includes('Could not generate')) {
