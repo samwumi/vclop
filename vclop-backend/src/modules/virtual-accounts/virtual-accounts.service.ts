@@ -70,6 +70,8 @@ export class VirtualAccountsService {
     customerId: string; 
     updates: { firstName?: string; lastName?: string; phone?: string; email?: string; bvn?: string };
   }): Promise<void> {
+    this.logger.log(`Received customer.details_updated event for customer ${payload.customerId}`);
+    
     try {
       // Find if customer has any virtual accounts
       const virtualAccounts = await this.prisma.virtualAccount.findMany({
@@ -80,6 +82,8 @@ export class VirtualAccountsService {
         this.logger.log(`Customer ${payload.customerId} has no Paystack virtual accounts to sync`);
         return;
       }
+
+      this.logger.log(`Found ${virtualAccounts.length} Paystack virtual account(s) for customer ${payload.customerId}`);
 
       const secretKey = this.config.get<string>('PAYSTACK_SECRET_KEY');
       if (!secretKey) {

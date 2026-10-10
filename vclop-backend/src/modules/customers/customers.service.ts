@@ -338,7 +338,7 @@ export class CustomersService {
     
     // Emit event for syncing with external services (e.g., Paystack)
     if (dto.firstName || dto.lastName || dto.phone || dto.email || dto.bvn) {
-      this.events.emit('customer.details_updated', {
+      const eventPayload = {
         customerId: id,
         updates: {
           firstName: dto.firstName,
@@ -348,7 +348,10 @@ export class CustomersService {
           bvn: dto.bvn,
         },
         actorId,
-      });
+      };
+      
+      console.log('[CustomersService] Emitting customer.details_updated event:', eventPayload);
+      this.events.emit('customer.details_updated', eventPayload);
     }
     
     return this.findOne(id);
