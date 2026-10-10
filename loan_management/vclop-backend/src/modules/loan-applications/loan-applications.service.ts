@@ -562,13 +562,83 @@ export class LoanApplicationsService {
   }
 
   private async generateApplicationNumber(): Promise<string> {
-    const count = await this.prisma.loanApplication.count();
-    return `LA-${(count + 1).toString().padStart(6, '0')}`;
+    // Get the highest existing application number
+    const lastApplication = await this.prisma.loanApplication.findFirst({
+      where: {
+        applicationNumber: { startsWith: 'LA-' }
+      },
+      orderBy: { applicationNumber: 'desc' },
+      select: { applicationNumber: true }
+    });
+
+    let nextNumber = 1;
+    if (lastApplication?.applicationNumber) {
+      const match = lastApplication.applicationNumber.match(/LA-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    // Keep trying until we find a unique number (handles edge cases)
+    let attempts = 0;
+    while (attempts < 10) {
+      const candidate = `LA-${nextNumber.toString().padStart(6, '0')}`;
+      const exists = await this.prisma.loanApplication.findUnique({
+        where: { applicationNumber: candidate },
+        select: { id: true }
+      });
+      
+      if (!exists) {
+        return candidate;
+      }
+      
+      nextNumber++;
+      attempts++;
+    }
+
+    // Fallback: use timestamp-based unique number
+    const timestamp = Date.now().toString().slice(-8);
+    return `LA-${timestamp}`;
   }
 
   private async generateLoanNumber(): Promise<string> {
-    const count = await this.prisma.loan.count();
-    return `LN-${(count + 1).toString().padStart(6, '0')}`;
+    // Get the highest existing loan number
+    const lastLoan = await this.prisma.loan.findFirst({
+      where: {
+        loanNumber: { startsWith: 'LN-' }
+      },
+      orderBy: { loanNumber: 'desc' },
+      select: { loanNumber: true }
+    });
+
+    let nextNumber = 1;
+    if (lastLoan?.loanNumber) {
+      const match = lastLoan.loanNumber.match(/LN-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    // Keep trying until we find a unique number (handles edge cases)
+    let attempts = 0;
+    while (attempts < 10) {
+      const candidate = `LN-${nextNumber.toString().padStart(6, '0')}`;
+      const exists = await this.prisma.loan.findUnique({
+        where: { loanNumber: candidate },
+        select: { id: true }
+      });
+      
+      if (!exists) {
+        return candidate;
+      }
+      
+      nextNumber++;
+      attempts++;
+    }
+
+    // Fallback: use timestamp-based unique number
+    const timestamp = Date.now().toString().slice(-8);
+    return `LN-${timestamp}`;
   }
 
   private async generateReceiptNumber(): Promise<string> {
