@@ -273,10 +273,19 @@ export class VirtualAccountsService {
       try {
         const { encrypted, iv, authTag } = this.encryption.unpackEncrypted(customer.bvnEncrypted);
         bvn = this.encryption.decrypt(encrypted, iv, authTag);
+        this.logger.log(`Successfully decrypted BVN for customer ${customerId}`);
       } catch (error) {
         this.logger.error(`Failed to decrypt BVN for customer ${customerId}: ${(error as Error).message}`);
         // Continue with plain BVN if available
+        if (!customer.bvn) {
+          throw new BusinessException('BVN decryption failed and no plain BVN available. Please contact support.');
+        }
       }
+    }
+    
+    // Ensure BVN exists
+    if (!bvn) {
+      throw new BusinessException('Customer BVN is required to create a virtual account. Please update the customer profile.');
     }
 
     const provider = this.providerFactory.getActiveProvider();
