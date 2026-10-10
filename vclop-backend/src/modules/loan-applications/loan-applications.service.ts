@@ -1236,10 +1236,9 @@ export class LoanApplicationsService {
       this.prisma.collateral.deleteMany({
         where: { loanApplicationId: applicationId },
       }),
-      // Soft delete workflow instance if exists
-      this.prisma.workflowInstance.updateMany({
+      // Delete workflow instances (hard delete)
+      this.prisma.workflowInstance.deleteMany({
         where: { entityId: applicationId, entityType: 'LOAN_APPLICATION' },
-        data: { deletedAt: now },
       }),
       // Delete PENDING virtual accounts
       this.prisma.virtualAccount.deleteMany({
@@ -1248,11 +1247,10 @@ export class LoanApplicationsService {
           accountNumber: { startsWith: 'PENDING-' },
         },
       }),
-      // Soft delete loan if exists and not disbursed
+      // Delete loan if not disbursed (hard delete - no deletedAt in schema)
       ...(application.loan && application.status !== LoanApplicationStatus.DISBURSED
-        ? [this.prisma.loan.update({
+        ? [this.prisma.loan.delete({
             where: { id: application.loan.id },
-            data: { deletedAt: now },
           })]
         : []),
       // Soft delete the application itself
@@ -1268,8 +1266,6 @@ export class LoanApplicationsService {
       applicationId,
       `Deleted loan application ${application.applicationNumber}`,
     );
-
-    this.logger.log(`Admin ${actorId} deleted application ${application.applicationNumber}`);
 
     return { deleted: true };
   }
