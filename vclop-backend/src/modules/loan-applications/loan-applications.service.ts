@@ -255,8 +255,16 @@ export class LoanApplicationsService {
         : `Created loan application ${application.applicationNumber} - sent to compliance review`
     );
     
-    // Only notify compliance if going directly to review (no guarantor/collateral required)
+    // Start workflow if going directly to COMPLIANCE_REVIEW (no guarantor/collateral required)
     if (initialStatus === LoanApplicationStatus.COMPLIANCE_REVIEW) {
+      try {
+        await this.workflowsService.start('loan-application-production', 'LOAN_APPLICATION', application.id, actorId);
+      } catch (error) {
+        // Log workflow start failure but don't block application creation
+        console.error(`Failed to start workflow for ${application.applicationNumber}:`, error);
+      }
+      
+      // Notify compliance officers
       this.events.emit('notification.send', {
         recipientRole: 'COMPLIANCE_OFFICER',
         branchId: customer.branchId,
