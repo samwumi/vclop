@@ -36,14 +36,6 @@ SELECT ROW_COUNT() as workflows_deleted;
 DELETE FROM virtual_accounts WHERE loanId = @loan_id;
 SELECT ROW_COUNT() as virtual_accounts_deleted;
 
--- Delete repayment schedules
-DELETE FROM repayment_schedules WHERE loanId = @loan_id;
-SELECT ROW_COUNT() as schedules_deleted;
-
--- Delete repayments
-DELETE FROM repayments WHERE loanId = @loan_id;
-SELECT ROW_COUNT() as repayments_deleted;
-
 -- Delete loan
 DELETE FROM loans WHERE id = @loan_id;
 SELECT ROW_COUNT() as loans_deleted;
