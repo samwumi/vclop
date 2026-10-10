@@ -46,7 +46,7 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
       return this.createViaMultiStep(firstName, lastName, email, phone, input);
     }
 
-    // ── Live mode: use /assign endpoint (Financial Services requirement) ──
+    // ── Live mode: use multi-step with BVN identification ──────────────
     if (!input.customerBvn) {
       throw new BusinessException(
         'Customer BVN is required to create a virtual account. ' +
@@ -54,65 +54,8 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
       );
     }
 
-    // OPTION: Try multi-step approach for live mode as well
-    // Some Paystack accounts may need customer to be created first before BVN validation
-    try {
-      return await this.createViaMultiStep(firstName, lastName, email, phone, input);
-    } catch (multiStepErr) {
-      this.logger.warn(`Multi-step failed, trying /assign: ${(multiStepErr as Error).message}`);
-    }
-
-    // Fallback: The /assign endpoint validates BVN + bank account asynchronously.
-    // bank_code and account_number improve validation accuracy and are REQUIRED for live mode.
-    const payload: Record<string, string> = {
-      email,
-      first_name: firstName,
-      last_name: lastName,
-      phone,
-      preferred_bank: bank,
-      country: 'NG',
-      bvn: input.customerBvn,
-    };
-
-    // Include bank details if available — improves validation accuracy
-    if (input.customerBankAccount) {
-      payload.account_number = input.customerBankAccount;
-    }
-    if (input.customerBankCode) {
-      payload.bank_code = input.customerBankCode;
-    }
-
-    try {
-      await this.request('POST', '/dedicated_account/assign', payload);
-      this.logger.log(`DVA assignment submitted for ${email} — awaiting dedicatedaccount.assign.success webhook`);
-    } catch (err) {
-      const msg = (err as Error).message ?? '';
-      if (msg.includes('not identified') || msg.includes('Customer has not been identified')) {
-        throw new BusinessException(
-          'BVN validation failed. This could mean:\n' +
-          '1. The BVN does not match NIBSS records\n' +
-          '2. The BVN format is incorrect (must be 11 digits)\n' +
-          '3. The name on the BVN doesn\'t match the customer name\n\n' +
-          'Please verify the customer\'s BVN with them and try again.',
-        );
-      }
-      if (msg.includes('generate account number') || msg.includes('Could not generate')) {
-        throw new BusinessException(
-          'Paystack could not generate an account number. ' +
-          'Confirm the customer\'s BVN is correct and try again.',
-        );
-      }
-      throw err;
-    }
-
-    // Return a pending placeholder — overwritten when dedicatedaccount.assign.success webhook arrives
-    return {
-      providerCustomerId: `PENDING-${input.customerId}`,
-      providerAccountId:  `PENDING-${Date.now()}`,
-      accountNumber:      `PENDING-${input.customerId}-${Date.now()}`,
-      accountName:        `${firstName} ${lastName}`,
-      bankName:           bank === 'titan-paystack' ? 'Titan Paystack' : 'Wema Bank',
-    };
+    // Use multi-step approach: Create customer → Identify BVN → Create DVA
+    return await this.createViaMultiStep(firstName, lastName, email, phone, input);
   }
 
   private async createViaMultiStep(
@@ -129,52 +72,93 @@ export class PaystackVirtualAccountProvider implements VirtualAccountProvider {
         email, first_name: firstName, last_name: lastName, phone,
       });
       customerCode = customer.customer_code;
+      this.logger.log(`Created Paystack customer ${customerCode}`);
     } catch {
       try {
         const existing = await this.request<{ customer_code: string }>('GET', `/customer/${encodeURIComponent(email)}`);
         customerCode = existing.customer_code;
         this.logger.log(`Reusing existing Paystack customer ${customerCode}`);
-      } catch (inner) { throw inner; }
+      } catch (inner) { 
+        throw new BusinessException(`Failed to create or fetch Paystack customer: ${(inner as Error).message}`);
+      }
     }
 
-    // Step 2: BVN identification (best-effort — test mode may skip this)
+    // Step 2: BVN identification (required for live mode, optional for test)
     if (input.customerBvn) {
       try {
         await this.request('POST', `/customer/${customerCode}/identification`, {
           country: 'NG', type: 'bvn', value: input.customerBvn,
           first_name: firstName, last_name: lastName,
         });
-        // Poll up to 10 × 3s for validation
-        for (let i = 0; i < 10; i++) {
-          await new Promise(r => setTimeout(r, 3000));
+        this.logger.log(`BVN identification submitted for ${customerCode}`);
+        
+        // Poll up to 15 × 4s (60 seconds total) for validation - increased from 30s
+        let identified = false;
+        for (let i = 0; i < 15; i++) {
+          await new Promise(r => setTimeout(r, 4000));
           try {
             const cData = await this.request<{ identified: boolean }>('GET', `/customer/${customerCode}`);
-            if (cData.identified) { this.logger.log(`BVN validated after ${i + 1} poll(s)`); break; }
-          } catch { /* keep polling */ }
+            if (cData.identified) { 
+              this.logger.log(`BVN validated after ${(i + 1) * 4} seconds`);
+              identified = true;
+              break;
+            }
+          } catch (pollErr) {
+            this.logger.warn(`Poll ${i + 1} failed: ${(pollErr as Error).message}`);
+          }
+        }
+        
+        if (!identified) {
+          this.logger.warn(`BVN validation timed out after 60 seconds - attempting DVA creation anyway`);
         }
       } catch (bvnErr) {
-        this.logger.warn(`BVN identification skipped: ${(bvnErr as Error).message}`);
+        const msg = (bvnErr as Error).message;
+        this.logger.error(`BVN identification failed: ${msg}`);
+        throw new BusinessException(
+          `BVN validation failed: ${msg}\n\n` +
+          'Please verify:\n' +
+          '1. BVN is exactly 11 digits\n' +
+          '2. Name matches NIMC/bank records\n' +
+          '3. BVN is not linked to another account'
+        );
       }
     }
 
     // Step 3: Create DVA
-    const dva = await this.request<{
-      id: number;
-      account_number: string;
-      account_name: string;
-      bank: { name: string; slug: string };
-    }>('POST', '/dedicated_account', {
-      customer: customerCode,
-      preferred_bank: this.preferredBank,
-    });
+    try {
+      const dva = await this.request<{
+        id: number;
+        account_number: string;
+        account_name: string;
+        bank: { name: string; slug: string };
+        customer: { customer_code: string };
+      }>('POST', '/dedicated_account', {
+        customer: customerCode,
+        preferred_bank: this.preferredBank,
+      });
 
-    return {
-      providerCustomerId: customerCode,
-      providerAccountId:  String(dva.id),
-      accountNumber:      dva.account_number,
-      accountName:        dva.account_name,
-      bankName:           dva.bank?.name ?? this.preferredBank,
-    };
+      this.logger.log(`DVA created: ${dva.account_number} for customer ${customerCode}`);
+
+      return {
+        providerCustomerId: customerCode,
+        providerAccountId:  String(dva.id),
+        accountNumber:      dva.account_number,
+        accountName:        dva.account_name,
+        bankName:           dva.bank?.name ?? this.preferredBank,
+      };
+    } catch (dvaErr) {
+      const msg = (dvaErr as Error).message;
+      if (msg.includes('not identified') || msg.includes('Customer has not been identified')) {
+        throw new BusinessException(
+          'Paystack requires BVN validation before creating a virtual account.\n\n' +
+          'The BVN validation is still in progress or failed. Please:\n' +
+          '1. Wait 2 minutes and try again\n' +
+          '2. Verify the BVN matches the customer name exactly\n' +
+          '3. Ensure the BVN is valid with their bank'
+        );
+      }
+      throw new BusinessException(`Failed to create virtual account: ${msg}`);
+    }
   }
 
   verifyWebhookSignature(rawBody: string | Buffer, headers: Record<string, string>): boolean {
