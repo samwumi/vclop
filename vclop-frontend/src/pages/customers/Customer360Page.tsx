@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   User, Phone, MapPin, CreditCard, ShieldCheck,
-  Clock, FileText, Landmark, Edit, AlertTriangle, Wallet, Navigation, Building2,
+  Clock, FileText, Landmark, Edit, AlertTriangle, Wallet, Navigation, Building2, RefreshCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { customersService } from '@/services/customers.service';
@@ -77,6 +77,17 @@ export function Customer360Page() {
     mutationFn: (status: CustomerStatus) => customersService.updateStatus(id!, status),
     onSuccess:  () => { toast.success('Status updated'); qc.invalidateQueries({ queryKey: ['customer360', id] }); },
     onError:    () => toast.error('Failed to update status'),
+  });
+
+  const syncPaystackMutation = useMutation({
+    mutationFn: () => virtualAccountsService.syncCustomerToPaystack(id!),
+    onSuccess:  (data) => { 
+      toast.success(data.message || 'Customer synced to Paystack successfully'); 
+    },
+    onError:    (error: any) => {
+      const msg = error.response?.data?.message || 'Failed to sync customer to Paystack';
+      toast.error(msg);
+    },
   });
 
   if (isLoading) return <PageLoader />;
@@ -171,9 +182,19 @@ export function Customer360Page() {
                   </button>
                 )}
                 {hasPermission('customers:update') && (
-                  <button onClick={() => navigate(`/customers/${id}/edit`)} className="btn-secondary btn-sm gap-1.5">
-                    <Edit className="w-3.5 h-3.5" /> Edit
-                  </button>
+                  <>
+                    <button 
+                      onClick={() => syncPaystackMutation.mutate()} 
+                      disabled={syncPaystackMutation.isPending}
+                      className="btn-secondary btn-sm gap-1.5"
+                    >
+                      <RefreshCcw className={`w-3.5 h-3.5 ${syncPaystackMutation.isPending ? 'animate-spin' : ''}`} /> 
+                      {syncPaystackMutation.isPending ? 'Syncing...' : 'Sync to Paystack'}
+                    </button>
+                    <button onClick={() => navigate(`/customers/${id}/edit`)} className="btn-secondary btn-sm gap-1.5">
+                      <Edit className="w-3.5 h-3.5" /> Edit
+                    </button>
+                  </>
                 )}
               </div>
             </div>

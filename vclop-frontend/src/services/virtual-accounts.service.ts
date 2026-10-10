@@ -36,4 +36,10 @@ export const virtualAccountsService = {
     const { data } = await api.post<ApiResponse<{ reconciled: number; transactions: VirtualAccountTransaction[] }>>(`/virtual-accounts/${virtualAccountId}/fetch-paystack-transactions`);
     return data.data!;
   },
+
+  /** Manually sync customer details to Paystack */
+  async syncCustomerToPaystack(customerId: string): Promise<{ synced: boolean; message: string }> {
+    const { data } = await api.post<ApiResponse<{ synced: boolean; message: string }>>(`/virtual-accounts/sync-customer/${customerId}`);
+    return data.data!;
+  },
 };
