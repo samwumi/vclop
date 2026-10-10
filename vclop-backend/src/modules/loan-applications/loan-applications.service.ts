@@ -1226,39 +1226,36 @@ export class LoanApplicationsService {
 
     const now = new Date();
 
-    // Soft delete application and related entities
+    // Delete application and related entities
     await this.prisma.$transaction([
-      // Delete guarantors
-      this.prisma.guarantor.updateMany({
+      // Delete guarantors (hard delete)
+      this.prisma.guarantor.deleteMany({
         where: { loanApplicationId: applicationId },
-        data: { deletedAt: now },
       }),
-      // Delete collaterals
-      this.prisma.collateral.updateMany({
+      // Delete collaterals (hard delete)
+      this.prisma.collateral.deleteMany({
         where: { loanApplicationId: applicationId },
-        data: { deletedAt: now },
       }),
-      // Delete workflow instance if exists
+      // Soft delete workflow instance if exists
       this.prisma.workflowInstance.updateMany({
         where: { entityId: applicationId, entityType: 'LOAN_APPLICATION' },
         data: { deletedAt: now },
       }),
-      // Delete virtual account if exists and not active
-      this.prisma.virtualAccount.updateMany({
+      // Delete PENDING virtual accounts
+      this.prisma.virtualAccount.deleteMany({
         where: { 
-          loanId: application.loanId,
+          loan: { loanApplicationId: applicationId },
           accountNumber: { startsWith: 'PENDING-' },
         },
-        data: { deletedAt: now },
       }),
-      // Delete loan if exists and not disbursed
+      // Soft delete loan if exists and not disbursed
       ...(application.loan && application.status !== LoanApplicationStatus.DISBURSED
         ? [this.prisma.loan.update({
             where: { id: application.loan.id },
             data: { deletedAt: now },
           })]
         : []),
-      // Delete the application itself
+      // Soft delete the application itself
       this.prisma.loanApplication.update({
         where: { id: applicationId },
         data: { deletedAt: now },
