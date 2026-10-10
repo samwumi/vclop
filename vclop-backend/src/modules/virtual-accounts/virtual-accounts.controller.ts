@@ -148,6 +148,19 @@ export class VirtualAccountsController {
   }
 
   /**
+   * Manually sync a customer's details to Paystack.
+   * Use to update Paystack with customer information that was changed before auto-sync was implemented.
+   */
+  @Post('sync-customer/:customerId')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('virtual_accounts:read')
+  @ApiOperation({ summary: 'Manually sync customer details to Paystack' })
+  async syncCustomerToPaystack(@Param('customerId', ParseUUIDPipe) customerId: string) {
+    return ok(await this.service.syncCustomerToPaystack(customerId), 'Customer details synced to Paystack');
+  }
+
+  /**
    * Real bank webhook endpoint — intentionally has no JWT guard, since the
    * bank's servers can't authenticate with our app's JWTs. Protected instead
    * by the provider's own signature verification inside the service.

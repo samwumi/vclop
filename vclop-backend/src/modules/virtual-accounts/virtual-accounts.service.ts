@@ -148,6 +148,95 @@ export class VirtualAccountsService {
     }
   }
 
+  /**
+   * Manually sync a specific customer's details to Paystack.
+   * Useful for updating customers that were modified before auto-sync was implemented.
+   */
+  async syncCustomerToPaystack(customerId: string): Promise<{ synced: boolean; message: string }> {
+    try {
+      // Find if customer has any virtual accounts
+      const virtualAccounts = await this.prisma.virtualAccount.findMany({
+        where: { customerId, provider: 'PAYSTACK' },
+      });
+
+      if (virtualAccounts.length === 0) {
+        return { synced: false, message: 'Customer has no Paystack virtual accounts' };
+      }
+
+      const secretKey = this.config.get<string>('PAYSTACK_SECRET_KEY');
+      if (!secretKey) {
+        throw new BusinessException('PAYSTACK_SECRET_KEY not configured');
+      }
+
+      // Get customer details
+      const customer = await this.prisma.customer.findUnique({ where: { id: customerId } });
+      if (!customer) {
+        throw new ResourceNotFoundException('Customer', customerId);
+      }
+
+      // Get the first virtual account's providerCustomerId
+      const providerCustomerId = virtualAccounts[0].providerCustomerId;
+      if (!providerCustomerId || providerCustomerId.startsWith('PENDING-')) {
+        return { synced: false, message: 'Customer has PENDING virtual account, cannot sync yet' };
+      }
+
+      // Build update payload with all current customer data
+      const [firstName, ...rest] = (customer.businessName ?? `${customer.firstName} ${customer.lastName}`).trim().split(/\s+/);
+      const lastName = rest.join(' ') || customer.lastName || firstName;
+      
+      const phone = customer.phone.replace(/[^\d+]/g, '');
+      const normalizedPhone = phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`;
+
+      const updateData: Record<string, string> = {
+        first_name: customer.firstName,
+        last_name: customer.lastName || firstName,
+        phone: normalizedPhone,
+      };
+
+      if (customer.email) {
+        updateData.email = customer.email;
+      }
+
+      // Update customer on Paystack
+      const response = await fetch(
+        `https://api.paystack.co/customer/${providerCustomerId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${secretKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
+
+      const json = await response.json() as any;
+
+      if (!response.ok || !json.status) {
+        throw new BusinessException(`Failed to sync to Paystack: ${json.message}`);
+      }
+
+      this.logger.log(`Manually synced customer ${customerId} to Paystack (${providerCustomerId})`);
+      
+      this.events.emit('audit.log', {
+        action: AuditAction.UPDATE,
+        module: 'virtual-accounts',
+        entityId: customerId,
+        entityType: 'Customer',
+        description: `Manually synced customer details to Paystack`,
+        isSuccess: true,
+      });
+
+      return { 
+        synced: true, 
+        message: `Successfully synced ${customer.firstName} ${customer.lastName} to Paystack` 
+      };
+    } catch (error) {
+      this.logger.error(`Failed to manually sync customer ${customerId} to Paystack`, error as Error);
+      throw error;
+    }
+  }
+
   async createForLoanApplication(idOrLoanId: string): Promise<unknown> {
     // Try as direct loan ID first
     const directLoan = await this.prisma.loan.findFirst({
