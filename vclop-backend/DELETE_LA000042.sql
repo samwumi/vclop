@@ -32,13 +32,6 @@ SELECT ROW_COUNT() as collaterals_deleted;
 DELETE FROM workflow_instances WHERE entityId = @app_id AND entityType = 'LOAN_APPLICATION';
 SELECT ROW_COUNT() as workflows_deleted;
 
--- Delete workflow stage histories
-DELETE FROM workflow_stage_history 
-WHERE workflowInstanceId IN (
-  SELECT id FROM workflow_instances WHERE entityId = @app_id AND entityType = 'LOAN_APPLICATION'
-);
-SELECT ROW_COUNT() as stage_histories_deleted;
-
 -- Delete virtual account (PENDING one)
 DELETE FROM virtual_accounts WHERE loanId = @loan_id;
 SELECT ROW_COUNT() as virtual_accounts_deleted;
