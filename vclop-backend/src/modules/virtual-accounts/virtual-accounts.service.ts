@@ -306,7 +306,7 @@ export class VirtualAccountsService {
       customerName: `${customer.firstName} ${customer.lastName}`,
       customerEmail: customer.email ?? undefined,
       customerPhone: customer.phone,
-      customerBvn: bvn ?? undefined,
+      customerBvn: bvn, // Required - already validated above
       customerBankAccount: customer.bankAccountNumber ?? undefined,
       customerBankCode: customer.bankCode ?? undefined,
     });
