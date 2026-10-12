@@ -47,10 +47,6 @@ SELECT CONCAT('LA-000016: Deleted ', ROW_COUNT(), ' collateral(s)') as result;
 DELETE FROM workflow_instances WHERE entityId = @app1_id AND entityType = 'LOAN_APPLICATION';
 SELECT CONCAT('LA-000016: Deleted ', ROW_COUNT(), ' workflow(s)') as result;
 
--- Delete repayments for LN-000011
-DELETE FROM repayments WHERE loanId = @loan1_id;
-SELECT CONCAT('LN-000011: Deleted ', ROW_COUNT(), ' repayment(s)') as result;
-
 -- Delete virtual account transactions for VA
 DELETE FROM virtual_account_transactions WHERE virtualAccountId = @va1_id;
 SELECT CONCAT('VA: Deleted ', ROW_COUNT(), ' transaction(s)') as result;
@@ -82,10 +78,6 @@ SELECT CONCAT('LA-000015: Deleted ', ROW_COUNT(), ' collateral(s)') as result;
 -- Delete workflow instances for LA-000015
 DELETE FROM workflow_instances WHERE entityId = @app2_id AND entityType = 'LOAN_APPLICATION';
 SELECT CONCAT('LA-000015: Deleted ', ROW_COUNT(), ' workflow(s)') as result;
-
--- Delete repayments for LN-000010
-DELETE FROM repayments WHERE loanId = @loan2_id;
-SELECT CONCAT('LN-000010: Deleted ', ROW_COUNT(), ' repayment(s)') as result;
 
 -- Delete virtual account transactions for VA
 DELETE FROM virtual_account_transactions WHERE virtualAccountId = @va2_id;
