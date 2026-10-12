@@ -99,10 +99,6 @@ SELECT CONCAT('LA-000015: Soft deleted ', ROW_COUNT(), ' application(s)') as res
 -- DELETE CUSTOMER AND RELATED DATA
 -- ============================================================================
 
--- Delete field visit records
-DELETE FROM field_visits WHERE customerId = @customer_id;
-SELECT CONCAT('Deleted ', ROW_COUNT(), ' field visit(s)') as result;
-
 -- Soft delete the customer
 UPDATE customers SET deletedAt = NOW() WHERE id = @customer_id;
 SELECT CONCAT('Soft deleted ', ROW_COUNT(), ' customer(s)') as result;
