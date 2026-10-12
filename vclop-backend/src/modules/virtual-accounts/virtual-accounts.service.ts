@@ -296,16 +296,7 @@ export class VirtualAccountsService {
 
     const provider = this.providerFactory.getActiveProvider();
     
-    // Skip bank account details if OPay (code 999992) - not supported by Paystack for BVN validation
-    const isOpay = customer.bankCode === '999992';
-    const bankAccount = isOpay ? undefined : (customer.bankAccountNumber ?? undefined);
-    const bankCode = isOpay ? undefined : (customer.bankCode ?? undefined);
-    
-    if (isOpay) {
-      this.logger.log(`Skipping OPay bank details for customer ${customerId} - not supported by Paystack`);
-    }
-    
-    this.logger.log(`Creating virtual account for ${customer.firstName} ${customer.lastName} with BVN ${bvn.substring(0, 3)}***, bankCode: ${bankCode ?? 'N/A'}, account: ${bankAccount ?? 'N/A'}`);
+    this.logger.log(`Creating virtual account for ${customer.firstName} ${customer.lastName} with BVN ${bvn.substring(0, 3)}***, bankCode: ${customer.bankCode ?? 'N/A'}, account: ${customer.bankAccountNumber ?? 'N/A'}`);
     
     // IMPORTANT: Use actual person's name for BVN validation, NOT business name
     // BVN is tied to an individual, not a business entity
@@ -316,8 +307,8 @@ export class VirtualAccountsService {
       customerEmail: customer.email ?? undefined,
       customerPhone: customer.phone,
       customerBvn: bvn ?? undefined,
-      customerBankAccount: bankAccount,
-      customerBankCode: bankCode,
+      customerBankAccount: customer.bankAccountNumber ?? undefined,
+      customerBankCode: customer.bankCode ?? undefined,
     });
 
     const account = await this.prisma.virtualAccount.create({
