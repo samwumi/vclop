@@ -99,10 +99,6 @@ SELECT CONCAT('LA-000015: Soft deleted ', ROW_COUNT(), ' application(s)') as res
 -- DELETE CUSTOMER AND RELATED DATA
 -- ============================================================================
 
--- Delete bank accounts
-DELETE FROM bank_accounts WHERE customerId = @customer_id;
-SELECT CONCAT('Deleted ', ROW_COUNT(), ' bank account(s)') as result;
-
 -- Delete documents
 DELETE FROM documents WHERE entityId = @customer_id AND entityType = 'CUSTOMER';
 SELECT CONCAT('Deleted ', ROW_COUNT(), ' document(s)') as result;
