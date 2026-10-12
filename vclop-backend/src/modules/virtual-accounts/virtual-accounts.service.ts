@@ -307,10 +307,12 @@ export class VirtualAccountsService {
     
     this.logger.log(`Creating virtual account for ${customer.firstName} ${customer.lastName} with BVN ${bvn.substring(0, 3)}***, bankCode: ${bankCode ?? 'N/A'}, account: ${bankAccount ?? 'N/A'}`);
     
+    // IMPORTANT: Use actual person's name for BVN validation, NOT business name
+    // BVN is tied to an individual, not a business entity
     const result = await provider.createVirtualAccount({
       loanId,
       customerId,
-      customerName: customer.businessName ?? `${customer.firstName} ${customer.lastName}`,
+      customerName: `${customer.firstName} ${customer.lastName}`,
       customerEmail: customer.email ?? undefined,
       customerPhone: customer.phone,
       customerBvn: bvn ?? undefined,
