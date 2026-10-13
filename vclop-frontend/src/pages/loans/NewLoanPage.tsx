@@ -207,7 +207,7 @@ export function NewLoanPage() {
                 )}
 
                 {/* KYC verified - good to go */}
-                {selectedCustomer && (selectedCustomer.status === 'KYC_VERIFIED' || selectedCustomer.status === 'ELIGIBLE' || selectedCustomer.status === 'ACTIVE_BORROWER') && (
+                {selectedCustomer && (selectedCustomer.status === 'KYC_VERIFIED' || selectedCustomer.status === 'ELIGIBLE') && (
                   <div className="banner-success flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <span>
