@@ -403,18 +403,17 @@ export class LoanApplicationsService {
       );
     }
 
-    // ── VERIFIED documents required (not just uploaded) ────────────────────
-    const verifiedDocCount = await this.prisma.customerDocument.count({
+    // ── Documents must be uploaded (verification happens during compliance review) ────
+    const docCount = await this.prisma.customerDocument.count({
       where: {
         customerId: application.customerId,
-        status: 'VERIFIED', // Must be VERIFIED, not just PENDING
       },
     });
     
-    if (verifiedDocCount === 0) {
+    if (docCount === 0) {
       throw new BusinessException(
-        'At least one VERIFIED document is required before submission. ' +
-        'Please upload and verify customer documents first.'
+        'At least one document must be uploaded before submission. ' +
+        'Documents will be verified by the Compliance Officer during application review.'
       );
     }
 
@@ -428,17 +427,16 @@ export class LoanApplicationsService {
 
     const requiredDocTypeIds = application.loanProduct.documentRequirements.filter((r) => r.isRequired).map((r) => r.documentTypeId);
     if (requiredDocTypeIds.length > 0) {
-      const verifiedRequiredCount = await this.prisma.customerDocument.count({
+      const uploadedRequiredCount = await this.prisma.customerDocument.count({
         where: { 
           customerId: application.customerId, 
-          documentTypeId: { in: requiredDocTypeIds }, 
-          status: 'VERIFIED' // Must be VERIFIED
+          documentTypeId: { in: requiredDocTypeIds }
         },
       });
-      if (verifiedRequiredCount < requiredDocTypeIds.length) {
+      if (uploadedRequiredCount < requiredDocTypeIds.length) {
         throw new BusinessException(
-          `Customer is missing ${requiredDocTypeIds.length - verifiedRequiredCount} VERIFIED document(s) required by ${application.loanProduct.name}. ` +
-          `All required documents must be uploaded and verified before submission.`
+          `Customer is missing ${requiredDocTypeIds.length - uploadedRequiredCount} required document(s) for ${application.loanProduct.name}. ` +
+          `All required documents must be uploaded (verification happens during compliance review).`
         );
       }
     }
