@@ -42,7 +42,7 @@ function profileChecks(c: Customer & Record<string, unknown>, docCount: number):
     { label: 'Employer name provided', ok: !!c.employerName, severity: 'error' as const },
     { label: 'Employment type provided', ok: !!c.employmentType, severity: 'error' as const },
     { label: 'Monthly income provided', ok: !!c.monthlyIncome, severity: 'error' as const },
-    { label: 'At least 1 VERIFIED document uploaded', ok: docCount > 0, severity: 'error' as const },
+    { label: 'At least 1 document uploaded (verification during compliance review)', ok: docCount > 0, severity: 'error' as const },
     // Business-specific
     ...(c.type === 'BUSINESS' ? [
       { label: 'Business address (required for business loans)', ok: !!c.businessAddress, severity: 'error' as const },
@@ -50,7 +50,7 @@ function profileChecks(c: Customer & Record<string, unknown>, docCount: number):
   ];
 }
 
-const LOAN_BLOCKED_STATUSES = ['INELIGIBLE', 'BLACKLISTED', 'SUSPENDED', 'PROSPECT', 'REGISTERED', 'KYC_PENDING'];
+const LOAN_BLOCKED_STATUSES = ['INELIGIBLE', 'BLACKLISTED', 'SUSPENDED'];
 
 export function NewLoanPage() {
   const navigate = useNavigate();
@@ -186,19 +186,35 @@ export function NewLoanPage() {
                       <p className="font-semibold">Customer is not eligible for loan applications</p>
                       <p className="text-sm mt-1">
                         Status: <strong>{selectedCustomer.status}</strong>
-                        {selectedCustomer.status === 'REGISTERED' && ' - Customer must complete KYC verification first'}
-                        {selectedCustomer.status === 'KYC_PENDING' && ' - Waiting for KYC verification by compliance officer'}
+                        {selectedCustomer.status === 'INELIGIBLE' && ' - Customer has been marked as ineligible'}
+                        {selectedCustomer.status === 'BLACKLISTED' && ' - Customer is blacklisted'}
                       </p>
-                      {(selectedCustomer.status === 'REGISTERED' || selectedCustomer.status === 'KYC_PENDING') && (
-                        <p className="text-sm mt-1">
-                          Only customers with <strong>KYC_VERIFIED</strong> or <strong>ELIGIBLE</strong> status can apply for loans.
-                        </p>
-                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Active loan warning */}
+                {/* KYC info banner - not a blocker */}
+                {selectedCustomer && ['REGISTERED', 'KYC_PENDING'].includes(selectedCustomer.status) && (
+                  <div className="banner-info flex items-start gap-2">
+                    <div className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-600">ℹ️</div>
+                    <div>
+                      <p className="font-semibold">Customer KYC Status: {selectedCustomer.status}</p>
+                      <p className="text-sm mt-1">
+                        You can create the loan application now. Compliance will verify KYC and documents during the application review process.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* KYC verified - good to go */}
+                {selectedCustomer && (selectedCustomer.status === 'KYC_VERIFIED' || selectedCustomer.status === 'ELIGIBLE' || selectedCustomer.status === 'ACTIVE_BORROWER') && (
+                  <div className="banner-success flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>
+                      Customer is <strong>{selectedCustomer.status}</strong> - Ready to apply for loans
+                    </span>
+                  </div>
+                )}
                 {hasActiveLoan && (
                   <div className="banner-danger flex items-start gap-2">
                     <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
