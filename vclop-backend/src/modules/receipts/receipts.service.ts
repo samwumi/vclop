@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
-import { createCanvas, registerFont } from 'canvas';
+import { createCanvas } from 'canvas';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 
@@ -124,7 +124,6 @@ export class ReceiptsService {
     doc.font('Helvetica').fontSize(10).fillColor('#666666').text(label, { continued: true, width: 495 });
     doc.font('Helvetica-Bold').fillColor('#000000').text(`   ${value}`);
   }
-}
 
   async generateImage(transactionId: string): Promise<{ buffer: Buffer; filename: string }> {
     const transaction = await this.prisma.repaymentTransaction.findUnique({
