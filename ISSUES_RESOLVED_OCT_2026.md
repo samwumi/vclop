@@ -197,6 +197,137 @@ Test URL format: `https://verticalcapital.ng/uploads/customers/{customer-id}/doc
 
 ---
 
+## Issue 6: Receipt Number Duplicate Error When Recording Manual Payments
+
+### Problem
+When trying to enter a manual payment, the system returned error:
+```
+Invalid `prisma.repaymentTransaction.create()` invocation: 
+Unique constraint failed on the constraint: `repayment_transactions_receiptNumber_key`
+```
+
+### Root Cause
+The receipt number generation logic used `COUNT()` to determine the next receipt number. If transactions were ever deleted, the count would not reflect the highest receipt number in use, causing duplicate numbers.
+
+**Code Location:** `vclop-backend/src/modules/loan-applications/loan-applications.service.ts` (line ~964)
+
+**Before:**
+```typescript
+const count = await this.prisma.repaymentTransaction.count();
+const receiptNumber = `RCP-${String(count + 1).padStart(6, '0')}`;
+```
+
+**After:**
+```typescript
+const lastReceipt = await this.prisma.repaymentTransaction.findFirst({
+  orderBy: { receiptNumber: 'desc' },
+  select: { receiptNumber: true },
+});
+
+let nextNumber = 1;
+if (lastReceipt?.receiptNumber) {
+  const match = lastReceipt.receiptNumber.match(/RCP-(\d+)/);
+  if (match) {
+    nextNumber = parseInt(match[1], 10) + 1;
+  }
+}
+const receiptNumber = `RCP-${String(nextNumber).padStart(6, '0')}`;
+```
+
+### Solution
+Changed to find the MAX existing receipt number, extract its number, and increment by 1. This ensures no duplicates even if transactions are deleted.
+
+### Files Modified
+- `vclop-backend/src/modules/loan-applications/loan-applications.service.ts`
+
+### Testing
+After fix, manual payments should generate unique receipt numbers like RCP-000001, RCP-000002, etc., without conflicts.
+
+---
+
+## Issue 7: Loan Status Stuck at DISBURSED After Full Payment (Should Show COMPLETED)
+
+### Problem
+After full loan repayment:
+- Receipt shows "fully paid" ✓
+- Payment was successfully recorded ✓
+- **But loan status still shows DISBURSED** (should be COMPLETED)
+- Customer cannot apply for new loan because system sees active loan
+
+### Root Cause
+The Loan table has records with status "DISBURSED", but this value doesn't exist in the `LoanStatus` enum:
+
+**Schema (prisma/schema.prisma):**
+```prisma
+enum LoanStatus {
+  ACTIVE      // ← Loans should have this status when disbursed
+  COMPLETED   // ← Should change to this when fully paid
+  DEFAULTED
+  WRITTEN_OFF
+}
+```
+
+**Note:** `DISBURSED` exists in `ApplicationStatus` enum (for loan_applications table), NOT in `LoanStatus` enum (for loans table).
+
+**What happened:**
+1. Loan was created with invalid "DISBURSED" status (should be ACTIVE)
+2. Payment was recorded successfully and installments marked as PAID
+3. Repayment logic tried to update status to COMPLETED (line 729-731)
+4. But loan still has DISBURSED status because:
+   - The status update logic checks `if (stillOutstanding === 0)` 
+   - This check passed, and it tried to update status to COMPLETED
+   - However, the loan started with DISBURSED, not ACTIVE
+   - The payment recording worked despite wrong status
+
+**Code Location:** `vclop-backend/src/modules/loan-applications/loan-applications.service.ts`
+- Line 689: `if (loan.status !== LoanStatus.ACTIVE)` - this check should have blocked payment but somehow payment went through
+- Line 729-731: `await tx.loan.update({ where: { id: loanId }, data: { status: LoanStatus.COMPLETED } })` - tries to update to COMPLETED
+
+### Solution
+Created comprehensive SQL script to fix existing loans AND prevent future occurrences:
+
+**File:** `vclop-backend/FIX_AND_PREVENT_LOAN_STATUS_ISSUE.sql`
+
+The script does 4 things:
+1. **Diagnoses** - Shows all loans with invalid statuses
+2. **Fixes existing data** - Updates loans to correct status:
+   - **COMPLETED** if all installments are paid (allows new applications)
+   - **ACTIVE** if there are unpaid installments
+3. **Adds database constraint** - Prevents DISBURSED or any invalid status from being saved ever again
+4. **Verifies** - Shows updated loans and confirms constraint is active
+
+**SQL Constraint Added:**
+```sql
+ALTER TABLE loans 
+ADD CONSTRAINT chk_loan_status 
+CHECK (status IN ('ACTIVE', 'COMPLETED', 'DEFAULTED', 'WRITTEN_OFF'));
+```
+
+This constraint ensures the database will **reject** any attempt to save invalid status values, even if code tries to set them.
+
+### Files Created
+- `vclop-backend/FIX_AND_PREVENT_LOAN_STATUS_ISSUE.sql` (comprehensive one-time fix)
+- `vclop-backend/FIX_LOAN_STATUS_DISBURSED_TO_ACTIVE.sql` (data fix only, for reference)
+- `vclop-backend/ADD_LOAN_STATUS_CONSTRAINT.sql` (constraint only, for reference)
+
+### Impact
+After running `FIX_AND_PREVENT_LOAN_STATUS_ISSUE.sql`:
+- **Fully paid loans will show COMPLETED status** ← Fixes your current issue
+- Customers with completed loans can apply for new loans
+- Partially paid loans will show ACTIVE status
+- **You will NEVER need to run this again** - database constraint prevents the issue
+- Any future code that tries to set invalid status will be rejected by database
+
+### Root Cause Analysis
+The loan was created with DISBURSED status instead of ACTIVE. This might have happened from:
+- Old code that explicitly set status to DISBURSED during creation
+- Manual database update
+- Schema migration issue
+
+Current code (line 603-619) creates loans WITHOUT specifying status, so they default to ACTIVE. The database constraint ensures even if code is wrong in future, invalid values cannot be saved.
+
+---
+
 ## Additional Changes
 
 ### Customer Status Constraint
@@ -229,6 +360,8 @@ Added ability for admins to delete loan applications via frontend with trash ico
 6. `fix: Remove verified document requirement from loan application submission`
 7. `fix: Allow loan officers to add/edit guarantors at any time`
 8. `fix: Use absolute path for Hostinger uploads directory to persist files across deployments`
+9. `fix: Change receipt number generation from COUNT to MAX to prevent duplicates`
+10. `fix: SQL script to correct loan status from invalid DISBURSED to ACTIVE/COMPLETED`
 
 ---
 
@@ -243,6 +376,10 @@ After deploying these changes:
 - [ ] Upload a test document and verify it persists after next deployment
 - [ ] Check that compliance can verify documents during review
 - [ ] Verify BVN validation works correctly
+- [ ] **Run FIX_AND_PREVENT_LOAN_STATUS_ISSUE.sql script** (one-time fix + prevention)
+- [ ] Test manual payment recording (verify no duplicate receipt numbers)
+- [ ] Verify loans show COMPLETED status when fully paid
+- [ ] Test that customers with COMPLETED loans can apply for new loans
 
 ---
 
@@ -278,6 +415,6 @@ PAYSTACK_PREFERRED_BANK=titan-paystack
 ---
 
 **Document Created:** October 15, 2026  
-**Last Updated:** October 15, 2026  
-**Session Duration:** ~4 hours  
-**Issues Resolved:** 5 major issues + 2 additional improvements
+**Last Updated:** October 28, 2026  
+**Session Duration:** ~6 hours  
+**Issues Resolved:** 7 major issues + 2 additional improvements

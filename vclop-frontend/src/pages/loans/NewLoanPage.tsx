@@ -92,19 +92,26 @@ export function NewLoanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Check for active loans/applications when customer is selected
+  // Check for active loans when customer is selected
+  // Note: We check the LOAN status (nested), not the APPLICATION status
+  // Applications can be DISBURSED, but the actual loan might be COMPLETED
   const { data: activeLoans } = useQuery({
     queryKey: ['loans', 'active', selectedCustomer?.id],
     queryFn: () => loansService.list({ customerId: selectedCustomer!.id }),
     enabled: !!selectedCustomer,
   });
 
-  const hasActiveLoan = activeLoans?.data?.some((loan: any) => 
-    ['DISBURSED', 'ACTIVE', 'OVERDUE', 'DEFAULTED'].includes(loan.status)
-  );
+  const hasActiveLoan = activeLoans?.data?.some((app: any) => {
+    // If there's a loan object, check its status (not the application status)
+    if (app.loan) {
+      return ['ACTIVE', 'DEFAULTED'].includes(app.loan.status);
+    }
+    // If no loan yet (still in approval), check application status
+    return ['APPROVED'].includes(app.status);
+  });
 
-  const hasActiveApplication = activeLoans?.data?.some((loan: any) => 
-    ['DRAFT', 'IN_REVIEW', 'PENDING_APPROVAL', 'APPROVED'].includes(loan.status)
+  const hasActiveApplication = activeLoans?.data?.some((app: any) => 
+    ['DRAFT', 'SUBMITTED', 'COMPLIANCE_REVIEW', 'AWAITING_INFORMATION', 'INTERNAL_CONTROL_REVIEW', 'ACCOUNTING_REVIEW'].includes(app.status)
   );
 
   function selectCustomer(c: Customer) {
