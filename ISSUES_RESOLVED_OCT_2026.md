@@ -416,5 +416,43 @@ PAYSTACK_PREFERRED_BANK=titan-paystack
 
 **Document Created:** October 15, 2026  
 **Last Updated:** October 28, 2026  
-**Session Duration:** ~6 hours  
+**Session Duration:** ~8 hours  
 **Issues Resolved:** 7 major issues + 2 additional improvements
+
+---
+
+## Pending Features
+
+### Shareable Receipt Images
+**Status:** Not yet implemented  
+**User Request:** "i should be able t share the receipt. make it more standard like opay receipt"  
+**Chosen Approach:** Generate receipts as shareable images (PNG/JPG) like OPay
+
+**Implementation Plan:**
+1. **Backend Changes:**
+   - Install `canvas` library for Node.js image generation
+   - Update `receipts.service.ts` to generate image format
+   - Add new endpoint `/receipts/:id/image` for image receipts
+   - Design professional receipt template (OPay-style)
+
+2. **Frontend Changes:**
+   - Add "Share Receipt" button in loan detail page
+   - Download/share image directly (no PDF popup)
+   - Mobile-friendly sharing (WhatsApp, etc.)
+
+3. **Receipt Design:**
+   - Company logo/header
+   - Receipt number (large, prominent)
+   - Transaction details (amount, date, time)
+   - Customer name
+   - Loan number
+   - Payment method & reference
+   - Outstanding balance
+   - Footer with company info
+   - Clean, modern design with proper spacing
+
+**Required Libraries:**
+- Backend: `canvas` or `sharp` for image generation
+- Consider using template with proper formatting
+
+**Reference:** Current receipt is PDF-only (`receipts.service.ts` line 25-145)
