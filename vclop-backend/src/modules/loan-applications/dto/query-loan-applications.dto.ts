@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { LoanApplicationStatus } from '@prisma/client';
+import { LoanApplicationStatus, LoanStatus } from '@prisma/client';
 import { IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
@@ -8,6 +8,11 @@ export class QueryLoanApplicationsDto extends PaginationDto {
   @IsOptional()
   @IsEnum(LoanApplicationStatus)
   status?: LoanApplicationStatus;
+
+  @ApiPropertyOptional({ enum: LoanStatus, description: 'Filter by actual loan status (ACTIVE, COMPLETED, etc.) - only applies to disbursed loans' })
+  @IsOptional()
+  @IsEnum(LoanStatus)
+  loanStatus?: LoanStatus;
 
   @ApiPropertyOptional()
   @IsOptional()

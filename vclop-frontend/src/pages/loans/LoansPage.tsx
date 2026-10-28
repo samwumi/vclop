@@ -51,13 +51,14 @@ export function LoansPage() {
     !hasPermission('loan_applications:disburse');
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['loans', { page, search, status, userId: isLoanOfficer ? user?.id : undefined }],
+    queryKey: ['loans', { page, search, status, loanStatus: loanStatusFilter, userId: isLoanOfficer ? user?.id : undefined }],
     queryFn: () =>
       loansService.list({
         page,
         limit: 25,
         search,
         ...(status ? { status } : {}),
+        ...(loanStatusFilter ? { loanStatus: loanStatusFilter } : {}),
         // backend auto-scopes loan officers, but we pass it explicitly for cache isolation
         ...(isLoanOfficer && user ? { submittedById: user.id } : {}),
       }),
@@ -140,15 +141,7 @@ export function LoansPage() {
       }
       rows={
         <>
-          {data?.data
-            ?.filter((loan: LoanApplication) => {
-              // Client-side filter by loan status if selected
-              if (loanStatusFilter) {
-                return loan.loan?.status === loanStatusFilter;
-              }
-              return true;
-            })
-            ?.map((loan: LoanApplication) => (
+          {data?.data?.map((loan: LoanApplication) => (
             <tr key={loan.id} className="cursor-pointer clickable-mobile" onClick={() => navigate(`/loans/${loan.id}`)}>
               <td className="font-mono text-xs text-brand-600 font-semibold">{loan.applicationNumber}</td>
               <td>
