@@ -30,12 +30,32 @@ export function CustomerLoansTab({ customerId }: { customerId: string }) {
   const isIC = hasPermission('loan_applications:internal_control_approve');
   const canReview = isCompliance || isIC;
 
+  // Calculate loan statistics
+  const loanStats = data?.data.reduce((acc, loan) => {
+    if (loan.loan) {
+      // Count based on actual loan status
+      if (loan.loan.status === 'COMPLETED') acc.completed++;
+      else if (loan.loan.status === 'ACTIVE') acc.active++;
+      else if (loan.loan.status === 'DEFAULTED') acc.defaulted++;
+    }
+    return acc;
+  }, { completed: 0, active: 0, defaulted: 0 }) || { completed: 0, active: 0, defaulted: 0 };
+
   if (isLoading) return <PageLoader />;
 
   return (
     <div className="card">
       <div className="card-header flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-700">Loan Applications</h3>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700">Loan Applications</h3>
+          {(loanStats.completed > 0 || loanStats.active > 0 || loanStats.defaulted > 0) && (
+            <p className="text-xs text-gray-500 mt-0.5">
+              {loanStats.completed > 0 && <span className="text-green-600">{loanStats.completed} Completed</span>}
+              {loanStats.active > 0 && <span className="text-blue-600 ml-2">{loanStats.active} Active</span>}
+              {loanStats.defaulted > 0 && <span className="text-red-600 ml-2">{loanStats.defaulted} Defaulted</span>}
+            </p>
+          )}
+        </div>
         {hasPermission('loan_applications:create') && (
           <button onClick={() => navigate(`/loans/new?customerId=${customerId}`)} className="btn-secondary btn-sm gap-1.5">
             <Plus className="w-3.5 h-3.5" /> Apply for Loan
