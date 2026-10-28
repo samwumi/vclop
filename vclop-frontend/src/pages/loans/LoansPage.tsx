@@ -31,10 +31,15 @@ const STATUS_OPTS: LoanApplicationStatus[] = [
   'ACCOUNTING_REVIEW', 'APPROVED', 'DISBURSED', 'REJECTED', 'RETURNED', 'CANCELLED',
 ];
 
+const LOAN_STATUS_OPTS: Array<'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'WRITTEN_OFF'> = [
+  'ACTIVE', 'COMPLETED', 'DEFAULTED', 'WRITTEN_OFF',
+];
+
 export function LoansPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<LoanApplicationStatus | ''>('');
+  const [loanStatusFilter, setLoanStatusFilter] = useState<'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'WRITTEN_OFF' | ''>('');
   const { hasPermission, user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -114,18 +119,36 @@ export function LoansPage() {
       meta={data?.meta}
       onPageChange={setPage}
       filters={
-        <select
-          className="form-input h-9 text-sm w-44"
-          value={status}
-          onChange={(e) => { setStatus(e.target.value as LoanApplicationStatus | ''); setPage(1); }}
-        >
-          <option value="">All statuses</option>
-          {STATUS_OPTS.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
-        </select>
+        <div className="flex gap-2">
+          <select
+            className="form-input h-9 text-sm w-44"
+            value={status}
+            onChange={(e) => { setStatus(e.target.value as LoanApplicationStatus | ''); setPage(1); }}
+          >
+            <option value="">All application statuses</option>
+            {STATUS_OPTS.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+          </select>
+          <select
+            className="form-input h-9 text-sm w-44"
+            value={loanStatusFilter}
+            onChange={(e) => { setLoanStatusFilter(e.target.value as typeof loanStatusFilter); setPage(1); }}
+          >
+            <option value="">All loan statuses</option>
+            {LOAN_STATUS_OPTS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
       }
       rows={
         <>
-          {data?.data?.map((loan: LoanApplication) => (
+          {data?.data
+            ?.filter((loan: LoanApplication) => {
+              // Client-side filter by loan status if selected
+              if (loanStatusFilter) {
+                return loan.loan?.status === loanStatusFilter;
+              }
+              return true;
+            })
+            ?.map((loan: LoanApplication) => (
             <tr key={loan.id} className="cursor-pointer clickable-mobile" onClick={() => navigate(`/loans/${loan.id}`)}>
               <td className="font-mono text-xs text-brand-600 font-semibold">{loan.applicationNumber}</td>
               <td>
