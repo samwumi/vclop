@@ -75,7 +75,11 @@ export class LoanApplicationsService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.loanApplication.findMany({
         where,
-        include: { customer: { select: { customerNumber: true, firstName: true, lastName: true } }, loanProduct: { select: { name: true, code: true } } },
+        include: { 
+          customer: { select: { customerNumber: true, firstName: true, lastName: true } }, 
+          loanProduct: { select: { name: true, code: true } },
+          loan: { select: { id: true, loanNumber: true, status: true, principal: true, totalRepayable: true, completedAt: true } }
+        },
         orderBy: { createdAt: 'desc' },
         skip: query.skip,
         take: query.take,
