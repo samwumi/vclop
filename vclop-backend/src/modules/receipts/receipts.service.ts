@@ -28,6 +28,11 @@ export class ReceiptsService {
     const customer = loan.loanApplication.customer;
     const product = loan.loanApplication.loanProduct;
 
+    // Use actual person name, fallback to business name only if firstName/lastName are empty
+    const customerDisplayName = customer.firstName && customer.lastName 
+      ? `${customer.firstName} ${customer.lastName}`.trim()
+      : customer.businessName || 'N/A';
+
     const outstandingBalance = loan.installments.reduce(
       (sum, inst) => sum + (Number(inst.totalDue) - Number(inst.amountPaid)),
       0,
@@ -36,7 +41,7 @@ export class ReceiptsService {
     const buffer = await this.renderPdf({
       receiptNumber: transaction.receiptNumber ?? `RCT-${transaction.id.slice(0, 8).toUpperCase()}`,
       issuedAt: transaction.createdAt,
-      customerName: `${customer.firstName} ${customer.lastName}`,
+      customerName: customerDisplayName,
       customerNumber: customer.customerNumber,
       loanNumber: loan.loanNumber,
       productName: product.name,
@@ -145,6 +150,11 @@ export class ReceiptsService {
     const customer = loan.loanApplication.customer;
     const product = loan.loanApplication.loanProduct;
 
+    // Use actual person name, fallback to business name only if firstName/lastName are empty
+    const customerDisplayName = customer.firstName && customer.lastName 
+      ? `${customer.firstName} ${customer.lastName}`.trim()
+      : customer.businessName || 'N/A';
+
     const outstandingBalance = loan.installments.reduce(
       (sum, inst) => sum + (Number(inst.totalDue) - Number(inst.amountPaid)),
       0,
@@ -153,7 +163,7 @@ export class ReceiptsService {
     const buffer = await this.renderImage({
       receiptNumber: transaction.receiptNumber ?? `RCT-${transaction.id.slice(0, 8).toUpperCase()}`,
       issuedAt: transaction.createdAt,
-      customerName: `${customer.firstName} ${customer.lastName}`,
+      customerName: customerDisplayName,
       customerNumber: customer.customerNumber,
       loanNumber: loan.loanNumber,
       productName: product.name,
