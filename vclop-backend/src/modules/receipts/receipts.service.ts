@@ -153,7 +153,7 @@ export class ReceiptsService {
     const buffer = await this.renderImage({
       receiptNumber: transaction.receiptNumber ?? `RCT-${transaction.id.slice(0, 8).toUpperCase()}`,
       issuedAt: transaction.createdAt,
-      customerName: customer.businessName ?? `${customer.firstName} ${customer.lastName}`,
+      customerName: `${customer.firstName} ${customer.lastName}`,
       customerNumber: customer.customerNumber,
       loanNumber: loan.loanNumber,
       productName: product.name,
@@ -248,20 +248,22 @@ export class ReceiptsService {
     ];
 
     details.forEach(([label, value]) => {
+      // Label
       ctx.font = '14px Arial';
       ctx.fillStyle = '#6B7280';
       ctx.fillText(label, leftX, y);
       
+      // Value
       ctx.font = 'bold 14px Arial';
       ctx.fillStyle = '#1F2937';
       
-      // Handle multiline values
+      // Handle multiline values (e.g., customer name + number)
       const lines = value.split('\n');
       lines.forEach((line, i) => {
-        ctx.fillText(line, leftX, y + 22 + (i * 20));
+        ctx.fillText(line, rightX - 300, y + (i * 22));
       });
       
-      y += 45 + (lines.length - 1) * 20;
+      y += 40 + (lines.length - 1) * 22;
     });
 
     // Footer
