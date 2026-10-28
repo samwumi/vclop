@@ -28,10 +28,8 @@ export class ReceiptsService {
     const customer = loan.loanApplication.customer;
     const product = loan.loanApplication.loanProduct;
 
-    // Use actual person name, fallback to business name only if firstName/lastName are empty
-    const customerDisplayName = customer.firstName && customer.lastName 
-      ? `${customer.firstName} ${customer.lastName}`.trim()
-      : customer.businessName || 'N/A';
+    // Always use firstName and lastName for customer name (never businessName)
+    const customerDisplayName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'N/A';
 
     const outstandingBalance = loan.installments.reduce(
       (sum, inst) => sum + (Number(inst.totalDue) - Number(inst.amountPaid)),
@@ -150,10 +148,8 @@ export class ReceiptsService {
     const customer = loan.loanApplication.customer;
     const product = loan.loanApplication.loanProduct;
 
-    // Use actual person name, fallback to business name only if firstName/lastName are empty
-    const customerDisplayName = customer.firstName && customer.lastName 
-      ? `${customer.firstName} ${customer.lastName}`.trim()
-      : customer.businessName || 'N/A';
+    // Always use firstName and lastName for customer name (never businessName)
+    const customerDisplayName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'N/A';
 
     const outstandingBalance = loan.installments.reduce(
       (sum, inst) => sum + (Number(inst.totalDue) - Number(inst.amountPaid)),
