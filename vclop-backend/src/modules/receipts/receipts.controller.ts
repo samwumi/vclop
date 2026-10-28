@@ -24,4 +24,16 @@ export class ReceiptsController {
     res.setHeader('Content-Length', buffer.length);
     res.send(buffer);
   }
+
+  @Get(':transactionId/image')
+  @RequirePermissions('loan_applications:read')
+  @ApiOperation({ summary: 'Download shareable image receipt for a repayment transaction' })
+  async downloadImage(@Param('transactionId', ParseUUIDPipe) transactionId: string, @Res({ passthrough: false }) res: Response) {
+    const { buffer, filename } = await this.service.generateImage(transactionId);
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  }
 }

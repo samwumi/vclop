@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Copy, Receipt, User, ChevronDown, ChevronUp, FileText as FileIcon, Eye, AlertTriangle, Trash2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Send, Banknote, UserPlus, Landmark, Wallet, Copy, Receipt, User, ChevronDown, ChevronUp, FileText as FileIcon, Eye, AlertTriangle, Trash2, Download } from 'lucide-react';
 import { loansService } from '@/services/loans.service';
 import { virtualAccountsService } from '@/services/virtual-accounts.service';
 import { receiptsService } from '@/services/receipts.service';
@@ -814,12 +814,20 @@ export function LoanDetailPage() {
                             <td className="text-gray-500">{formatDateTime(tx.receivedAt)}</td>
                             <td>
                               {tx.repaymentTransactionId && (
-                                <button
-                                  onClick={() => receiptsService.viewReceipt(tx.repaymentTransactionId!).catch(() => toast.error('Failed to load receipt'))}
-                                  className="text-brand-600 hover:underline flex items-center gap-1"
-                                >
-                                  <Receipt className="w-3 h-3" /> Receipt
-                                </button>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => receiptsService.viewReceipt(tx.repaymentTransactionId!).catch(() => toast.error('Failed to load receipt'))}
+                                    className="text-brand-600 hover:underline flex items-center gap-1"
+                                  >
+                                    <Receipt className="w-3 h-3" /> View
+                                  </button>
+                                  <button
+                                    onClick={() => receiptsService.downloadImageReceipt(tx.repaymentTransactionId!).catch(() => toast.error('Failed to download receipt'))}
+                                    className="text-emerald-600 hover:underline flex items-center gap-1"
+                                  >
+                                    <Download className="w-3 h-3" /> Share
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -916,12 +924,20 @@ export function LoanDetailPage() {
                     <span className="font-medium">₦{Number(tx.amount).toLocaleString()} ({tx.method}){tx.receiptNumber && <span className="text-gray-400 font-mono"> · {tx.receiptNumber}</span>}</span>
                     <div className="flex items-center justify-between sm:gap-3">
                       <span className="text-gray-400">{formatDateTime(tx.createdAt)}</span>
-                      <button
-                        onClick={() => receiptsService.viewReceipt(tx.id).catch(() => toast.error('Failed to load receipt'))}
-                        className="text-brand-600 hover:underline flex items-center gap-1"
-                      >
-                        <Receipt className="w-3 h-3" /> Receipt
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => receiptsService.viewReceipt(tx.id).catch(() => toast.error('Failed to load receipt'))}
+                          className="text-brand-600 hover:underline flex items-center gap-1"
+                        >
+                          <Receipt className="w-3 h-3" /> View
+                        </button>
+                        <button
+                          onClick={() => receiptsService.downloadImageReceipt(tx.id).catch(() => toast.error('Failed to download receipt'))}
+                          className="text-emerald-600 hover:underline flex items-center gap-1"
+                        >
+                          <Download className="w-3 h-3" /> Share
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
