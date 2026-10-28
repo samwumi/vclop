@@ -143,9 +143,16 @@ export function LoansPage() {
                 </p>
               </td>
               <td>
-                <Badge variant={STATUS_VARIANT[loan.status] ?? 'gray'}>
-                  {loan.status.replace(/_/g, ' ')}
-                </Badge>
+                {/* Show actual loan status if disbursed, otherwise show application status */}
+                {loan.loan ? (
+                  <Badge variant={loan.loan.status === 'COMPLETED' ? 'green' : loan.loan.status === 'ACTIVE' ? 'blue' : 'yellow'}>
+                    {loan.loan.status}
+                  </Badge>
+                ) : (
+                  <Badge variant={STATUS_VARIANT[loan.status] ?? 'gray'}>
+                    {loan.status.replace(/_/g, ' ')}
+                  </Badge>
+                )}
               </td>
               <td className="text-responsive-xs text-gray-500">{formatDate(loan.createdAt)}</td>
             </tr>
