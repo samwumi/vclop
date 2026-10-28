@@ -36,7 +36,7 @@ export class ReceiptsService {
     const buffer = await this.renderPdf({
       receiptNumber: transaction.receiptNumber ?? `RCT-${transaction.id.slice(0, 8).toUpperCase()}`,
       issuedAt: transaction.createdAt,
-      customerName: customer.businessName ?? `${customer.firstName} ${customer.lastName}`,
+      customerName: `${customer.firstName} ${customer.lastName}`,
       customerNumber: customer.customerNumber,
       loanNumber: loan.loanNumber,
       productName: product.name,
