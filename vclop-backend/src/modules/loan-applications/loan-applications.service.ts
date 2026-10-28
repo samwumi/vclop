@@ -962,8 +962,22 @@ export class LoanApplicationsService {
   }
 
   private async generateReceiptNumber(): Promise<string> {
-    const count = await this.prisma.repaymentTransaction.count();
-    return `RCT-${(count + 1).toString().padStart(6, '0')}`;
+    // Get the highest existing receipt number to avoid duplicates
+    const lastReceipt = await this.prisma.repaymentTransaction.findFirst({
+      where: { receiptNumber: { startsWith: 'RCT-' } },
+      orderBy: { receiptNumber: 'desc' },
+      select: { receiptNumber: true },
+    });
+    
+    let nextNumber = 1;
+    if (lastReceipt?.receiptNumber) {
+      const match = lastReceipt.receiptNumber.match(/RCT-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    
+    return `RCT-${nextNumber.toString().padStart(6, '0')}`;
   }
 
   private emitAudit(action: AuditAction, userId: string, entityId: string, description: string) {
