@@ -69,10 +69,20 @@ export function CustomerLoansTab({ customerId }: { customerId: string }) {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 font-mono">{loan.applicationNumber}</p>
-                    <p className="text-xs text-gray-500">{loan.loanProduct?.name} · ₦{Number(loan.amount).toLocaleString()} · {formatDate(loan.createdAt)}</p>
+                    <p className="text-xs text-gray-500">
+                      {loan.loanProduct?.name} · ₦{Number(loan.amount).toLocaleString()} · {formatDate(loan.createdAt)}
+                      {loan.loan && <span className="ml-2 text-brand-600">• Loan {loan.loan.loanNumber}</span>}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={STATUS_VARIANT[loan.status]}>{loan.status}</Badge>
+                    {/* Show actual loan status if disbursed, otherwise show application status */}
+                    {loan.loan ? (
+                      <Badge variant={loan.loan.status === 'COMPLETED' ? 'green' : loan.loan.status === 'ACTIVE' ? 'blue' : 'yellow'}>
+                        {loan.loan.status}
+                      </Badge>
+                    ) : (
+                      <Badge variant={STATUS_VARIANT[loan.status]}>{loan.status}</Badge>
+                    )}
                     {showReviewControls && (
                       isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />
                     )}
