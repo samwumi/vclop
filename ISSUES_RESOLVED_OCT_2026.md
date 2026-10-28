@@ -328,6 +328,61 @@ Current code (line 603-619) creates loans WITHOUT specifying status, so they def
 
 ---
 
+## Issue 8: Shareable Receipt Images
+
+### Problem
+Receipts were only available as PDF (opened in new tab), making it difficult to share with customers via WhatsApp, email, or other channels. Users needed a shareable format like OPay receipts.
+
+### Root Cause
+The system only generated PDF receipts using PDFKit. No image format was available for easy sharing.
+
+### Solution
+Added shareable PNG image receipt generation alongside existing PDF:
+
+**Backend Changes:**
+1. Installed and used `canvas` library for image generation
+2. Created OPay-style receipt design with:
+   - Green header with company branding
+   - Success checkmark icon
+   - Large amount display
+   - Clean details section with all transaction info
+   - Professional footer
+3. Added new endpoint: `GET /receipts/:id/image`
+
+**Frontend Changes:**
+1. Added "Share" button next to existing "View" button
+2. Downloads receipt as PNG image (can be shared directly)
+3. Available in both:
+   - Virtual account transactions table
+   - Payment history section
+
+**Receipt Design Features:**
+- 600x900px image (mobile-friendly)
+- Green brand color (#10B981)
+- Success checkmark visual
+- All transaction details included
+- Receipt number, date/time
+- Customer info
+- Loan details
+- Payment method and reference
+- Outstanding balance
+- Professional footer
+
+### Files Modified
+- `vclop-backend/src/modules/receipts/receipts.service.ts` - Added `generateImage()` method
+- `vclop-backend/src/modules/receipts/receipts.controller.ts` - Added `/image` endpoint
+- `vclop-frontend/src/services/receipts.service.ts` - Added `downloadImageReceipt()` method
+- `vclop-frontend/src/pages/loans/LoanDetailPage.tsx` - Added Share buttons
+
+### Testing
+After deployment:
+- Click "Share" button on any payment
+- Downloads PNG image receipt
+- Can be shared via WhatsApp, email, etc.
+- PDF still available via "View" button
+
+---
+
 ## Additional Changes
 
 ### Customer Status Constraint
@@ -362,6 +417,14 @@ Added ability for admins to delete loan applications via frontend with trash ico
 8. `fix: Use absolute path for Hostinger uploads directory to persist files across deployments`
 9. `fix: Change receipt number generation from COUNT to MAX to prevent duplicates`
 10. `fix: SQL script to correct loan status from invalid DISBURSED to ACTIVE/COMPLETED`
+11. `fix: Check actual loan status (not application status) to allow new applications after loan completion`
+12. `feat: Show actual loan status (ACTIVE/COMPLETED) in customer borrowing history instead of application status`
+13. `feat: Add loan statistics summary showing count of completed, active, and defaulted loans`
+14. `fix: Include loan object with status in loan applications list API`
+15. `fix: Show actual loan status (ACTIVE/COMPLETED) in main loans list page instead of application status`
+16. `feat: Add loan status filter (ACTIVE, COMPLETED, DEFAULTED, WRITTEN_OFF) to loans page`
+17. `feat: Add backend support for filtering loans by loan status across all pages`
+18. `feat: Add shareable image receipts with OPay-style design and Share button`
 
 ---
 
@@ -380,6 +443,9 @@ After deploying these changes:
 - [ ] Test manual payment recording (verify no duplicate receipt numbers)
 - [ ] Verify loans show COMPLETED status when fully paid
 - [ ] Test that customers with COMPLETED loans can apply for new loans
+- [ ] Test loan status filter on main loans page (search across all pages)
+- [ ] Test shareable receipt - click Share button and verify PNG downloads
+- [ ] Share receipt via WhatsApp/email to verify image quality
 
 ---
 
@@ -417,42 +483,4 @@ PAYSTACK_PREFERRED_BANK=titan-paystack
 **Document Created:** October 15, 2026  
 **Last Updated:** October 28, 2026  
 **Session Duration:** ~8 hours  
-**Issues Resolved:** 7 major issues + 2 additional improvements
-
----
-
-## Pending Features
-
-### Shareable Receipt Images
-**Status:** Not yet implemented  
-**User Request:** "i should be able t share the receipt. make it more standard like opay receipt"  
-**Chosen Approach:** Generate receipts as shareable images (PNG/JPG) like OPay
-
-**Implementation Plan:**
-1. **Backend Changes:**
-   - Install `canvas` library for Node.js image generation
-   - Update `receipts.service.ts` to generate image format
-   - Add new endpoint `/receipts/:id/image` for image receipts
-   - Design professional receipt template (OPay-style)
-
-2. **Frontend Changes:**
-   - Add "Share Receipt" button in loan detail page
-   - Download/share image directly (no PDF popup)
-   - Mobile-friendly sharing (WhatsApp, etc.)
-
-3. **Receipt Design:**
-   - Company logo/header
-   - Receipt number (large, prominent)
-   - Transaction details (amount, date, time)
-   - Customer name
-   - Loan number
-   - Payment method & reference
-   - Outstanding balance
-   - Footer with company info
-   - Clean, modern design with proper spacing
-
-**Required Libraries:**
-- Backend: `canvas` or `sharp` for image generation
-- Consider using template with proper formatting
-
-**Reference:** Current receipt is PDF-only (`receipts.service.ts` line 25-145)
+**Issues Resolved:** 8 major issues + 2 additional improvements
