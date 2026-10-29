@@ -55,6 +55,30 @@ export class LoanApplicationsService {
 
     // Apply location-based permissions if actorId is provided
     if (actorId) {
+      // Check if user is a Loan Officer by querying their role permissions
+      const user = await this.prisma.user.findUnique({
+        where: { id: actorId },
+        select: { roleId: true },
+      });
+
+      if (user?.roleId) {
+        const rolePermissions = await this.prisma.rolePermission.findMany({
+          where: { roleId: user.roleId },
+          select: { permission: true },
+        });
+
+        const permissions = rolePermissions.map(rp => rp.permission);
+        const isLoanOfficer = permissions.includes('loan_applications:create') && 
+                             !permissions.includes('loan_applications:compliance_approve') &&
+                             !permissions.includes('loan_applications:internal_control_approve') &&
+                             !permissions.includes('loan_applications:accounting_approve');
+
+        // Loan Officers should only see applications they created
+        if (isLoanOfficer) {
+          where.assignedToId = actorId;
+        }
+      }
+
       const permittedBranchIds = await this.usersService.getUserPermittedBranchIds(actorId);
       
       // If user has specific location permissions, filter by those branches
