@@ -68,10 +68,10 @@ export class LoanApplicationsService {
         // Get all permissions for these roles
         const rolePermissions = await this.prisma.rolePermission.findMany({
           where: { roleId: { in: roleIds } },
-          select: { permission: true }
+          select: { permission: { select: { code: true } } }
         });
 
-        const allPermissions = rolePermissions.map(rp => rp.permission);
+        const allPermissions = rolePermissions.map(rp => rp.permission.code);
         
         // Check if user is a Loan Officer (has create but not approval permissions)
         const isLoanOfficer = allPermissions.includes('loan_applications:create') && 
