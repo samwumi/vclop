@@ -55,28 +55,39 @@ export class LoanApplicationsService {
 
     // Apply location-based permissions if actorId is provided
     if (actorId) {
-      // Check if user is a Loan Officer by querying their role permissions
-      const user = await this.prisma.user.findUnique({
-        where: { id: actorId },
-        select: { roleId: true },
+      // Check if user is a Loan Officer by querying their permissions through UserRole -> Role -> RolePermission
+      const userRoles = await this.prisma.userRole.findMany({
+        where: { userId: actorId },
+        include: {
+          role: {
+            include: {
+              permissions: {
+                select: { permission: true }
+              }
+            }
+          }
+        }
       });
 
-      if (user?.roleId) {
-        const rolePermissions = await this.prisma.rolePermission.findMany({
-          where: { roleId: user.roleId },
-          select: { permission: true },
+      // Collect all permissions from all roles
+      const allPermissions: string[] = [];
+      userRoles.forEach(ur => {
+        ur.role.permissions.forEach(p => {
+          if (!allPermissions.includes(p.permission)) {
+            allPermissions.push(p.permission);
+          }
         });
+      });
 
-        const permissions = rolePermissions.map(rp => rp.permission);
-        const isLoanOfficer = permissions.includes('loan_applications:create') && 
-                             !permissions.includes('loan_applications:compliance_approve') &&
-                             !permissions.includes('loan_applications:internal_control_approve') &&
-                             !permissions.includes('loan_applications:accounting_approve');
+      // Check if user is a Loan Officer (has create but not approval permissions)
+      const isLoanOfficer = allPermissions.includes('loan_applications:create') && 
+                           !allPermissions.includes('loan_applications:compliance_approve') &&
+                           !allPermissions.includes('loan_applications:internal_control_approve') &&
+                           !allPermissions.includes('loan_applications:accounting_approve');
 
-        // Loan Officers should only see applications they created
-        if (isLoanOfficer) {
-          where.assignedToId = actorId;
-        }
+      // Loan Officers should only see applications they created
+      if (isLoanOfficer) {
+        where.assignedToId = actorId;
       }
 
       const permittedBranchIds = await this.usersService.getUserPermittedBranchIds(actorId);
