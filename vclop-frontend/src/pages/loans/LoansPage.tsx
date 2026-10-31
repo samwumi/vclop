@@ -59,8 +59,7 @@ export function LoansPage() {
         search,
         ...(status ? { status } : {}),
         ...(loanStatusFilter ? { loanStatus: loanStatusFilter } : {}),
-        // backend auto-scopes loan officers, but we pass it explicitly for cache isolation
-        ...(isLoanOfficer && user ? { submittedById: user.id } : {}),
+        // Backend now filters by assignedToId for loan officers
       }),
     placeholderData: (prev) => prev,
   });
@@ -79,7 +78,7 @@ export function LoansPage() {
       title={isLoanOfficer ? 'My Applications' : 'Loan Applications'}
       subtitle={
         isLoanOfficer
-          ? 'Applications you have submitted'
+          ? 'Applications assigned to you'
           : 'All applications — origination, review, and disbursement'
       }
       icon={FileText}

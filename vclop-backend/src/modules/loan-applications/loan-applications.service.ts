@@ -53,10 +53,9 @@ export class LoanApplicationsService {
       ...(query.loanStatus && { loan: { status: query.loanStatus } }),
     };
 
-    // Apply location-based permissions if actorId is provided
+    // Apply location-based permissions and role-based filtering if actorId is provided
     if (actorId) {
-      // Check if user is a Loan Officer by querying their permissions
-      // Get all role IDs for this user
+      // Get user's roles to determine if they should see only their own applications
       const userRoles = await this.prisma.userRole.findMany({
         where: { userId: actorId },
         select: { roleId: true }
@@ -65,22 +64,21 @@ export class LoanApplicationsService {
       if (userRoles.length > 0) {
         const roleIds = userRoles.map(ur => ur.roleId);
         
-        // Get all permissions for these roles
-        const rolePermissions = await this.prisma.rolePermission.findMany({
-          where: { roleId: { in: roleIds } },
-          select: { permission: { select: { code: true } } }
+        // Check role names - if user has ONLY "Loan Officer" role, filter by assignedToId
+        const roles = await this.prisma.role.findMany({
+          where: { id: { in: roleIds } },
+          select: { name: true }
         });
 
-        const allPermissions = rolePermissions.map(rp => rp.permission.code);
-        
-        // Check if user is a Loan Officer (has create but not approval permissions)
-        const isLoanOfficer = allPermissions.includes('loan_applications:create') && 
-                             !allPermissions.includes('loan_applications:compliance_approve') &&
-                             !allPermissions.includes('loan_applications:internal_control_approve') &&
-                             !allPermissions.includes('loan_applications:accounting_approve');
+        const roleNames = roles.map(r => r.name.toLowerCase());
+        const hasOnlyLoanOfficerRole = roleNames.includes('loan officer') && 
+                                       !roleNames.includes('admin') &&
+                                       !roleNames.includes('compliance officer') &&
+                                       !roleNames.includes('internal control') &&
+                                       !roleNames.includes('accounting head');
 
-        // Loan Officers should only see applications they created
-        if (isLoanOfficer) {
+        // Loan Officers should only see applications assigned to them
+        if (hasOnlyLoanOfficerRole) {
           where.assignedToId = actorId;
         }
       }
