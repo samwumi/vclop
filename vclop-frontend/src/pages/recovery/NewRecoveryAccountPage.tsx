@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -7,6 +7,7 @@ import { recoveryService, type RecoverySource, type PriorityLevel } from '@/serv
 import { api } from '@/lib/axios';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import type { ApiResponse } from '@/types/api.types';
+import { useFormPersistence } from '@/hooks/useFormPersistence';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -49,6 +50,8 @@ export function NewRecoveryAccountPage() {
   const [source, setSource] = useState<RecoverySource>('LEGACY');
   const [selectedLoanId, setSelectedLoanId] = useState('');
   const [customerId, setCustomerId] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
+  const { setupAutoSave, clearFormData } = useFormPersistence('new-recovery-account');
 
   // Fetch active loans for VCLOP source
   const { data: loans } = useQuery({
@@ -84,6 +87,7 @@ export function NewRecoveryAccountPage() {
       return await recoveryService.createAccount(payload);
     },
     onSuccess: () => {
+      clearFormData(); // Clear saved draft on success
       toast.success('Recovery account created successfully');
       navigate('/recovery/accounts');
     },
@@ -91,6 +95,13 @@ export function NewRecoveryAccountPage() {
       toast.error(error?.response?.data?.message ?? 'Failed to create recovery account');
     },
   });
+
+  // Set up auto-save on mount
+  useEffect(() => {
+    if (formRef.current) {
+      return setupAutoSave(formRef.current);
+    }
+  }, [setupAutoSave]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -153,7 +164,7 @@ export function NewRecoveryAccountPage() {
       </div>
 
       <div className="p-mobile md:p-0">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
           {/* Source Selection */}
           <div className="card-mobile">
             <div className="card-header">
