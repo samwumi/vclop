@@ -147,6 +147,27 @@ export class RecoveryService {
             name: true,
           },
         },
+        payments: {
+          include: {
+            recordedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            verifiedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
