@@ -31,6 +31,7 @@ model Branch {
   settings       Setting[]
   managedByUsers UserBranch[]
   users          User[]
+  recoveryAccounts RecoveryAccount[]
 
   @@index([code])
   @@index([isActive])
@@ -168,6 +169,14 @@ model User {
   supervisor              User?                    @relation("UserHierarchy", fields: [supervisorId], references: [id])
   subordinates            User[]                   @relation("UserHierarchy")
   targets                 OfficerTarget[]          @relation("OfficerTargets")
+  recoveryAccountsAssigned RecoveryAccount[]       @relation("RecoveryOfficer")
+  recoveryAccountsCreated  RecoveryAccount[]       @relation("RecoveryAccountCreator")
+  recoveryActivities       RecoveryActivity[]      @relation("ActivityRecorder")
+  recoveryPaymentsRecorded RecoveryPayment[]       @relation("PaymentRecordedBy")
+  recoveryPaymentsVerified RecoveryPayment[]       @relation("PaymentVerifiedBy")
+  repaymentPromises        RepaymentPromise[]      @relation("PromiseRecorder")
+  recoveryDocuments        RecoveryDocument[]      @relation("RecoveryDocUploader")
+  recoveryExpenses         RecoveryExpense[]       @relation("ExpenseRecorder")
 
   @@unique([email, deletedAt])
   @@unique([username, deletedAt])
@@ -647,6 +656,7 @@ model Customer {
   deletedAt          DateTime?
   documents          CustomerDocument[]
   loanApplications   LoanApplication[]
+  recoveryAccounts   RecoveryAccount[]
 
   @@index([status])
   @@index([branchId])
@@ -808,6 +818,7 @@ model Loan {
   installments      RepaymentInstallment[]
   transactions      RepaymentTransaction[]
   virtualAccount    VirtualAccount?
+  recoveryAccount   RecoveryAccount?
 
   @@index([customerId])
   @@index([status])
@@ -1398,4 +1409,307 @@ enum OtpCodeType {
   PASSWORD_CHANGE
   EMAIL_VERIFICATION
   TWO_FACTOR_AUTH
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOAN RECOVERY MANAGEMENT MODULE
+// ═══════════════════════════════════════════════════════════════════════════
+
+model RecoveryAccount {
+  id                    String                @id @default(uuid()) @db.VarChar(36)
+  accountNumber         String                @unique @db.VarChar(20)
+  
+  // Classification
+  source                RecoverySource        @default(LEGACY)
+  vclopLoanId           String?               @unique @db.VarChar(36)
+  
+  // Customer information
+  customerId            String?               @db.VarChar(36)
+  customerName          String                @db.VarChar(200)
+  customerPhone         String                @db.VarChar(20)
+  customerEmail         String?               @db.VarChar(150)
+  customerAddress       String?               @db.Text
+  
+  // Loan details
+  originalPrincipal     Decimal               @db.Decimal(14, 2)
+  disbursementDate      DateTime              @db.Date
+  originalReference     String?               @db.VarChar(100)
+  
+  // Financial tracking
+  historicalRepayments  Decimal               @default(0) @db.Decimal(14, 2)
+  outstandingBalance    Decimal               @db.Decimal(14, 2)
+  recoveredAmount       Decimal               @default(0) @db.Decimal(14, 2)
+  totalExpenses         Decimal               @default(0) @db.Decimal(14, 2)
+  netRecovery           Decimal               @default(0) @db.Decimal(14, 2)
+  lastPaymentDate       DateTime?
+  lastPaymentAmount     Decimal?              @db.Decimal(14, 2)
+  
+  // Assignment
+  assignedOfficerId     String?               @db.VarChar(36)
+  assignedDate          DateTime?
+  branchId              String?               @db.VarChar(36)
+  
+  // Status
+  status                RecoveryStatus        @default(PENDING_VERIFICATION)
+  priorityLevel         PriorityLevel         @default(MEDIUM)
+  
+  // Metadata
+  notes                 String?               @db.Text
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  createdById           String                @db.VarChar(36)
+  deletedAt             DateTime?
+  
+  // Relations
+  customer              Customer?             @relation(fields: [customerId], references: [id])
+  vclopLoan             Loan?                 @relation(fields: [vclopLoanId], references: [id])
+  assignedOfficer       User?                 @relation("RecoveryOfficer", fields: [assignedOfficerId], references: [id])
+  branch                Branch?               @relation(fields: [branchId], references: [id])
+  createdBy             User                  @relation("RecoveryAccountCreator", fields: [createdById], references: [id])
+  activities            RecoveryActivity[]
+  payments              RecoveryPayment[]
+  promises              RepaymentPromise[]
+  documents             RecoveryDocument[]
+  expenses              RecoveryExpense[]
+  
+  @@index([accountNumber])
+  @@index([customerId])
+  @@index([assignedOfficerId])
+  @@index([status])
+  @@index([source])
+  @@index([branchId])
+  @@index([deletedAt])
+  @@map("recovery_accounts")
+}
+
+model RecoveryActivity {
+  id                String            @id @default(uuid()) @db.VarChar(36)
+  accountId         String            @db.VarChar(36)
+  activityType      ActivityType
+  activityDate      DateTime          @default(now())
+  
+  // Activity details
+  contactMethod     ContactMethod?
+  contactOutcome    ContactOutcome?
+  notes             String?           @db.Text
+  nextFollowupDate  DateTime?
+  
+  // Location (for field visits)
+  latitude          Decimal?          @db.Decimal(10, 8)
+  longitude         Decimal?          @db.Decimal(11, 8)
+  visitAddress      String?           @db.VarChar(500)
+  
+  // Recording
+  recordedById      String            @db.VarChar(36)
+  createdAt         DateTime          @default(now())
+  
+  // Relations
+  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recordedBy        User              @relation("ActivityRecorder", fields: [recordedById], references: [id])
+  
+  @@index([accountId])
+  @@index([activityType])
+  @@index([activityDate])
+  @@index([nextFollowupDate])
+  @@map("recovery_activities")
+}
+
+model RecoveryPayment {
+  id                String            @id @default(uuid()) @db.VarChar(36)
+  accountId         String            @db.VarChar(36)
+  
+  // Payment details
+  amount            Decimal           @db.Decimal(14, 2)
+  paymentDate       DateTime
+  paymentMethod     String            @db.VarChar(50)
+  reference         String?           @db.VarChar(100)
+  
+  // Verification
+  status            PaymentStatus     @default(PENDING_VERIFICATION)
+  recordedById      String            @db.VarChar(36)
+  verifiedById      String?           @db.VarChar(36)
+  verifiedAt        DateTime?
+  verificationNotes String?           @db.Text
+  rejectionReason   String?           @db.Text
+  
+  // Evidence
+  receiptPath       String?           @db.VarChar(500)
+  
+  // Metadata
+  notes             String?           @db.Text
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relations
+  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recordedBy        User              @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+  verifiedBy        User?             @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+  
+  @@index([accountId])
+  @@index([status])
+  @@index([paymentDate])
+  @@map("recovery_payments")
+}
+
+model RepaymentPromise {
+  id                String            @id @default(uuid()) @db.VarChar(36)
+  accountId         String            @db.VarChar(36)
+  
+  // Promise details
+  promisedAmount    Decimal           @db.Decimal(14, 2)
+  promisedDate      DateTime          @db.Date
+  promiseNotes      String?           @db.Text
+  
+  // Status tracking
+  status            PromiseStatus     @default(ACTIVE)
+  actualPaidAmount  Decimal?          @db.Decimal(14, 2)
+  actualPaidDate    DateTime?
+  
+  // Recording
+  recordedById      String            @db.VarChar(36)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relations
+  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recordedBy        User              @relation("PromiseRecorder", fields: [recordedById], references: [id])
+  
+  @@index([accountId])
+  @@index([status])
+  @@index([promisedDate])
+  @@map("repayment_promises")
+}
+
+model RecoveryDocument {
+  id                String            @id @default(uuid()) @db.VarChar(36)
+  accountId         String            @db.VarChar(36)
+  
+  // Document details
+  documentType      String            @db.VarChar(100)
+  fileName          String            @db.VarChar(255)
+  filePath          String            @db.VarChar(500)
+  fileSize          Int
+  mimeType          String            @db.VarChar(100)
+  
+  // Metadata
+  description       String?           @db.VarChar(500)
+  uploadedById      String            @db.VarChar(36)
+  createdAt         DateTime          @default(now())
+  
+  // Relations
+  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  uploadedBy        User              @relation("RecoveryDocUploader", fields: [uploadedById], references: [id])
+  
+  @@index([accountId])
+  @@map("recovery_documents")
+}
+
+model RecoveryExpense {
+  id                String            @id @default(uuid()) @db.VarChar(36)
+  accountId         String            @db.VarChar(36)
+  
+  // Expense details
+  expenseType       ExpenseType
+  amount            Decimal           @db.Decimal(14, 2)
+  expenseDate       DateTime          @db.Date
+  description       String?           @db.Text
+  receiptPath       String?           @db.VarChar(500)
+  
+  // Recording
+  recordedById      String            @db.VarChar(36)
+  createdAt         DateTime          @default(now())
+  
+  // Relations
+  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recordedBy        User              @relation("ExpenseRecorder", fields: [recordedById], references: [id])
+  
+  @@index([accountId])
+  @@index([expenseType])
+  @@index([expenseDate])
+  @@map("recovery_expenses")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECOVERY MODULE ENUMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+enum RecoverySource {
+  LEGACY  // Historical loans from outside VCLOP
+  VCLOP   // Defaulted loans from VCLOP system
+}
+
+enum RecoveryStatus {
+  PENDING_VERIFICATION  // Balance needs verification
+  ASSIGNED              // Assigned to recovery officer
+  IN_PROGRESS           // Active recovery efforts
+  PROMISE_ACTIVE        // Customer made payment promise
+  LEGAL_ACTION          // Escalated to legal
+  PARTIALLY_RECOVERED   // Some payments received
+  FULLY_RECOVERED       // All debt collected
+  WRITTEN_OFF           // Formally written off
+  CLOSED                // Case closed
+}
+
+enum PriorityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ActivityType {
+  PHONE_CALL
+  SMS_SENT
+  EMAIL_SENT
+  FIELD_VISIT
+  OFFICE_VISIT
+  NEGOTIATION
+  PROMISE_RECEIVED
+  LEGAL_NOTICE
+  PAYMENT_RECEIVED
+  OTHER
+}
+
+enum ContactMethod {
+  PHONE
+  SMS
+  EMAIL
+  IN_PERSON
+  WHATSAPP
+}
+
+enum ContactOutcome {
+  CONTACTED          // Successfully reached customer
+  NO_ANSWER          // Customer didn't answer
+  WRONG_NUMBER       // Number invalid
+  PROMISED_PAYMENT   // Customer committed to pay
+  REFUSED_TO_PAY     // Customer declined
+  PARTIAL_AGREEMENT  // Negotiation in progress
+  HOSTILE            // Customer was hostile
+  NOT_FOUND          // Customer not at address
+  PENDING_CALLBACK   // Scheduled for callback
+}
+
+enum PaymentStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
+enum PromiseStatus {
+  ACTIVE      // Promise is pending
+  KEPT        // Customer paid as promised
+  PARTIAL     // Customer paid less than promised
+  BROKEN      // Promise date passed without payment
+  CANCELLED   // Promise cancelled/renegotiated
+}
+
+enum ExpenseType {
+  FUEL              // Transportation costs
+  LEGAL_FEES        // Legal/attorney costs
+  COURT_FEES        // Court filing costs
+  INVESTIGATION     // Investigation/tracing costs
+  COMMUNICATION     // Phone/SMS costs
+  TRAVEL            // Travel expenses
+  OTHER             // Other recovery costs
 }
