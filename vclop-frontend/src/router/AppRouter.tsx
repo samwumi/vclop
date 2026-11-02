@@ -54,6 +54,14 @@ import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { LocationDrilldownPage } from '@/pages/reports/LocationDrilldownPage';
 import MissingVirtualAccountsPage from '@/pages/virtual-accounts/MissingVirtualAccountsPage';
 
+// Phase 6 — Recovery Module
+import { RecoveryDashboardPage } from '@/pages/recovery/RecoveryDashboardPage';
+import { RecoveryAccountsPage } from '@/pages/recovery/RecoveryAccountsPage';
+import { RecoveryAccountDetailPage } from '@/pages/recovery/RecoveryAccountDetailPage';
+import { MyRecoveryAccountsPage } from '@/pages/recovery/MyRecoveryAccountsPage';
+import { PaymentVerificationPage } from '@/pages/recovery/PaymentVerificationPage';
+import { ImportRecoveryAccountsPage } from '@/pages/recovery/ImportRecoveryAccountsPage';
+
 // Error pages
 import { NotFoundPage } from '@/pages/errors/NotFoundPage';
 import { ForbiddenPage } from '@/pages/errors/ForbiddenPage';
@@ -104,6 +112,14 @@ export function AppRouter() {
         <Route path="/performance"  element={<ProtectedRoute permission="dashboard:read"><PerformancePage /></ProtectedRoute>} />
         <Route path="/officer-targets" element={<ProtectedRoute permission="reports:read"><OfficerTargetsPage /></ProtectedRoute>} />
         <Route path="/profile"      element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+
+        {/* Recovery */}
+        <Route path="/recovery" element={<ProtectedRoute permission="recovery:dashboard_view"><RecoveryDashboardPage /></ProtectedRoute>} />
+        <Route path="/recovery/accounts" element={<ProtectedRoute permission="recovery:accounts_read"><RecoveryAccountsPage /></ProtectedRoute>} />
+        <Route path="/recovery/accounts/:id" element={<ProtectedRoute permission="recovery:accounts_read"><RecoveryAccountDetailPage /></ProtectedRoute>} />
+        <Route path="/recovery/my-accounts" element={<ProtectedRoute permission="recovery:accounts_read"><MyRecoveryAccountsPage /></ProtectedRoute>} />
+        <Route path="/recovery/payments/verify" element={<ProtectedRoute permission="recovery:payments_verify"><PaymentVerificationPage /></ProtectedRoute>} />
+        <Route path="/recovery/import" element={<ProtectedRoute permission="recovery:accounts_import"><ImportRecoveryAccountsPage /></ProtectedRoute>} />
 
         {/* Administration */}
         <Route path="/users"       element={<ProtectedRoute permission="users:read"><UsersPage /></ProtectedRoute>} />

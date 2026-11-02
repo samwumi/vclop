@@ -7,7 +7,7 @@
 import {
   LayoutDashboard, Users, FileText, ShieldCheck, ShieldAlert, BookOpen,
   TrendingDown, BarChart2, Settings, GitBranch, Building2,
-  Layers, Key, ScrollText, Package, GitMerge, Car, Target,
+  Layers, Key, ScrollText, Package, GitMerge, Car, Target, HandCoins,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -44,6 +44,16 @@ export const APP_ROUTES: RouteConfig[] = [
   // ── Finance ────────────────────────────────────────────────────────────────
   { path: '/accounting', label: 'Accounting',  icon: BookOpen, permission: 'loan_applications:disburse', group: 'Finance' },
   { path: '/reports',    label: 'Reports',     icon: BarChart2, permission: 'reports:read', group: 'Finance' },
+
+  // ── Recovery ───────────────────────────────────────────────────────────────
+  { path: '/recovery',                label: 'Recovery',             icon: HandCoins, permission: 'recovery:dashboard_view',  group: 'Recovery' },
+  { path: '/recovery/accounts',       label: 'Recovery Accounts',    icon: HandCoins, permission: 'recovery:accounts_read',   group: 'Recovery' },
+  { path: '/recovery/my-accounts',    label: 'My Accounts',          icon: HandCoins, permission: 'recovery:accounts_read',   group: 'Recovery' },
+  { path: '/recovery/payments/verify', label: 'Verify Payments',     icon: HandCoins, permission: 'recovery:payments_verify', group: 'Recovery' },
+  { path: '/recovery/import',         label: 'Import Accounts',      icon: HandCoins, permission: 'recovery:accounts_import', group: 'Recovery' },
+  
+  // hidden recovery sub-routes
+  { path: '/recovery/accounts/:id', label: 'Account Detail', icon: HandCoins, hidden: true },
 
   // ── Administration ─────────────────────────────────────────────────────────
   { path: '/users',       label: 'Users',        icon: Users,      permission: 'users:read',       group: 'Administration' },
