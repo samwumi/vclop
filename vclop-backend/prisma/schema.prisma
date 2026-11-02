@@ -1229,6 +1229,7 @@ enum PermissionCategory {
   DOCUMENT_MANAGEMENT
   LOAN_MANAGEMENT
   VIRTUAL_ACCOUNT_MANAGEMENT
+  RECOVERY
 }
 
 enum FormEntityType {
