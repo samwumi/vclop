@@ -59,13 +59,16 @@ export function RecoveryAccountsPage() {
 
   const { data: accounts, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['recovery', 'accounts', { search, status: statusFilter, source: sourceFilter, priority: priorityFilter }],
-    queryFn: () =>
-      recoveryService.listAccounts({
-        search,
-        status: statusFilter,
-        source: sourceFilter,
-        priorityLevel: priorityFilter,
-      }),
+    queryFn: () => {
+      // Only send filters with actual values
+      const params: any = {};
+      if (search) params.search = search;
+      if (statusFilter) params.status = statusFilter;
+      if (sourceFilter) params.source = sourceFilter;
+      if (priorityFilter) params.priorityLevel = priorityFilter;
+      
+      return recoveryService.listAccounts(params);
+    },
     placeholderData: (prev) => prev,
   });
 

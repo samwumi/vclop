@@ -253,7 +253,16 @@ export const recoveryService = {
     branchId?: string;
     search?: string;
   }): Promise<RecoveryAccount[]> {
-    const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+    // Build query string only with defined values
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, String(value));
+        }
+      });
+    }
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
     const { data } = await api.get<ApiResponse<RecoveryAccount[]>>(`/recovery/accounts${queryString}`);
     return data.data ?? [];
   },
