@@ -25,12 +25,19 @@ interface Branch {
   name: string;
 }
 
+interface LoanProduct {
+  id: string;
+  name: string;
+  code: string;
+}
+
 interface Loan {
   id: string;
   loanNumber: string;
   principal: number;
   disbursementDate: string;
   customer: Customer;
+  loanProduct?: LoanProduct;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -47,7 +54,7 @@ export function NewRecoveryAccountPage() {
   const { data: loans } = useQuery({
     queryKey: ['loans', 'defaulted'],
     queryFn: async () => {
-      const { data } = await api.get<ApiResponse<Loan[]>>('/loans?status=DEFAULTED');
+      const { data } = await api.get<ApiResponse<Loan[]>>('/loans?status=DEFAULTED&include=customer,loanProduct');
       return data.data ?? [];
     },
     enabled: source === 'VCLOP',
@@ -216,7 +223,8 @@ export function NewRecoveryAccountPage() {
                   <option value="">-- Select a loan --</option>
                   {loans?.map((loan) => (
                     <option key={loan.id} value={loan.id}>
-                      {loan.loanNumber} - {loan.customer.firstName} {loan.customer.lastName} (₦
+                      {loan.loanNumber} - {loan.customer.firstName} {loan.customer.lastName}
+                      {loan.loanProduct ? ` [${loan.loanProduct.name}]` : ''} (₦
                       {loan.principal.toLocaleString()})
                     </option>
                   ))}
