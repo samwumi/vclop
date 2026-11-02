@@ -57,6 +57,7 @@ import MissingVirtualAccountsPage from '@/pages/virtual-accounts/MissingVirtualA
 // Phase 6 — Recovery Module
 import { RecoveryDashboardPage } from '@/pages/recovery/RecoveryDashboardPage';
 import { RecoveryAccountsPage } from '@/pages/recovery/RecoveryAccountsPage';
+import { NewRecoveryAccountPage } from '@/pages/recovery/NewRecoveryAccountPage';
 import { RecoveryAccountDetailPage } from '@/pages/recovery/RecoveryAccountDetailPage';
 import { MyRecoveryAccountsPage } from '@/pages/recovery/MyRecoveryAccountsPage';
 import { PaymentVerificationPage } from '@/pages/recovery/PaymentVerificationPage';
@@ -116,6 +117,7 @@ export function AppRouter() {
         {/* Recovery */}
         <Route path="/recovery" element={<ProtectedRoute permission="recovery:dashboard_view"><RecoveryDashboardPage /></ProtectedRoute>} />
         <Route path="/recovery/accounts" element={<ProtectedRoute permission="recovery:accounts_read"><RecoveryAccountsPage /></ProtectedRoute>} />
+        <Route path="/recovery/accounts/new" element={<ProtectedRoute permission="recovery:accounts_create"><NewRecoveryAccountPage /></ProtectedRoute>} />
         <Route path="/recovery/accounts/:id" element={<ProtectedRoute permission="recovery:accounts_read"><RecoveryAccountDetailPage /></ProtectedRoute>} />
         <Route path="/recovery/my-accounts" element={<ProtectedRoute permission="recovery:accounts_read"><MyRecoveryAccountsPage /></ProtectedRoute>} />
         <Route path="/recovery/payments/verify" element={<ProtectedRoute permission="recovery:payments_verify"><PaymentVerificationPage /></ProtectedRoute>} />
