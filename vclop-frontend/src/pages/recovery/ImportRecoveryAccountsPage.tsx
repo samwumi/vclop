@@ -12,15 +12,15 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 interface ImportRow {
   customerName: string;
+  loanOfficer?: string;
+  disbursedDate: string;
+  expiredDate?: string;
+  amountDisbursed: number;
+  interest?: number;
+  balance: number;
   customerPhone: string;
   customerEmail?: string;
   customerAddress?: string;
-  originalPrincipal: number;
-  disbursementDate: string;
-  originalReference?: string;
-  historicalRepayments: number;
-  outstandingBalance: number;
-  priorityLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   notes?: string;
 }
 
@@ -28,6 +28,47 @@ interface ValidationError {
   row: number;
   field: string;
   message: string;
+}
+
+// Helper function to parse date from various formats
+function parseDate(dateStr: string): string {
+  if (!dateStr) return '';
+  
+  // Try parsing DD-MMM-YYYY format (18-Apr-2025)
+  const parts = dateStr.trim().split('-');
+  if (parts.length === 3) {
+    const day = parts[0];
+    const monthStr = parts[1];
+    const year = parts[2];
+    
+    const months: Record<string, string> = {
+      'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+      'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+      'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+    };
+    
+    const month = months[monthStr];
+    if (month) {
+      return `${year}-${month}-${day.padStart(2, '0')}`;
+    }
+  }
+  
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  
+  return dateStr;
+}
+
+// Helper to clean and parse number
+function parseNumber(val: any): number {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    // Remove commas and parse
+    return parseFloat(val.replace(/,/g, '')) || 0;
+  }
+  return 0;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -55,13 +96,11 @@ export function ImportRecoveryAccountsPage() {
     setErrors([]);
 
     try {
-      // Use FileReader to read the file as text (CSV) or ArrayBuffer (Excel)
       const reader = new FileReader();
 
       reader.onload = async (e) => {
         const content = e.target?.result as string;
         
-        // Simple CSV parsing (assuming comma-separated)
         const lines = content.split('\n').filter((line) => line.trim());
         
         if (lines.length < 2) {
@@ -70,20 +109,19 @@ export function ImportRecoveryAccountsPage() {
           return;
         }
 
-        // Parse header
-        const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+        // Parse header (case-insensitive)
+        const headers = lines[0].split(',').map((h) => h.trim().toUpperCase());
         
-        // Validate required headers
-        const requiredHeaders = [
-          'customer_name',
-          'customer_phone',
-          'original_principal',
-          'disbursement_date',
-          'historical_repayments',
-          'outstanding_balance',
-        ];
+        // Map headers to expected column names
+        const headerMap: Record<string, number> = {};
+        headers.forEach((header, index) => {
+          headerMap[header] = index;
+        });
 
-        const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h));
+        // Validate required headers
+        const requiredHeaders = ['CUSTOMER NAME', 'DISBURSED DATE', 'AMOUNT DISBURSED', 'BALANCE', 'CUSTOMER PHONE'];
+        const missingHeaders = requiredHeaders.filter((h) => headerMap[h] === undefined);
+        
         if (missingHeaders.length > 0) {
           setErrors([
             {
@@ -103,53 +141,48 @@ export function ImportRecoveryAccountsPage() {
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].split(',').map((v) => v.trim());
           
-          if (values.length !== headers.length) {
-            validationErrors.push({
-              row: i + 1,
-              field: 'row',
-              message: 'Column count mismatch',
-            });
-            continue;
+          if (values.length === 0 || values.every(v => !v)) {
+            continue; // Skip empty rows
           }
 
-          const row: any = {};
-          headers.forEach((header, index) => {
-            row[header] = values[index];
-          });
-
-          // Validate and transform
           try {
+            const customerName = values[headerMap['CUSTOMER NAME']] || '';
+            const disbursedDate = values[headerMap['DISBURSED DATE']] || '';
+            const amountDisbursed = parseNumber(values[headerMap['AMOUNT DISBURSED']]);
+            const balance = parseNumber(values[headerMap['BALANCE']]);
+            const customerPhone = values[headerMap['CUSTOMER PHONE']] || '';
+
             const importRow: ImportRow = {
-              customerName: row.customer_name || '',
-              customerPhone: row.customer_phone || '',
-              customerEmail: row.customer_email || undefined,
-              customerAddress: row.customer_address || undefined,
-              originalPrincipal: parseFloat(row.original_principal) || 0,
-              disbursementDate: row.disbursement_date || '',
-              originalReference: row.original_reference || undefined,
-              historicalRepayments: parseFloat(row.historical_repayments) || 0,
-              outstandingBalance: parseFloat(row.outstanding_balance) || 0,
-              priorityLevel: (row.priority_level?.toUpperCase() || 'MEDIUM') as any,
-              notes: row.notes || undefined,
+              customerName,
+              loanOfficer: values[headerMap['LOAN OFFICER']],
+              disbursedDate: parseDate(disbursedDate),
+              expiredDate: values[headerMap['EXPIRED DATE']] ? parseDate(values[headerMap['EXPIRED DATE']]) : undefined,
+              amountDisbursed,
+              interest: parseNumber(values[headerMap['INTEREST']]),
+              balance,
+              customerPhone,
+              customerEmail: values[headerMap['CUSTOMER EMAIL']],
+              customerAddress: values[headerMap['CUSTOMER ADDRESS']],
+              notes: values[headerMap['NOTES']],
             };
 
             // Validate required fields
             if (!importRow.customerName) {
-              validationErrors.push({ row: i + 1, field: 'customer_name', message: 'Required' });
+              validationErrors.push({ row: i + 1, field: 'CUSTOMER NAME', message: 'Required' });
             }
             if (!importRow.customerPhone) {
-              validationErrors.push({ row: i + 1, field: 'customer_phone', message: 'Required' });
+              validationErrors.push({ row: i + 1, field: 'CUSTOMER PHONE', message: 'Required' });
             }
-            if (importRow.originalPrincipal <= 0) {
-              validationErrors.push({ row: i + 1, field: 'original_principal', message: 'Must be > 0' });
+            if (importRow.amountDisbursed <= 0) {
+              validationErrors.push({ row: i + 1, field: 'AMOUNT DISBURSED', message: 'Must be > 0' });
             }
-            if (!importRow.disbursementDate) {
-              validationErrors.push({ row: i + 1, field: 'disbursement_date', message: 'Required' });
+            if (!importRow.disbursedDate) {
+              validationErrors.push({ row: i + 1, field: 'DISBURSED DATE', message: 'Required' });
             }
-            if (importRow.outstandingBalance < 0) {
+            if (importRow.balance < 0) {
               validationErrors.push({
                 row: i + 1,
-                field: 'outstanding_balance',
+                field: 'BALANCE',
                 message: 'Cannot be negative',
               });
             }
@@ -184,22 +217,29 @@ export function ImportRecoveryAccountsPage() {
 
   const importMutation = useMutation({
     mutationFn: async () => {
-      const promises = parsedData.map((row) =>
-        recoveryService.createAccount({
+      const promises = parsedData.map((row) => {
+        // Calculate historical repayments (original amount - balance)
+        const historicalRepayments = row.amountDisbursed - row.balance;
+        
+        return recoveryService.createAccount({
           source: 'LEGACY',
           customerName: row.customerName,
           customerPhone: row.customerPhone,
           customerEmail: row.customerEmail,
           customerAddress: row.customerAddress,
-          originalPrincipal: row.originalPrincipal,
-          disbursementDate: row.disbursementDate,
-          originalReference: row.originalReference,
-          historicalRepayments: row.historicalRepayments,
-          outstandingBalance: row.outstandingBalance,
-          priorityLevel: row.priorityLevel,
-          notes: row.notes,
-        }),
-      );
+          originalPrincipal: row.amountDisbursed,
+          disbursementDate: row.disbursedDate,
+          originalReference: row.loanOfficer ? `Officer: ${row.loanOfficer}` : undefined,
+          historicalRepayments: historicalRepayments > 0 ? historicalRepayments : 0,
+          outstandingBalance: row.balance,
+          priorityLevel: 'MEDIUM',
+          notes: [
+            row.notes,
+            row.expiredDate ? `Expired: ${row.expiredDate}` : null,
+            row.interest ? `Interest: ₦${row.interest.toLocaleString()}` : null,
+          ].filter(Boolean).join(' | '),
+        });
+      });
       
       return Promise.all(promises);
     },
@@ -214,12 +254,12 @@ export function ImportRecoveryAccountsPage() {
 
   const downloadTemplate = () => {
     const csvContent = [
-      'customer_name,customer_phone,customer_email,customer_address,original_principal,disbursement_date,original_reference,historical_repayments,outstanding_balance,priority_level,notes',
-      'John Doe,08012345678,john@example.com,123 Main St,500000,2024-01-15,REF-001,100000,400000,HIGH,Customer relocated',
-      'Jane Smith,08087654321,jane@example.com,456 Oak Ave,300000,2023-12-20,REF-002,50000,250000,MEDIUM,',
+      'CUSTOMER NAME,LOAN OFFICER,DISBURSED DATE,EXPIRED DATE,AMOUNT DISBURSED,INTEREST,BALANCE,CUSTOMER PHONE,CUSTOMER EMAIL,CUSTOMER ADDRESS,NOTES',
+      'OJIKUTU REMILEKUN,Martha,18-Apr-2025,22-May-2025,200000.00,50000.00,103000.00,08012345678,customer@example.com,1 Main Street Lagos,Sample legacy loan',
+      'Joseph Eyo Asuquo,Martha,30-Apr-2025,3-Jun-2025,75000.00,11250.00,10650.00,08087654321,joseph@example.com,2 Oak Avenue Abuja,',
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -253,83 +293,26 @@ export function ImportRecoveryAccountsPage() {
 
       <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
         {/* Instructions */}
-        <div className="card-mobile bg-blue-50 border-blue-200">
-          <div className="card-body">
-            <h3 className="text-responsive-sm font-semibold mb-3 text-blue-900">
-              Import Instructions
-            </h3>
-            <ol className="list-decimal list-inside space-y-2 text-responsive-sm text-blue-800">
-              <li>Download the CSV template below</li>
-              <li>Fill in your recovery account data (one account per row)</li>
-              <li>Upload the completed CSV file</li>
-              <li>Review and validate the data</li>
-              <li>Click "Import Accounts" to complete the import</li>
-            </ol>
-            <div className="mt-4">
-              <button onClick={downloadTemplate} className="btn-primary btn-responsive">
-                <Download className="w-4 h-4" />
-                <span>Download CSV Template</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Required Fields */}
         <div className="card-mobile">
-          <div className="card-header">
-            <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Required Fields
-            </p>
-          </div>
           <div className="card-body">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-responsive-sm">
-              <div>
-                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                  • customer_name
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  Full name of the customer
-                </p>
-              </div>
-              <div>
-                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                  • customer_phone
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  Phone number (e.g., 08012345678)
-                </p>
-              </div>
-              <div>
-                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                  • original_principal
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  Original loan amount (number only)
-                </p>
-              </div>
-              <div>
-                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                  • disbursement_date
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  Date format: YYYY-MM-DD
-                </p>
-              </div>
-              <div>
-                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                  • historical_repayments
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  Amount already repaid (number only)
-                </p>
-              </div>
-              <div>
-                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                  • outstanding_balance
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  Current balance owed (number only)
-                </p>
+            <div className="flex items-start gap-3">
+              <FileSpreadsheet className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-responsive-base mb-2" style={{ color: 'var(--text-primary)' }}>
+                  Import Instructions
+                </h3>
+                <ol className="text-responsive-sm space-y-2" style={{ color: 'var(--text-secondary)' }}>
+                  <li>1. Download the CSV template below</li>
+                  <li>2. Fill in your recovery account data (one row per account)</li>
+                  <li>3. Save as CSV and upload here</li>
+                  <li>4. Review the preview and click Import</li>
+                </ol>
+                <div className="mt-4">
+                  <button onClick={downloadTemplate} className="btn-secondary btn-responsive">
+                    <Download className="w-4 h-4" />
+                    <span>Download Template</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -338,57 +321,37 @@ export function ImportRecoveryAccountsPage() {
         {/* File Upload */}
         <div className="card-mobile">
           <div className="card-header">
-            <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-responsive-base font-semibold" style={{ color: 'var(--text-primary)' }}>
               Upload File
             </p>
           </div>
           <div className="card-body">
-            <div className="flex items-center justify-center w-full">
-              <label
-                htmlFor="file-upload"
-                className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <FileSpreadsheet className="w-12 h-12 mb-4 text-gray-400" />
-                  {file ? (
-                    <div className="text-center">
-                      <p className="text-responsive-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {file.name}
-                      </p>
-                      <p className="text-responsive-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        {(file.size / 1024).toFixed(2)} KB
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="mb-2 text-responsive-sm" style={{ color: 'var(--text-primary)' }}>
-                        <span className="font-semibold">Click to upload</span> or drag and drop
-                      </p>
-                      <p className="text-responsive-xs" style={{ color: 'var(--text-secondary)' }}>
-                        CSV files only
-                      </p>
-                    </>
-                  )}
-                </div>
+            <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-lg">
+              <Upload className="w-12 h-12 text-gray-400 mb-4" />
+              <label className="cursor-pointer">
+                <span className="btn-primary btn-responsive">Choose CSV File</span>
                 <input
-                  id="file-upload"
                   type="file"
-                  className="hidden"
-                  accept=".csv"
+                  accept=".csv,text/csv"
                   onChange={handleFileChange}
+                  className="hidden"
                 />
               </label>
+              {file && (
+                <p className="text-responsive-sm mt-3" style={{ color: 'var(--text-secondary)' }}>
+                  {file.name}
+                </p>
+              )}
             </div>
 
             {file && (
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex gap-3">
                 <button
                   onClick={() => parseExcelFile(file)}
                   disabled={isProcessing}
                   className="btn-primary btn-responsive"
                 >
-                  <Upload className="w-4 h-4" />
-                  <span>{isProcessing ? 'Processing...' : 'Parse File'}</span>
+                  {isProcessing ? 'Processing...' : 'Parse File'}
                 </button>
                 <button
                   onClick={() => {
@@ -407,85 +370,102 @@ export function ImportRecoveryAccountsPage() {
 
         {/* Validation Errors */}
         {errors.length > 0 && (
-          <div className="card-mobile border-2 border-red-200 bg-red-50">
-            <div className="card-header">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-                <p className="text-responsive-sm font-semibold text-red-800">
-                  Validation Errors ({errors.length})
-                </p>
-              </div>
-            </div>
+          <div className="card-mobile border-l-4 border-red-500">
             <div className="card-body">
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {errors.map((error, index) => (
-                  <div key={index} className="flex items-start gap-2 text-responsive-sm text-red-800">
-                    <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <p>
-                      <strong>Row {error.row}:</strong> {error.field} - {error.message}
-                    </p>
+              <div className="flex items-start gap-3">
+                <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-responsive-base mb-2 text-red-600">
+                    Validation Errors ({errors.length})
+                  </h3>
+                  <div className="space-y-1 max-h-60 overflow-y-auto">
+                    {errors.slice(0, 20).map((error, idx) => (
+                      <p key={idx} className="text-responsive-sm text-red-600">
+                        Row {error.row}, {error.field}: {error.message}
+                      </p>
+                    ))}
+                    {errors.length > 20 && (
+                      <p className="text-responsive-sm text-red-600 italic">
+                        ... and {errors.length - 20} more errors
+                      </p>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
-              <p className="text-responsive-xs mt-3 text-red-700">
-                Please fix the errors in your CSV file and try again.
-              </p>
             </div>
           </div>
         )}
 
-        {/* Parsed Data Preview */}
-        {parsedData.length > 0 && errors.length === 0 && (
-          <div className="card-mobile border-2 border-green-200 bg-green-50">
-            <div className="card-header">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  <p className="text-responsive-sm font-semibold text-green-800">
-                    Ready to Import ({parsedData.length} accounts)
-                  </p>
-                </div>
+        {/* Preview */}
+        {parsedData.length > 0 && (
+          <div className="card-mobile">
+            <div className="card-header flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <p className="text-responsive-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Preview ({parsedData.length} accounts)
+                </p>
+              </div>
+              {errors.length === 0 && (
                 <button
                   onClick={() => importMutation.mutate()}
                   disabled={importMutation.isPending}
                   className="btn-primary btn-responsive"
                 >
-                  {importMutation.isPending ? 'Importing...' : 'Import Accounts'}
+                  {importMutation.isPending ? 'Importing...' : `Import ${parsedData.length} Accounts`}
                 </button>
-              </div>
+              )}
             </div>
-            <div className="card-body">
-              <div className="overflow-x-auto -mx-4 md:mx-0">
-                <table className="w-full text-responsive-xs">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-3">Customer</th>
-                      <th className="text-left py-2 px-3">Phone</th>
-                      <th className="text-right py-2 px-3">Principal</th>
-                      <th className="text-right py-2 px-3">Outstanding</th>
-                      <th className="text-left py-2 px-3">Date</th>
-                      <th className="text-left py-2 px-3">Priority</th>
+            <div className="card-body p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-responsive-sm">
+                  <thead style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                    <tr>
+                      <th className="py-2 px-3 text-left">#</th>
+                      <th className="py-2 px-3 text-left">Customer</th>
+                      <th className="py-2 px-3 text-left">Phone</th>
+                      <th className="py-2 px-3 text-right">Amount</th>
+                      <th className="py-2 px-3 text-right">Balance</th>
+                      <th className="py-2 px-3 text-left">Disbursed</th>
+                      <th className="py-2 px-3 text-left">Officer</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {parsedData.slice(0, 10).map((row, index) => (
-                      <tr key={index} className="border-b hover:bg-green-100">
+                    {parsedData.slice(0, 50).map((row, idx) => (
+                      <tr key={idx} className="border-t">
+                        <td className="py-2 px-3">{idx + 1}</td>
                         <td className="py-2 px-3">{row.customerName}</td>
                         <td className="py-2 px-3">{row.customerPhone}</td>
-                        <td className="py-2 px-3 text-right">₦{row.originalPrincipal.toLocaleString()}</td>
-                        <td className="py-2 px-3 text-right">₦{row.outstandingBalance.toLocaleString()}</td>
-                        <td className="py-2 px-3">{row.disbursementDate}</td>
-                        <td className="py-2 px-3">{row.priorityLevel || 'MEDIUM'}</td>
+                        <td className="py-2 px-3 text-right">₦{row.amountDisbursed.toLocaleString()}</td>
+                        <td className="py-2 px-3 text-right">₦{row.balance.toLocaleString()}</td>
+                        <td className="py-2 px-3">{row.disbursedDate}</td>
+                        <td className="py-2 px-3">{row.loanOfficer || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                {parsedData.length > 50 && (
+                  <div className="p-3 text-center text-responsive-sm" style={{ color: 'var(--text-secondary)' }}>
+                    Showing first 50 of {parsedData.length} accounts
+                  </div>
+                )}
               </div>
-              {parsedData.length > 10 && (
-                <p className="text-responsive-xs mt-3 text-green-700">
-                  ... and {parsedData.length - 10} more accounts
-                </p>
-              )}
+            </div>
+          </div>
+        )}
+
+        {/* Warning */}
+        {parsedData.length > 0 && errors.length > 0 && (
+          <div className="card-mobile border-l-4 border-yellow-500">
+            <div className="card-body">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-responsive-sm" style={{ color: 'var(--text-secondary)' }}>
+                    Please fix all validation errors before importing. Only valid rows will be imported.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
