@@ -760,10 +760,10 @@ export class LoanApplicationsService {
       if (stillOutstanding === 0) {
         await tx.loan.update({ where: { id: loanId }, data: { status: LoanStatus.COMPLETED, completedAt: new Date() } });
         
-        // Update customer status to COMPLETED so they can apply for new loans
+        // Update customer status to ELIGIBLE so they can apply for new loans
         await tx.customer.update({
           where: { id: loan.customerId },
-          data: { status: CustomerStatus.COMPLETED },
+          data: { status: CustomerStatus.ELIGIBLE },
         });
       }
     });
