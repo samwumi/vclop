@@ -133,7 +133,7 @@ export function ImportRecoveryAccountsPage() {
         });
 
         // Validate required headers
-        const requiredHeaders = ['CUSTOMER NAME', 'DISBURSED DATE', 'AMOUNT DISBURSED', 'BALANCE', 'CUSTOMER PHONE'];
+        const requiredHeaders = ['CUSTOMER NAME', 'DISBURSED DATE', 'AMOUNT DISBURSED', 'BALANCE'];
         const missingHeaders = requiredHeaders.filter((h) => headerMap[h] === undefined);
         
         if (missingHeaders.length > 0) {
@@ -164,7 +164,7 @@ export function ImportRecoveryAccountsPage() {
             const disbursedDate = values[headerMap['DISBURSED DATE']] || '';
             const amountDisbursed = parseNumber(values[headerMap['AMOUNT DISBURSED']]);
             const balance = parseNumber(values[headerMap['BALANCE']]);
-            const customerPhone = values[headerMap['CUSTOMER PHONE']] || '';
+            const customerPhone = values[headerMap['CUSTOMER PHONE']] || values[headerMap['PHONE']] || 'N/A'; // Make phone optional
 
             const importRow: ImportRow = {
               customerName,
@@ -183,9 +183,6 @@ export function ImportRecoveryAccountsPage() {
             // Validate required fields
             if (!importRow.customerName) {
               validationErrors.push({ row: i + 1, field: 'CUSTOMER NAME', message: 'Required' });
-            }
-            if (!importRow.customerPhone) {
-              validationErrors.push({ row: i + 1, field: 'CUSTOMER PHONE', message: 'Required' });
             }
             if (importRow.amountDisbursed <= 0) {
               validationErrors.push({ row: i + 1, field: 'AMOUNT DISBURSED', message: 'Must be > 0' });
@@ -322,9 +319,9 @@ export function ImportRecoveryAccountsPage() {
                 </h3>
                 <ol className="text-responsive-sm space-y-2" style={{ color: 'var(--text-secondary)' }}>
                   <li>1. Upload your Excel (.xlsx) file directly OR download CSV template</li>
-                  <li>2. Make sure columns match: CUSTOMER NAME, DISBURSED DATE, AMOUNT DISBURSED, BALANCE, CUSTOMER PHONE</li>
-                  <li>3. Upload and review the preview</li>
-                  <li>4. Click Import to create all accounts</li>
+                  <li>2. Required columns: CUSTOMER NAME, DISBURSED DATE, AMOUNT DISBURSED, BALANCE</li>
+                  <li>3. Optional columns: CUSTOMER PHONE, LOAN OFFICER, INTEREST, EXPIRED DATE, etc.</li>
+                  <li>4. Upload, review preview, and click Import</li>
                 </ol>
                 <div className="mt-4">
                   <button onClick={downloadTemplate} className="btn-secondary btn-responsive">
