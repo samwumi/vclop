@@ -759,6 +759,12 @@ export class LoanApplicationsService {
       const stillOutstanding = await tx.repaymentInstallment.count({ where: { loanId, status: { not: InstallmentStatus.PAID } } });
       if (stillOutstanding === 0) {
         await tx.loan.update({ where: { id: loanId }, data: { status: LoanStatus.COMPLETED, completedAt: new Date() } });
+        
+        // Update customer status to COMPLETED so they can apply for new loans
+        await tx.customer.update({
+          where: { id: loan.customerId },
+          data: { status: CustomerStatus.COMPLETED },
+        });
       }
     });
 
