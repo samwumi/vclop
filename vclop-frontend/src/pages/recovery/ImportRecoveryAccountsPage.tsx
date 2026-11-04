@@ -190,13 +190,8 @@ export function ImportRecoveryAccountsPage() {
             if (!importRow.disbursedDate) {
               validationErrors.push({ row: i + 1, field: 'DISBURSED DATE', message: 'Required' });
             }
-            if (importRow.balance < 0) {
-              validationErrors.push({
-                row: i + 1,
-                field: 'BALANCE',
-                message: 'Cannot be negative',
-              });
-            }
+            // Allow negative balance (overpayment/credit)
+            // No validation needed for balance
 
             data.push(importRow);
           } catch (err) {

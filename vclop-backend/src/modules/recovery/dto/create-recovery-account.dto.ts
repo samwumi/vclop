@@ -70,9 +70,8 @@ export class CreateRecoveryAccountDto {
   @Min(0)
   historicalRepayments!: number;
 
-  @ApiProperty({ description: 'Current outstanding balance' })
+  @ApiProperty({ description: 'Current outstanding balance (can be negative for overpayments)' })
   @IsNumber()
-  @Min(0)
   outstandingBalance!: number;
 
   @ApiPropertyOptional()
