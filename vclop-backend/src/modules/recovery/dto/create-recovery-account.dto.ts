@@ -33,10 +33,11 @@ export class CreateRecoveryAccountDto {
   @MaxLength(200)
   customerName!: string;
 
-  @ApiProperty({ maxLength: 20 })
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional()
   @IsString()
   @MaxLength(20)
-  customerPhone!: string;
+  customerPhone?: string;
 
   @ApiPropertyOptional({ maxLength: 150 })
   @IsOptional()

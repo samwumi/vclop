@@ -53,6 +53,7 @@ export class RecoveryService {
       data: {
         accountNumber,
         ...dto,
+        customerPhone: dto.customerPhone || 'N/A', // Default if not provided
         disbursementDate: new Date(dto.disbursementDate),
         createdById,
         assignedDate: dto.assignedOfficerId ? new Date() : null,
