@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 import { recoveryService } from '@/services/recovery.service';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
@@ -99,18 +100,31 @@ export function ImportRecoveryAccountsPage() {
       const reader = new FileReader();
 
       reader.onload = async (e) => {
-        const content = e.target?.result as string;
+        const content = e.target?.result;
+        let rows: string[][] = [];
+
+        // Check file type and parse accordingly
+        if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+          // Parse Excel file
+          const workbook = XLSX.read(content, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }) as any[][];
+          rows = jsonData.map(row => row.map(cell => String(cell || '')));
+        } else {
+          // Parse CSV file
+          const textContent = typeof content === 'string' ? content : new TextDecoder().decode(content as ArrayBuffer);
+          const lines = textContent.split('\n').filter((line) => line.trim());
+          rows = lines.map(line => line.split(',').map(v => v.trim()));
+        }
         
-        const lines = content.split('\n').filter((line) => line.trim());
-        
-        if (lines.length < 2) {
+        if (rows.length < 2) {
           setErrors([{ row: 0, field: 'file', message: 'File appears to be empty or invalid' }]);
           setIsProcessing(false);
           return;
         }
 
         // Parse header (case-insensitive)
-        const headers = lines[0].split(',').map((h) => h.trim().toUpperCase());
+        const headers = rows[0].map((h) => String(h).trim().toUpperCase());
         
         // Map headers to expected column names
         const headerMap: Record<string, number> = {};
@@ -138,8 +152,8 @@ export function ImportRecoveryAccountsPage() {
         const data: ImportRow[] = [];
         const validationErrors: ValidationError[] = [];
 
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map((v) => v.trim());
+        for (let i = 1; i < rows.length; i++) {
+          const values = rows[i];
           
           if (values.length === 0 || values.every(v => !v)) {
             continue; // Skip empty rows
@@ -207,7 +221,12 @@ export function ImportRecoveryAccountsPage() {
         setIsProcessing(false);
       };
 
-      reader.readAsText(file);
+      // Read as ArrayBuffer for both CSV and Excel
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.readAsText(file);
+      }
     } catch (error) {
       console.error('Error parsing file:', error);
       setErrors([{ row: 0, field: 'file', message: 'Failed to parse file' }]);
@@ -302,10 +321,10 @@ export function ImportRecoveryAccountsPage() {
                   Import Instructions
                 </h3>
                 <ol className="text-responsive-sm space-y-2" style={{ color: 'var(--text-secondary)' }}>
-                  <li>1. Download the CSV template below</li>
-                  <li>2. Fill in your recovery account data (one row per account)</li>
-                  <li>3. Save as CSV and upload here</li>
-                  <li>4. Review the preview and click Import</li>
+                  <li>1. Upload your Excel (.xlsx) file directly OR download CSV template</li>
+                  <li>2. Make sure columns match: CUSTOMER NAME, DISBURSED DATE, AMOUNT DISBURSED, BALANCE, CUSTOMER PHONE</li>
+                  <li>3. Upload and review the preview</li>
+                  <li>4. Click Import to create all accounts</li>
                 </ol>
                 <div className="mt-4">
                   <button onClick={downloadTemplate} className="btn-secondary btn-responsive">
@@ -329,10 +348,10 @@ export function ImportRecoveryAccountsPage() {
             <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-lg">
               <Upload className="w-12 h-12 text-gray-400 mb-4" />
               <label className="cursor-pointer">
-                <span className="btn-primary btn-responsive">Choose CSV File</span>
+                <span className="btn-primary btn-responsive">Choose Excel or CSV File</span>
                 <input
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                   onChange={handleFileChange}
                   className="hidden"
                 />
