@@ -364,6 +364,139 @@ export class OfficerTargetsService {
     return summary;
   }
 
+  async getPerformanceTrends(months: number, actor: RequestUser) {
+    const isAdmin = actor.permissions.has('system:admin');
+    const canManageUsers = actor.permissions.has('users:manage');
+
+    // Generate list of months (current month + previous months)
+    const now = new Date();
+    const monthList = [];
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthList.push(date);
+    }
+
+    // Get all officers with targets or performance
+    const officerWhere: any = {
+      isActive: true,
+      role: 'LOAN_OFFICER',
+    };
+
+    // Filter by branch for non-admins
+    if (!isAdmin && !canManageUsers && actor.branchId) {
+      officerWhere.branchId = actor.branchId;
+    }
+
+    const officers = await this.prisma.user.findMany({
+      where: officerWhere,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        branchId: true,
+        branch: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+      orderBy: { firstName: 'asc' },
+    });
+
+    // Calculate performance for each officer for each month
+    const trends = await Promise.all(
+      officers.map(async (officer) => {
+        const monthlyData = await Promise.all(
+          monthList.map(async (monthStart) => {
+            const monthEnd = new Date(monthStart);
+            monthEnd.setMonth(monthEnd.getMonth() + 1);
+
+            // Get target for this month
+            const target = await this.prisma.officerTarget.findUnique({
+              where: {
+                userId_targetMonth: {
+                  userId: officer.id,
+                  targetMonth: monthStart,
+                },
+              },
+            });
+
+            // Calculate actual disbursements
+            const disbursementAchieved = await this.prisma.loan.aggregate({
+              where: {
+                loanApplication: {
+                  customer: {
+                    createdById: officer.id,
+                  },
+                  deletedAt: null,
+                },
+                disbursedAt: { gte: monthStart, lt: monthEnd },
+                status: { in: ['ACTIVE', 'COMPLETED', 'DEFAULTED'] as any },
+              },
+              _sum: { principal: true },
+            });
+
+            // Calculate customers registered
+            const customerAchieved = await this.prisma.customer.count({
+              where: {
+                createdById: officer.id,
+                createdAt: { gte: monthStart, lt: monthEnd },
+                deletedAt: null,
+              },
+            });
+
+            return {
+              month: monthStart.toISOString().substring(0, 7), // YYYY-MM format
+              disbursementTarget: target ? Number(target.disbursementTarget) : 0,
+              disbursementAchieved: Number(disbursementAchieved._sum?.principal ?? 0),
+              customerTarget: target ? target.customerTarget : 0,
+              customerAchieved,
+            };
+          })
+        );
+
+        // Calculate totals
+        const totalDisbursement = monthlyData.reduce((sum, m) => sum + m.disbursementAchieved, 0);
+        const totalCustomers = monthlyData.reduce((sum, m) => sum + m.customerAchieved, 0);
+        const totalDisbursementTarget = monthlyData.reduce((sum, m) => sum + m.disbursementTarget, 0);
+        const totalCustomerTarget = monthlyData.reduce((sum, m) => sum + m.customerTarget, 0);
+
+        return {
+          officer: {
+            id: officer.id,
+            name: `${officer.firstName} ${officer.lastName}`,
+            email: officer.email,
+            branch: officer.branch,
+          },
+          monthlyData,
+          summary: {
+            totalDisbursement,
+            totalCustomers,
+            totalDisbursementTarget,
+            totalCustomerTarget,
+            disbursementAchievementRate: totalDisbursementTarget > 0
+              ? Number(((totalDisbursement / totalDisbursementTarget) * 100).toFixed(2))
+              : 0,
+            customerAchievementRate: totalCustomerTarget > 0
+              ? Number(((totalCustomers / totalCustomerTarget) * 100).toFixed(2))
+              : 0,
+          },
+        };
+      })
+    );
+
+    // Sort by total disbursement (descending)
+    trends.sort((a, b) => b.summary.totalDisbursement - a.summary.totalDisbursement);
+
+    return {
+      months: monthList.map(d => d.toISOString().substring(0, 7)),
+      officers: trends,
+    };
+  }
+
   private parseMonth(month: string): Date {
     // Expects YYYY-MM format
     const parts = month.split('-');

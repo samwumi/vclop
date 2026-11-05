@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Target, TrendingUp, Users, Plus, Edit2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { officerTargetsService, type OfficerTarget } from '@/services/officer-targets.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { PageLoader } from '@/components/ui/LoadingScreen';
@@ -14,6 +15,7 @@ export function OfficerTargetsPage() {
   const qc = useQueryClient();
 
   const now = new Date();
+  const [activeTab, setActiveTab] = useState<'current' | 'trends'>('current');
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
   const [showSetTargetModal, setShowSetTargetModal] = useState(false);
   const [editingTarget, setEditingTarget] = useState<OfficerTarget | null>(null);
@@ -46,7 +48,7 @@ export function OfficerTargetsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Officer Performance Targets</h1>
             <p className="text-sm text-gray-600 mt-1">Track monthly disbursement and customer acquisition targets</p>
           </div>
-          {canManage && (
+          {canManage && activeTab === 'current' && (
             <button
               onClick={() => {
                 setEditingTarget(null);
@@ -61,6 +63,99 @@ export function OfficerTargetsPage() {
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="flex gap-8">
+          <button
+            onClick={() => setActiveTab('current')}
+            className={`pb-3 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'current'
+                ? 'border-emerald-600 text-emerald-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Current Targets
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('trends')}
+            className={`pb-3 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'trends'
+                ? 'border-emerald-600 text-emerald-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Performance Trends
+            </div>
+          </button>
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'current' ? (
+        <CurrentTargetsView
+          selectedMonth={selectedMonth}
+          setSelectedMonth={setSelectedMonth}
+          targets={targets}
+          summary={summary}
+          isLoading={isLoading}
+          canManage={canManage}
+          handleEdit={handleEdit}
+          setShowSetTargetModal={setShowSetTargetModal}
+        />
+      ) : (
+        <PerformanceTrendsView />
+      )}
+
+      {/* Set/Edit Target Modal */}
+      {showSetTargetModal && (
+        <SetTargetModal
+          targetMonth={selectedMonth}
+          editingTarget={editingTarget}
+          onClose={() => {
+            setShowSetTargetModal(false);
+            setEditingTarget(null);
+          }}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ['officer-targets'] });
+            qc.invalidateQueries({ queryKey: ['officer-targets-summary'] });
+            setShowSetTargetModal(false);
+            setEditingTarget(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Current Targets View Component
+function CurrentTargetsView({
+  selectedMonth,
+  setSelectedMonth,
+  targets,
+  summary,
+  isLoading,
+  canManage,
+  handleEdit,
+  setShowSetTargetModal,
+}: {
+  selectedMonth: string;
+  setSelectedMonth: (month: string) => void;
+  targets: OfficerTarget[] | undefined;
+  summary: any;
+  isLoading: boolean;
+  canManage: boolean;
+  handleEdit: (target: OfficerTarget) => void;
+  setShowSetTargetModal: (show: boolean) => void;
+}) {
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <>
       {/* Month Selector */}
       <div className="mb-6 flex items-center gap-3">
         <Calendar className="w-5 h-5 text-gray-400" />
@@ -232,25 +327,221 @@ export function OfficerTargetsPage() {
           )}
         </div>
       </div>
+    </>
+  );
+}
 
-      {/* Set/Edit Target Modal */}
-      {showSetTargetModal && (
-        <SetTargetModal
-          targetMonth={selectedMonth}
-          editingTarget={editingTarget}
-          onClose={() => {
-            setShowSetTargetModal(false);
-            setEditingTarget(null);
-          }}
-          onSuccess={() => {
-            qc.invalidateQueries({ queryKey: ['officer-targets'] });
-            qc.invalidateQueries({ queryKey: ['officer-targets-summary'] });
-            setShowSetTargetModal(false);
-            setEditingTarget(null);
-          }}
-        />
-      )}
-    </div>
+// Performance Trends View Component
+function PerformanceTrendsView() {
+  const [timeRange, setTimeRange] = useState<6 | 12>(6);
+
+  const { data: trendsData, isLoading } = useQuery({
+    queryKey: ['officer-trends', timeRange],
+    queryFn: () => officerTargetsService.getTrends(timeRange),
+  });
+
+  if (isLoading) return <PageLoader />;
+
+  if (!trendsData || trendsData.officers.length === 0) {
+    return (
+      <div className="card">
+        <div className="card-body text-center py-12">
+          <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-600">No performance data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Format months for display (MMM YYYY)
+  const formatMonth = (month: string) => {
+    const date = new Date(month + '-01');
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+
+  // Prepare chart data - combine all officers' monthly disbursements
+  const chartData = trendsData.months.map((month, idx) => {
+    const dataPoint: any = { month: formatMonth(month) };
+    trendsData.officers.forEach((officer) => {
+      const monthData = officer.monthlyData[idx];
+      dataPoint[officer.officer.name] = monthData.disbursementAchieved;
+    });
+    return dataPoint;
+  });
+
+  // Colors for different officers
+  const colors = [
+    '#10b981', // emerald-500
+    '#3b82f6', // blue-500
+    '#f59e0b', // amber-500
+    '#8b5cf6', // violet-500
+    '#ec4899', // pink-500
+    '#14b8a6', // teal-500
+    '#f97316', // orange-500
+    '#6366f1', // indigo-500
+  ];
+
+  return (
+    <>
+      {/* Time Range Selector */}
+      <div className="mb-6 flex items-center gap-3">
+        <label className="text-sm font-medium text-gray-700">Time Range:</label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTimeRange(6)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              timeRange === 6
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Last 6 Months
+          </button>
+          <button
+            onClick={() => setTimeRange(12)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              timeRange === 12
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Last 12 Months
+          </button>
+        </div>
+      </div>
+
+      {/* Disbursement Trends Chart */}
+      <div className="card mb-6">
+        <div className="card-header">
+          <h2 className="card-title">Disbursement Trends</h2>
+          <p className="text-sm text-gray-600">Monthly disbursement performance by officer</p>
+        </div>
+        <div className="card-body">
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis 
+                dataKey="month" 
+                tick={{ fontSize: 12 }}
+                stroke="#6b7280"
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                stroke="#6b7280"
+                tickFormatter={(value) => `₦${(value / 1000000).toFixed(1)}M`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                }}
+                formatter={(value: any) => formatCurrency(Number(value))}
+              />
+              <Legend 
+                wrapperStyle={{ fontSize: '12px' }}
+                iconType="line"
+              />
+              {trendsData.officers.map((officer, idx) => (
+                <Line
+                  key={officer.officer.id}
+                  type="monotone"
+                  dataKey={officer.officer.name}
+                  stroke={colors[idx % colors.length]}
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Performance Summary Table */}
+      <div className="card">
+        <div className="card-header">
+          <h2 className="card-title">Cumulative Performance ({timeRange} Months)</h2>
+          <p className="text-sm text-gray-600">Total performance ranked by disbursement</p>
+        </div>
+        <div className="card-body p-0">
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th className="w-12">#</th>
+                  <th>Officer</th>
+                  <th>Branch</th>
+                  <th className="text-right">Total Disbursement</th>
+                  <th className="text-right">Target</th>
+                  <th className="text-center">Rate</th>
+                  <th className="text-right">Total Customers</th>
+                  <th className="text-right">Target</th>
+                  <th className="text-center">Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trendsData.officers.map((trend, idx) => (
+                  <tr key={trend.officer.id}>
+                    <td className="font-semibold text-gray-600">{idx + 1}</td>
+                    <td>
+                      <div>
+                        <div className="font-medium text-gray-900">{trend.officer.name}</div>
+                        <div className="text-xs text-gray-500">{trend.officer.email}</div>
+                      </div>
+                    </td>
+                    <td className="text-sm text-gray-600">{trend.officer.branch.name}</td>
+                    <td className="text-right font-medium text-emerald-600">
+                      {formatCurrency(trend.summary.totalDisbursement)}
+                    </td>
+                    <td className="text-right font-medium">
+                      {formatCurrency(trend.summary.totalDisbursementTarget)}
+                    </td>
+                    <td className="text-center">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          trend.summary.disbursementAchievementRate >= 100
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : trend.summary.disbursementAchievementRate >= 75
+                              ? 'bg-blue-100 text-blue-800'
+                              : trend.summary.disbursementAchievementRate >= 50
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {trend.summary.disbursementAchievementRate.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="text-right font-medium text-emerald-600">
+                      {trend.summary.totalCustomers}
+                    </td>
+                    <td className="text-right font-medium">
+                      {trend.summary.totalCustomerTarget}
+                    </td>
+                    <td className="text-center">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          trend.summary.customerAchievementRate >= 100
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : trend.summary.customerAchievementRate >= 75
+                              ? 'bg-blue-100 text-blue-800'
+                              : trend.summary.customerAchievementRate >= 50
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {trend.summary.customerAchievementRate.toFixed(1)}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 

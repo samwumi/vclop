@@ -65,4 +65,44 @@ export const officerTargetsService = {
     const { data } = await api.get<ApiResponse<any>>('/officer-targets/dashboard/summary');
     return data.data;
   },
+
+  async getTrends(months: 6 | 12): Promise<PerformanceTrendsResponse> {
+    const { data } = await api.get<ApiResponse<PerformanceTrendsResponse>>(`/officer-targets/trends?months=${months}`);
+    return data.data!;
+  },
 };
+
+export interface MonthlyPerformance {
+  month: string; // YYYY-MM
+  disbursementTarget: number;
+  disbursementAchieved: number;
+  customerTarget: number;
+  customerAchieved: number;
+}
+
+export interface OfficerTrend {
+  officer: {
+    id: string;
+    name: string;
+    email: string;
+    branch: {
+      id: string;
+      name: string;
+      code: string;
+    };
+  };
+  monthlyData: MonthlyPerformance[];
+  summary: {
+    totalDisbursement: number;
+    totalCustomers: number;
+    totalDisbursementTarget: number;
+    totalCustomerTarget: number;
+    disbursementAchievementRate: number;
+    customerAchievementRate: number;
+  };
+}
+
+export interface PerformanceTrendsResponse {
+  months: string[];
+  officers: OfficerTrend[];
+}

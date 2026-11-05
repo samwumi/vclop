@@ -59,4 +59,12 @@ export class OfficerTargetsController {
   async getDashboardSummary(@CurrentUser() actor: RequestUser) {
     return this.service.getDashboardSummary(actor);
   }
+
+  @Get('trends')
+  @RequirePermissions('reports:read')
+  @ApiOperation({ summary: 'Get performance trends for officers - last 6 and 12 months' })
+  async getTrends(@Query('months') months: string, @CurrentUser() actor: RequestUser) {
+    const monthCount = months === '12' ? 12 : 6;
+    return this.service.getPerformanceTrends(monthCount, actor);
+  }
 }
