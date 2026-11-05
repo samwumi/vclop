@@ -370,7 +370,7 @@ export class OfficerTargetsService {
 
     // Generate list of months (current month + previous months)
     const now = new Date();
-    const monthList = [];
+    const monthList: Date[] = [];
     for (let i = months - 1; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       monthList.push(date);
