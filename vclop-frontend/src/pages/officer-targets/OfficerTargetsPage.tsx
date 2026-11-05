@@ -176,7 +176,7 @@ export function OfficerTargetsPage() {
                           <div className="text-xs text-gray-500">{target.user.email}</div>
                         </div>
                       </td>
-                      <td className="text-sm text-gray-600">{target.user.branch.name}</td>
+                      <td className="text-sm text-gray-600">{target.user.branch?.name || 'No Branch'}</td>
                       <td className="text-right font-medium">{formatCurrency(target.disbursementTarget)}</td>
                       <td className="text-right font-medium text-emerald-600">
                         {formatCurrency(target.disbursementAchieved)}
