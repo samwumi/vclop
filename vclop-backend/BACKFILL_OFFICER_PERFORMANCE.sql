@@ -18,26 +18,27 @@ JOIN users u ON u.id = ot.userId
 ORDER BY ot.targetMonth DESC, u.firstName;
 
 -- Step 2: Calculate actual disbursements per officer per month
--- FIXED: Track the officer who SUBMITTED the application (not who disbursed)
+-- FIXED: Track the officer who REGISTERED the customer (not who submitted or disbursed)
 SELECT 
-    la.submittedById as officer_id,
+    c.createdById as officer_id,
     CONCAT(u.firstName, ' ', u.lastName) as officer_name,
     DATE_FORMAT(l.disbursedAt, '%Y-%m-01') as target_month,
     COUNT(*) as loan_count,
     SUM(l.principal) as total_disbursed
 FROM loans l
 JOIN loan_applications la ON la.id = l.loanApplicationId
-JOIN users u ON u.id = la.submittedById
-WHERE la.submittedById IS NOT NULL
-GROUP BY la.submittedById, DATE_FORMAT(l.disbursedAt, '%Y-%m-01'), u.firstName, u.lastName
+JOIN customers c ON c.id = la.customerId
+JOIN users u ON u.id = c.createdById
+WHERE c.createdById IS NOT NULL
+GROUP BY c.createdById, DATE_FORMAT(l.disbursedAt, '%Y-%m-01'), u.firstName, u.lastName
 ORDER BY target_month DESC, officer_name;
 
 -- Step 3: Insert missing officer_targets records for months with disbursements but no target record
--- FIXED: Track the officer who SUBMITTED the application (not who disbursed)
+-- FIXED: Track the officer who REGISTERED the customer (not who submitted or disbursed)
 INSERT INTO officer_targets (id, userId, targetMonth, disbursementTarget, customerTarget, disbursementAchieved, customerAchieved, createdAt, updatedAt)
 SELECT 
     UUID() as id,
-    la.submittedById as userId,
+    c.createdById as userId,
     DATE_FORMAT(l.disbursedAt, '%Y-%m-01') as targetMonth,
     0 as disbursementTarget,
     0 as customerTarget,
@@ -47,8 +48,9 @@ SELECT
     NOW() as updatedAt
 FROM loans l
 JOIN loan_applications la ON la.id = l.loanApplicationId
-WHERE la.submittedById IS NOT NULL
-GROUP BY la.submittedById, DATE_FORMAT(l.disbursedAt, '%Y-%m-01')
+JOIN customers c ON c.id = la.customerId
+WHERE c.createdById IS NOT NULL
+GROUP BY c.createdById, DATE_FORMAT(l.disbursedAt, '%Y-%m-01')
 ON DUPLICATE KEY UPDATE
     disbursementAchieved = VALUES(disbursementAchieved),
     updatedAt = NOW();
@@ -70,7 +72,7 @@ JOIN users u ON u.id = ot.userId
 ORDER BY ot.targetMonth DESC, u.firstName;
 
 -- Step 5: Verify disbursements match
--- FIXED: Track the officer who SUBMITTED the application (not who disbursed)
+-- FIXED: Track the officer who REGISTERED the customer (not who submitted or disbursed)
 SELECT 
     'Verification' as check_type,
     CONCAT(u.firstName, ' ', u.lastName) as officer_name,
@@ -84,9 +86,10 @@ SELECT
     END as status
 FROM loans l
 JOIN loan_applications la ON la.id = l.loanApplicationId
-JOIN users u ON u.id = la.submittedById
-LEFT JOIN officer_targets ot ON ot.userId = la.submittedById 
+JOIN customers c ON c.id = la.customerId
+JOIN users u ON u.id = c.createdById
+LEFT JOIN officer_targets ot ON ot.userId = c.createdById 
     AND ot.targetMonth = DATE_FORMAT(l.disbursedAt, '%Y-%m-01')
-WHERE la.submittedById IS NOT NULL
-GROUP BY la.submittedById, DATE_FORMAT(l.disbursedAt, '%Y-%m-01'), u.firstName, u.lastName, ot.disbursementAchieved
+WHERE c.createdById IS NOT NULL
+GROUP BY c.createdById, DATE_FORMAT(l.disbursedAt, '%Y-%m-01'), u.firstName, u.lastName, ot.disbursementAchieved
 ORDER BY month DESC, officer_name;

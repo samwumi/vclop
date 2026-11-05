@@ -170,11 +170,13 @@ export class ReportsService {
           this.prisma.loanApplication.count({
             where: { submittedById: officer.id, createdAt: { gte: monthStart, lte: monthEnd }, deletedAt: null },
           }),
-          // FIX: Query through loanApplication to get the officer who submitted (not who disbursed)
+          // FIX: Query through customer to get the officer who REGISTERED the customer
           this.prisma.loan.aggregate({
             where: {
               loanApplication: {
-                submittedById: officer.id,
+                customer: {
+                  createdById: officer.id, // The officer who registered the customer
+                },
                 deletedAt: null,
               },
               disbursedAt: { gte: monthStart, lte: monthEnd },
