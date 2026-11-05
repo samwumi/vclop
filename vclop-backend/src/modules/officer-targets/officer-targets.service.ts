@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BusinessException } from '../../common/exceptions/app.exceptions';
@@ -62,15 +61,55 @@ export class OfficerTargetsService {
       ],
     });
 
-    return targets.map((t: any) => ({
-      ...t,
-      disbursementAchievementRate: t.disbursementTarget > 0 
-        ? Number(((Number(t.disbursementAchieved) / Number(t.disbursementTarget)) * 100).toFixed(2))
-        : 0,
-      customerAchievementRate: t.customerTarget > 0
-        ? Number(((t.customerAchieved / t.customerTarget) * 100).toFixed(2))
-        : 0,
-    }));
+    // Calculate achievements dynamically from actual disbursements
+    const enrichedTargets = await Promise.all(
+      targets.map(async (t: any) => {
+        const monthStart = new Date(t.targetMonth);
+        const monthEnd = new Date(monthStart);
+        monthEnd.setMonth(monthEnd.getMonth() + 1);
+
+        // Calculate actual disbursements for customers this officer registered
+        const disbursementAchieved = await this.prisma.loan.aggregate({
+          where: {
+            loanApplication: {
+              customer: {
+                createdById: t.userId,
+              },
+              deletedAt: null,
+            },
+            disbursedAt: { gte: monthStart, lt: monthEnd },
+            status: { in: ['ACTIVE', 'COMPLETED', 'DEFAULTED'] as any },
+          },
+          _sum: { principal: true },
+        });
+
+        // Calculate customers registered this month
+        const customerAchieved = await this.prisma.customer.count({
+          where: {
+            createdById: t.userId,
+            createdAt: { gte: monthStart, lt: monthEnd },
+            deletedAt: null,
+          },
+        });
+
+        const actualDisbursementAchieved = Number(disbursementAchieved._sum?.principal ?? 0);
+        const actualCustomerAchieved = customerAchieved;
+
+        return {
+          ...t,
+          disbursementAchieved: actualDisbursementAchieved, // Override with calculated value
+          customerAchieved: actualCustomerAchieved, // Override with calculated value
+          disbursementAchievementRate: t.disbursementTarget > 0 
+            ? Number(((actualDisbursementAchieved / Number(t.disbursementTarget)) * 100).toFixed(2))
+            : 0,
+          customerAchievementRate: t.customerTarget > 0
+            ? Number(((actualCustomerAchieved / t.customerTarget) * 100).toFixed(2))
+            : 0,
+        };
+      })
+    );
+
+    return enrichedTargets;
   }
 
   async findOne(userId: string, month: string, actor: RequestUser) {
@@ -234,6 +273,8 @@ export class OfficerTargetsService {
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const targetDate = new Date(currentMonth);
+    const monthEnd = new Date(targetDate);
+    monthEnd.setMonth(monthEnd.getMonth() + 1);
 
     const isAdmin = actor.permissions.has('system:admin');
     const canManageUsers = actor.permissions.has('users:manage');
@@ -261,15 +302,50 @@ export class OfficerTargetsService {
       },
     });
 
+    // Calculate achievements dynamically
+    const enrichedTargets = await Promise.all(
+      targets.map(async (t: any) => {
+        // Calculate actual disbursements
+        const disbursementAchieved = await this.prisma.loan.aggregate({
+          where: {
+            loanApplication: {
+              customer: {
+                createdById: t.userId,
+              },
+              deletedAt: null,
+            },
+            disbursedAt: { gte: targetDate, lt: monthEnd },
+            status: { in: ['ACTIVE', 'COMPLETED', 'DEFAULTED'] as any },
+          },
+          _sum: { principal: true },
+        });
+
+        // Calculate customers registered
+        const customerAchieved = await this.prisma.customer.count({
+          where: {
+            createdById: t.userId,
+            createdAt: { gte: targetDate, lt: monthEnd },
+            deletedAt: null,
+          },
+        });
+
+        return {
+          ...t,
+          disbursementAchieved: Number(disbursementAchieved._sum?.principal ?? 0),
+          customerAchieved,
+        };
+      })
+    );
+
     const summary = {
-      totalOfficers: targets.length,
-      totalDisbursementTarget: targets.reduce((sum: number, t: any) => sum + Number(t.disbursementTarget), 0),
-      totalDisbursementAchieved: targets.reduce((sum: number, t: any) => sum + Number(t.disbursementAchieved), 0),
-      totalCustomerTarget: targets.reduce((sum: number, t: any) => sum + t.customerTarget, 0),
-      totalCustomerAchieved: targets.reduce((sum: number, t: any) => sum + t.customerAchieved, 0),
-      officersMetDisbursementTarget: targets.filter((t: any) => Number(t.disbursementAchieved) >= Number(t.disbursementTarget)).length,
-      officersMetCustomerTarget: targets.filter((t: any) => t.customerAchieved >= t.customerTarget).length,
-      targets: targets.map((t: any) => ({
+      totalOfficers: enrichedTargets.length,
+      totalDisbursementTarget: enrichedTargets.reduce((sum: number, t: any) => sum + Number(t.disbursementTarget), 0),
+      totalDisbursementAchieved: enrichedTargets.reduce((sum: number, t: any) => sum + Number(t.disbursementAchieved), 0),
+      totalCustomerTarget: enrichedTargets.reduce((sum: number, t: any) => sum + t.customerTarget, 0),
+      totalCustomerAchieved: enrichedTargets.reduce((sum: number, t: any) => sum + t.customerAchieved, 0),
+      officersMetDisbursementTarget: enrichedTargets.filter((t: any) => Number(t.disbursementAchieved) >= Number(t.disbursementTarget)).length,
+      officersMetCustomerTarget: enrichedTargets.filter((t: any) => t.customerAchieved >= t.customerTarget).length,
+      targets: enrichedTargets.map((t: any) => ({
         officer: `${t.user.firstName} ${t.user.lastName}`,
         email: t.user.email,
         disbursementTarget: Number(t.disbursementTarget),
@@ -303,79 +379,5 @@ export class OfficerTargetsService {
     }
 
     return new Date(`${year}-${String(monthNum).padStart(2, '0')}-01`);
-  }
-
-  // ── Event Listener: Update officer achievement when loan is disbursed ──────
-  @OnEvent('loan.disbursed')
-  async handleLoanDisbursed(payload: { loanId: string; principal: number }) {
-    try {
-      // Get the loan and customer to find who REGISTERED the customer
-      const loan = await this.prisma.loan.findUnique({
-        where: { id: payload.loanId },
-        select: { 
-          disbursedAt: true, 
-          principal: true,
-          loanApplication: {
-            select: {
-              customer: {
-                select: {
-                  createdById: true, // The officer who registered the customer
-                },
-              },
-            },
-          },
-        },
-      });
-
-      if (!loan || !loan.loanApplication?.customer?.createdById) return;
-
-      const officerId = loan.loanApplication.customer.createdById;
-
-      // Get target month (first day of the month when loan was disbursed)
-      const disbursedDate = new Date(loan.disbursedAt);
-      const targetMonth = new Date(
-        disbursedDate.getFullYear(),
-        disbursedDate.getMonth(),
-        1
-      );
-
-      // Find or create the target record for this officer and month
-      const existingTarget = await this.prisma.officerTarget.findUnique({
-        where: {
-          userId_targetMonth: {
-            userId: officerId,
-            targetMonth,
-          },
-        },
-      });
-
-      if (existingTarget) {
-        // Update existing target: increment disbursementAchieved
-        await this.prisma.officerTarget.update({
-          where: { id: existingTarget.id },
-          data: {
-            disbursementAchieved: {
-              increment: Number(loan.principal),
-            },
-          },
-        });
-      } else {
-        // Create new target record with this disbursement as first achievement
-        await this.prisma.officerTarget.create({
-          data: {
-            userId: officerId,
-            targetMonth,
-            disbursementTarget: 0, // No target set yet
-            customerTarget: 0,
-            disbursementAchieved: Number(loan.principal),
-            customerAchieved: 0,
-            notes: 'Auto-created on loan disbursement',
-          },
-        });
-      }
-    } catch (error) {
-      // Log but don't throw - don't block disbursement if metrics update fails
-      console.error('Failed to update officer target on disbursement:', error);
-    }
   }
 }
