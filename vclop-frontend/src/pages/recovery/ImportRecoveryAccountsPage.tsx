@@ -35,10 +35,10 @@ interface ValidationError {
 function parseDate(dateStr: string): string {
   if (!dateStr) return '';
   
-  const trimmed = dateStr.trim();
+  const trimmed = String(dateStr).trim();
   
-  // Check if it's an Excel serial number (5-digit number)
-  if (/^\d{5}$/.test(trimmed)) {
+  // Check if it's an Excel serial number (all digits, 5-6 digits)
+  if (/^\d{5,6}$/.test(trimmed)) {
     const excelEpoch = new Date(1900, 0, 1); // Excel epoch: Jan 1, 1900
     const serialNumber = parseInt(trimmed, 10);
     // Excel incorrectly treats 1900 as leap year, so subtract 2 days
@@ -46,6 +46,24 @@ function parseDate(dateStr: string): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Try parsing DD/MM/YYYY format
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+    const parts = trimmed.split('/');
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Try parsing DD-MM-YYYY format
+  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(trimmed)) {
+    const parts = trimmed.split('-');
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
     return `${year}-${month}-${day}`;
   }
   
