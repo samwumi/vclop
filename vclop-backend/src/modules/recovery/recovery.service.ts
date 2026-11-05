@@ -25,31 +25,45 @@ export class RecoveryService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async createAccount(dto: CreateRecoveryAccountDto, createdById: string) {
-    // Generate account number
-    const count = await this.prisma.recoveryAccount.count();
-    const accountNumber = `REC-${String(count + 1).padStart(6, '0')}`;
-
-    // Validate VCLOP loan if provided
-    if (dto.vclopLoanId) {
-      const loan = await this.prisma.loan.findUnique({
-        where: { id: dto.vclopLoanId },
+    // Generate account number using a transaction to avoid race conditions
+    return await this.prisma.$transaction(async (tx) => {
+      // Get the highest account number to avoid duplicates
+      const lastAccount = await tx.recoveryAccount.findFirst({
+        orderBy: { accountNumber: 'desc' },
+        select: { accountNumber: true },
       });
-      if (!loan) {
-        throw new ResourceNotFoundException('Loan', dto.vclopLoanId);
-      }
-    }
 
-    // Validate customer if provided
-    if (dto.customerId) {
-      const customer = await this.prisma.customer.findUnique({
-        where: { id: dto.customerId },
-      });
-      if (!customer) {
-        throw new ResourceNotFoundException('Customer', dto.customerId);
+      let nextNumber = 1;
+      if (lastAccount?.accountNumber) {
+        const match = lastAccount.accountNumber.match(/REC-(\d+)/);
+        if (match) {
+          nextNumber = parseInt(match[1], 10) + 1;
+        }
       }
-    }
 
-    const account = await this.prisma.recoveryAccount.create({
+      const accountNumber = `REC-${String(nextNumber).padStart(6, '0')}`;
+
+      // Validate VCLOP loan if provided
+      if (dto.vclopLoanId) {
+        const loan = await tx.loan.findUnique({
+          where: { id: dto.vclopLoanId },
+        });
+        if (!loan) {
+          throw new ResourceNotFoundException('Loan', dto.vclopLoanId);
+        }
+      }
+
+      // Validate customer if provided
+      if (dto.customerId) {
+        const customer = await tx.customer.findUnique({
+          where: { id: dto.customerId },
+        });
+        if (!customer) {
+          throw new ResourceNotFoundException('Customer', dto.customerId);
+        }
+      }
+
+      const account = await tx.recoveryAccount.create({
       data: {
         accountNumber,
         ...dto,
@@ -77,9 +91,10 @@ export class RecoveryService {
       },
     });
 
-    this.audit(createdById, AuditAction.CREATE, account.id, 'Created recovery account');
+      this.audit(createdById, AuditAction.CREATE, account.id, 'Created recovery account');
 
-    return account;
+      return account;
+    });
   }
 
   async listAccounts(query: QueryRecoveryAccountsDto, userId?: string, branchIds?: string[]) {
