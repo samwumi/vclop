@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AuditAction, LoanApplicationStatus, SettingScope, SettingType } from '@prisma/client';
+import { AuditAction, LoanApplicationStatus, LoanStatus, SettingScope, SettingType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -27,7 +27,7 @@ export class PerformanceService {
           where: { 
             disbursedById: userId, 
             disbursedAt: { gte: monthStart }, 
-            status: { not: 'CANCELLED' }
+            status: { in: [LoanStatus.ACTIVE, LoanStatus.COMPLETED, LoanStatus.DEFAULTED] }
           },
           _sum: { principal: true },
           _count: { _all: true },
@@ -36,7 +36,7 @@ export class PerformanceService {
           where: { 
             disbursedById: userId, 
             disbursedAt: { gte: weekStart }, 
-            status: { not: 'CANCELLED' }
+            status: { in: [LoanStatus.ACTIVE, LoanStatus.COMPLETED, LoanStatus.DEFAULTED] }
           },
           _sum: { principal: true },
         }),
@@ -51,8 +51,8 @@ export class PerformanceService {
       ]);
 
     const target = Number(targetSetting?.value ?? 0);
-    const achievement = Number(disbursed._sum.principal ?? 0);
-    const weeklyDisbursedAmount = Number(weekDisbursed._sum.principal ?? 0);
+    const achievement = Number(disbursed._sum?.principal ?? 0);
+    const weeklyDisbursedAmount = Number(weekDisbursed._sum?.principal ?? 0);
 
     // Weekly allowance: admin configures ₦X per ₦1,000,000 disbursed that week
     const allowancePerMillion = Number(allowanceFormulaSetting?.value ?? 0);
@@ -61,7 +61,7 @@ export class PerformanceService {
       : 0;
 
     const reviewed = approvalRate;
-    const disbursedCount = disbursed._count._all;
+    const disbursedCount = disbursed._count?._all ?? 0;
     const approvalPercentage = reviewed > 0 ? Math.min(100, (disbursedCount / reviewed) * 100) : 0;
 
     return {

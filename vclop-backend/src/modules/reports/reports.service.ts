@@ -175,7 +175,7 @@ export class ReportsService {
             where: {
               disbursedById: officer.id,
               disbursedAt: { gte: monthStart, lte: monthEnd },
-              status: { not: 'CANCELLED' },
+              status: { in: [LoanStatus.ACTIVE, LoanStatus.COMPLETED, LoanStatus.DEFAULTED] },
             },
             _sum: { principal: true },
             _count: { _all: true },
@@ -186,7 +186,7 @@ export class ReportsService {
           }),
         ]);
 
-        const achievement = Number(disbursed._sum.principal ?? 0);
+        const achievement = Number(disbursed._sum?.principal ?? 0);
         const monthlyTarget = Number(target?.value ?? 0);
         const progress = monthlyTarget > 0 ? Math.min(100, (achievement / monthlyTarget) * 100) : 0;
 
@@ -198,7 +198,7 @@ export class ReportsService {
           branch: officer.branch,
           customers,
           applications,
-          disbursements: disbursed._count._all,
+          disbursements: disbursed._count?._all ?? 0,
           disbursedAmount: achievement,
           monthlyTarget,
           progressPercentage: Math.round(progress * 10) / 10,
