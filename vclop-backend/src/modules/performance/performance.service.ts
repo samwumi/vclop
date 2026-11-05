@@ -22,14 +22,23 @@ export class PerformanceService {
         this.prisma.setting.findFirst({ where: { key: this.targetKey(userId), scope: SettingScope.SYSTEM, branchId: null } }),
         this.prisma.setting.findFirst({ where: { key: 'performance.weekly_allowance_per_million', scope: SettingScope.SYSTEM, branchId: null } }),
         this.prisma.loanApplication.count({ where: { submittedById: userId, createdAt: { gte: monthStart }, deletedAt: null } }),
-        this.prisma.loanApplication.aggregate({
-          where: { submittedById: userId, status: LoanApplicationStatus.DISBURSED, submittedAt: { gte: monthStart }, deletedAt: null },
-          _sum: { amount: true },
+        // FIX: Query Loan table using disbursedAt instead of LoanApplication using submittedAt
+        this.prisma.loan.aggregate({
+          where: { 
+            disbursedById: userId, 
+            disbursedAt: { gte: monthStart }, 
+            status: { not: 'CANCELLED' }
+          },
+          _sum: { principal: true },
           _count: { _all: true },
         }),
-        this.prisma.loanApplication.aggregate({
-          where: { submittedById: userId, status: LoanApplicationStatus.DISBURSED, submittedAt: { gte: weekStart }, deletedAt: null },
-          _sum: { amount: true },
+        this.prisma.loan.aggregate({
+          where: { 
+            disbursedById: userId, 
+            disbursedAt: { gte: weekStart }, 
+            status: { not: 'CANCELLED' }
+          },
+          _sum: { principal: true },
         }),
         this.prisma.loanApplication.count({
           where: {
@@ -42,8 +51,8 @@ export class PerformanceService {
       ]);
 
     const target = Number(targetSetting?.value ?? 0);
-    const achievement = Number(disbursed._sum.amount ?? 0);
-    const weeklyDisbursedAmount = Number(weekDisbursed._sum.amount ?? 0);
+    const achievement = Number(disbursed._sum.principal ?? 0);
+    const weeklyDisbursedAmount = Number(weekDisbursed._sum.principal ?? 0);
 
     // Weekly allowance: admin configures ₦X per ₦1,000,000 disbursed that week
     const allowancePerMillion = Number(allowanceFormulaSetting?.value ?? 0);

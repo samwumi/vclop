@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BusinessException } from '../../common/exceptions/app.exceptions';
@@ -302,5 +303,65 @@ export class OfficerTargetsService {
     }
 
     return new Date(`${year}-${String(monthNum).padStart(2, '0')}-01`);
+  }
+
+  // ── Event Listener: Update officer achievement when loan is disbursed ──────
+  @OnEvent('loan.disbursed')
+  async handleLoanDisbursed(payload: { loanId: string; principal: number }) {
+    try {
+      // Get the loan to find who disbursed it and when
+      const loan = await this.prisma.loan.findUnique({
+        where: { id: payload.loanId },
+        select: { disbursedById: true, disbursedAt: true, principal: true },
+      });
+
+      if (!loan || !loan.disbursedById) return;
+
+      // Get target month (first day of the month when loan was disbursed)
+      const disbursedDate = new Date(loan.disbursedAt);
+      const targetMonth = new Date(
+        disbursedDate.getFullYear(),
+        disbursedDate.getMonth(),
+        1
+      );
+
+      // Find or create the target record for this officer and month
+      const existingTarget = await this.prisma.officerTarget.findUnique({
+        where: {
+          userId_targetMonth: {
+            userId: loan.disbursedById,
+            targetMonth,
+          },
+        },
+      });
+
+      if (existingTarget) {
+        // Update existing target: increment disbursementAchieved
+        await this.prisma.officerTarget.update({
+          where: { id: existingTarget.id },
+          data: {
+            disbursementAchieved: {
+              increment: Number(loan.principal),
+            },
+          },
+        });
+      } else {
+        // Create new target record with this disbursement as first achievement
+        await this.prisma.officerTarget.create({
+          data: {
+            userId: loan.disbursedById,
+            targetMonth,
+            disbursementTarget: 0, // No target set yet
+            customerTarget: 0,
+            disbursementAchieved: Number(loan.principal),
+            customerAchieved: 0,
+            notes: 'Auto-created on loan disbursement',
+          },
+        });
+      }
+    } catch (error) {
+      // Log but don't throw - don't block disbursement if metrics update fails
+      console.error('Failed to update officer target on disbursement:', error);
+    }
   }
 }

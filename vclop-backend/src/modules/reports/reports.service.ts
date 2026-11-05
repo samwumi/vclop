@@ -170,14 +170,14 @@ export class ReportsService {
           this.prisma.loanApplication.count({
             where: { submittedById: officer.id, createdAt: { gte: monthStart, lte: monthEnd }, deletedAt: null },
           }),
-          this.prisma.loanApplication.aggregate({
+          // FIX: Query Loan table using disbursedAt instead of LoanApplication using submittedAt
+          this.prisma.loan.aggregate({
             where: {
-              submittedById: officer.id,
-              status: LoanApplicationStatus.DISBURSED,
-              submittedAt: { gte: monthStart, lte: monthEnd },
-              deletedAt: null,
+              disbursedById: officer.id,
+              disbursedAt: { gte: monthStart, lte: monthEnd },
+              status: { not: 'CANCELLED' },
             },
-            _sum: { amount: true },
+            _sum: { principal: true },
             _count: { _all: true },
           }),
           this.prisma.customer.count({ where: { assignedOfficerId: officer.id, deletedAt: null } }),
@@ -186,7 +186,7 @@ export class ReportsService {
           }),
         ]);
 
-        const achievement = Number(disbursed._sum.amount ?? 0);
+        const achievement = Number(disbursed._sum.principal ?? 0);
         const monthlyTarget = Number(target?.value ?? 0);
         const progress = monthlyTarget > 0 ? Math.min(100, (achievement / monthlyTarget) * 100) : 0;
 
