@@ -155,8 +155,9 @@ export function ImportRecoveryAccountsPage() {
         for (let i = 1; i < rows.length; i++) {
           const values = rows[i];
           
-          if (values.length === 0 || values.every(v => !v)) {
-            continue; // Skip empty rows
+          // Skip empty rows (all cells empty or whitespace)
+          if (values.length === 0 || values.every(v => !v || String(v).trim() === '')) {
+            continue;
           }
 
           try {
@@ -165,6 +166,11 @@ export function ImportRecoveryAccountsPage() {
             const amountDisbursed = parseNumber(values[headerMap['AMOUNT DISBURSED']]);
             const balance = parseNumber(values[headerMap['BALANCE']]);
             const customerPhone = values[headerMap['CUSTOMER PHONE']] || values[headerMap['PHONE']] || 'N/A'; // Make phone optional
+
+            // Skip row if all required fields are empty (Excel trailing rows)
+            if (!customerName && !disbursedDate && amountDisbursed === 0 && balance === 0) {
+              continue;
+            }
 
             const importRow: ImportRow = {
               customerName,
