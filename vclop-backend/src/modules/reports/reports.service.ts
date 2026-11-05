@@ -170,10 +170,13 @@ export class ReportsService {
           this.prisma.loanApplication.count({
             where: { submittedById: officer.id, createdAt: { gte: monthStart, lte: monthEnd }, deletedAt: null },
           }),
-          // FIX: Query Loan table using disbursedAt instead of LoanApplication using submittedAt
+          // FIX: Query through loanApplication to get the officer who submitted (not who disbursed)
           this.prisma.loan.aggregate({
             where: {
-              disbursedById: officer.id,
+              loanApplication: {
+                submittedById: officer.id,
+                deletedAt: null,
+              },
               disbursedAt: { gte: monthStart, lte: monthEnd },
               status: { in: [LoanStatus.ACTIVE, LoanStatus.COMPLETED, LoanStatus.DEFAULTED] },
             },

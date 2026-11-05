@@ -22,10 +22,13 @@ export class PerformanceService {
         this.prisma.setting.findFirst({ where: { key: this.targetKey(userId), scope: SettingScope.SYSTEM, branchId: null } }),
         this.prisma.setting.findFirst({ where: { key: 'performance.weekly_allowance_per_million', scope: SettingScope.SYSTEM, branchId: null } }),
         this.prisma.loanApplication.count({ where: { submittedById: userId, createdAt: { gte: monthStart }, deletedAt: null } }),
-        // FIX: Query Loan table using disbursedAt instead of LoanApplication using submittedAt
+        // FIX: Query through loanApplication to get the officer who submitted (not who disbursed)
         this.prisma.loan.aggregate({
           where: { 
-            disbursedById: userId, 
+            loanApplication: {
+              submittedById: userId,
+              deletedAt: null,
+            },
             disbursedAt: { gte: monthStart }, 
             status: { in: [LoanStatus.ACTIVE, LoanStatus.COMPLETED, LoanStatus.DEFAULTED] }
           },
@@ -34,7 +37,10 @@ export class PerformanceService {
         }),
         this.prisma.loan.aggregate({
           where: { 
-            disbursedById: userId, 
+            loanApplication: {
+              submittedById: userId,
+              deletedAt: null,
+            },
             disbursedAt: { gte: weekStart }, 
             status: { in: [LoanStatus.ACTIVE, LoanStatus.COMPLETED, LoanStatus.DEFAULTED] }
           },

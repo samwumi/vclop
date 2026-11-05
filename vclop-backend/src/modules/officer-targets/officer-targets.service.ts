@@ -309,13 +309,23 @@ export class OfficerTargetsService {
   @OnEvent('loan.disbursed')
   async handleLoanDisbursed(payload: { loanId: string; principal: number }) {
     try {
-      // Get the loan to find who disbursed it and when
+      // Get the loan and its application to find who SUBMITTED it (the loan officer)
       const loan = await this.prisma.loan.findUnique({
         where: { id: payload.loanId },
-        select: { disbursedById: true, disbursedAt: true, principal: true },
+        select: { 
+          disbursedAt: true, 
+          principal: true,
+          loanApplication: {
+            select: {
+              submittedById: true, // The officer who gets credit
+            },
+          },
+        },
       });
 
-      if (!loan || !loan.disbursedById) return;
+      if (!loan || !loan.loanApplication?.submittedById) return;
+
+      const officerId = loan.loanApplication.submittedById;
 
       // Get target month (first day of the month when loan was disbursed)
       const disbursedDate = new Date(loan.disbursedAt);
@@ -329,7 +339,7 @@ export class OfficerTargetsService {
       const existingTarget = await this.prisma.officerTarget.findUnique({
         where: {
           userId_targetMonth: {
-            userId: loan.disbursedById,
+            userId: officerId,
             targetMonth,
           },
         },
@@ -349,7 +359,7 @@ export class OfficerTargetsService {
         // Create new target record with this disbursement as first achievement
         await this.prisma.officerTarget.create({
           data: {
-            userId: loan.disbursedById,
+            userId: officerId,
             targetMonth,
             disbursementTarget: 0, // No target set yet
             customerTarget: 0,
