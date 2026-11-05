@@ -35,8 +35,22 @@ interface ValidationError {
 function parseDate(dateStr: string): string {
   if (!dateStr) return '';
   
+  const trimmed = dateStr.trim();
+  
+  // Check if it's an Excel serial number (5-digit number)
+  if (/^\d{5}$/.test(trimmed)) {
+    const excelEpoch = new Date(1900, 0, 1); // Excel epoch: Jan 1, 1900
+    const serialNumber = parseInt(trimmed, 10);
+    // Excel incorrectly treats 1900 as leap year, so subtract 2 days
+    const date = new Date(excelEpoch.getTime() + (serialNumber - 2) * 24 * 60 * 60 * 1000);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  
   // Try parsing DD-MMM-YYYY format (18-Apr-2025)
-  const parts = dateStr.trim().split('-');
+  const parts = trimmed.split('-');
   if (parts.length === 3) {
     const day = parts[0];
     const monthStr = parts[1];
@@ -55,11 +69,11 @@ function parseDate(dateStr: string): string {
   }
   
   // If already in YYYY-MM-DD format, return as is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return dateStr;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
   }
   
-  return dateStr;
+  return trimmed;
 }
 
 // Helper to clean and parse number
@@ -155,22 +169,28 @@ export function ImportRecoveryAccountsPage() {
         for (let i = 1; i < rows.length; i++) {
           const values = rows[i];
           
-          // Skip empty rows (all cells empty or whitespace)
+          // Skip completely empty rows
           if (values.length === 0 || values.every(v => !v || String(v).trim() === '')) {
             continue;
           }
 
           try {
-            const customerName = values[headerMap['CUSTOMER NAME']] || '';
-            const disbursedDate = values[headerMap['DISBURSED DATE']] || '';
-            const amountDisbursed = parseNumber(values[headerMap['AMOUNT DISBURSED']]);
-            const balance = parseNumber(values[headerMap['BALANCE']]);
-            const customerPhone = values[headerMap['CUSTOMER PHONE']] || values[headerMap['PHONE']] || 'N/A'; // Make phone optional
-
-            // Skip row if all required fields are empty (Excel trailing rows)
-            if (!customerName && !disbursedDate && amountDisbursed === 0 && balance === 0) {
+            // Get raw values first
+            const rawCustomerName = values[headerMap['CUSTOMER NAME']] || '';
+            const rawDisbursedDate = values[headerMap['DISBURSED DATE']] || '';
+            const rawAmount = values[headerMap['AMOUNT DISBURSED']] || '';
+            const rawBalance = values[headerMap['BALANCE']] || '';
+            
+            // Skip row if all required raw fields are empty (Excel filter artifacts)
+            if (!rawCustomerName.trim() && !rawDisbursedDate.trim() && !rawAmount.toString().trim() && !rawBalance.toString().trim()) {
               continue;
             }
+
+            const customerName = rawCustomerName;
+            const disbursedDate = rawDisbursedDate;
+            const amountDisbursed = parseNumber(rawAmount);
+            const balance = parseNumber(rawBalance);
+            const customerPhone = values[headerMap['CUSTOMER PHONE']] || values[headerMap['PHONE']] || 'N/A';
 
             const importRow: ImportRow = {
               customerName,
