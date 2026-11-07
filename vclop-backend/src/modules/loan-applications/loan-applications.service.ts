@@ -78,7 +78,8 @@ export class LoanApplicationsService {
                                        !roleNames.includes('accounting head');
 
         // Loan Officers should only see applications assigned to them
-        if (hasOnlyLoanOfficerRole) {
+        // UNLESS they're viewing a specific customer's applications (customerId filter)
+        if (hasOnlyLoanOfficerRole && !query.customerId) {
           where.assignedToId = actorId;
         }
       }
