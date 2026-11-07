@@ -62,6 +62,7 @@ export function ReportsPage() {
   const [from, setFrom] = useState('');
   const [to, setTo]     = useState('');
   const [branchFilter, setBranchFilter] = useState('');
+  const [officerFilter, setOfficerFilter] = useState('');
 
   const canExport = hasPermission('reports:export');
 
@@ -69,7 +70,7 @@ export function ReportsPage() {
   const disbursements  = useQuery({ queryKey: ['reports', 'disbursements', from, to],  queryFn: () => reportsService.disbursements(from || undefined, to || undefined), staleTime: 30_000 });
   const collections    = useQuery({ queryKey: ['reports', 'collections'],     queryFn: reportsService.collections,     staleTime: 60_000 });
   const locations      = useQuery({ queryKey: ['reports', 'location-summary'], queryFn: reportsService.locationSummary, staleTime: 60_000, enabled: tab === 'locations' || tab === 'overview' });
-  const officers       = useQuery({ queryKey: ['reports', 'officers', from, to, branchFilter], queryFn: () => reportsService.officerPerformance({ from: from || undefined, to: to || undefined, branchId: branchFilter || undefined }), staleTime: 30_000, enabled: tab === 'officers' });
+  const officers       = useQuery({ queryKey: ['reports', 'officers', from, to, branchFilter, officerFilter], queryFn: () => reportsService.officerPerformance({ from: from || undefined, to: to || undefined, branchId: branchFilter || undefined, officerId: officerFilter || undefined }), staleTime: 30_000, enabled: tab === 'officers' });
   const par            = useQuery({ queryKey: ['reports', 'par'],             queryFn: reportsService.parByLocation,   staleTime: 60_000, enabled: tab === 'par' });
 
   const TABS: Array<{ id: Tab; label: string; icon: typeof BarChart2 }> = [
@@ -95,7 +96,7 @@ export function ReportsPage() {
           </button>
         )}
         {canExport && tab === 'officers' && (
-          <button onClick={() => reportsService.exportOfficerPerformance({ from: from || undefined, to: to || undefined, branchId: branchFilter || undefined })} className="btn-secondary btn-sm gap-2">
+          <button onClick={() => reportsService.exportOfficerPerformance({ from: from || undefined, to: to || undefined, branchId: branchFilter || undefined, officerId: officerFilter || undefined })} className="btn-secondary btn-sm gap-2">
             <Download className="w-4 h-4" /> Export Excel
           </button>
         )}
@@ -310,11 +311,17 @@ export function ReportsPage() {
               )}
 
               <div className="card">
-                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
                   <select className="form-input h-8 text-xs w-44" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
                     <option value="">All locations</option>
                     {[...new Set((officers.data ?? []).map(o => o.branch?.name).filter(Boolean))].map(n => (
                       <option key={n} value={(officers.data ?? []).find(o => o.branch?.name === n)?.branch?.id ?? ''}>{n}</option>
+                    ))}
+                  </select>
+                  <select className="form-input h-8 text-xs w-48" value={officerFilter} onChange={e => setOfficerFilter(e.target.value)}>
+                    <option value="">All officers</option>
+                    {(officers.data ?? []).map(o => (
+                      <option key={o.officerId} value={o.officerId}>{o.name}</option>
                     ))}
                   </select>
                   <span className="text-xs text-gray-400">{officers.data?.length ?? 0} officers</span>

@@ -143,7 +143,7 @@ export class ReportsService {
 
   // ── Officer performance ───────────────────────────────────────────────────
 
-  async officerPerformance(actorId: string, from?: Date, to?: Date, branchId?: string) {
+  async officerPerformance(actorId: string, from?: Date, to?: Date, branchId?: string, officerId?: string) {
     const monthStart = from ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const monthEnd = to ?? new Date();
 
@@ -151,6 +151,7 @@ export class ReportsService {
       where: {
         deletedAt: null,
         ...(branchId ? { branchId } : {}),
+        ...(officerId ? { id: officerId } : {}),
         userRoles: {
           some: {
             role: { code: 'LOAN_OFFICER' },
@@ -377,8 +378,8 @@ export class ReportsService {
     return Buffer.from(await wb.xlsx.writeBuffer() as ArrayBuffer);
   }
 
-  async exportOfficerPerformance(actorId: string, from?: Date, to?: Date, branchId?: string): Promise<Buffer> {
-    const data = await this.officerPerformance(actorId, from, to, branchId);
+  async exportOfficerPerformance(actorId: string, from?: Date, to?: Date, branchId?: string, officerId?: string): Promise<Buffer> {
+    const data = await this.officerPerformance(actorId, from, to, branchId, officerId);
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Officer Performance');
 

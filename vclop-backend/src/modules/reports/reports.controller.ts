@@ -14,6 +14,7 @@ class DateRangeDto {
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
   @IsOptional() @IsUUID() branchId?: string;
+  @IsOptional() @IsUUID() officerId?: string;
 }
 
 @ApiTags('Reports')
@@ -68,6 +69,7 @@ export class ReportsController {
       query.from ? new Date(query.from) : undefined,
       query.to   ? new Date(query.to)   : undefined,
       query.branchId,
+      query.officerId,
     ));
   }
 
@@ -117,6 +119,7 @@ export class ReportsController {
       query.from ? new Date(query.from) : undefined,
       query.to   ? new Date(query.to)   : undefined,
       query.branchId,
+      query.officerId,
     );
     res.set({
       'Content-Type':        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

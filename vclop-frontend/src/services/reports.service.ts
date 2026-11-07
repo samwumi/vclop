@@ -122,11 +122,12 @@ export const reportsService = {
     return data.data ?? [];
   },
 
-  async officerPerformance(params?: { from?: string; to?: string; branchId?: string }): Promise<OfficerPerformance[]> {
+  async officerPerformance(params?: { from?: string; to?: string; branchId?: string; officerId?: string }): Promise<OfficerPerformance[]> {
     const p = new URLSearchParams();
-    if (params?.from)     p.set('from', params.from);
-    if (params?.to)       p.set('to', params.to);
-    if (params?.branchId) p.set('branchId', params.branchId);
+    if (params?.from)      p.set('from', params.from);
+    if (params?.to)        p.set('to', params.to);
+    if (params?.branchId)  p.set('branchId', params.branchId);
+    if (params?.officerId) p.set('officerId', params.officerId);
     const { data } = await api.get<ApiResponse<OfficerPerformance[]>>(`/reports/officer-performance?${p}`);
     return data.data ?? [];
   },
@@ -149,11 +150,12 @@ export const reportsService = {
     await downloadFile('/api/v1/reports/export/location-summary', 'location-summary.xlsx');
   },
 
-  async exportOfficerPerformance(params?: { from?: string; to?: string; branchId?: string }) {
+  async exportOfficerPerformance(params?: { from?: string; to?: string; branchId?: string; officerId?: string }) {
     const p = new URLSearchParams();
-    if (params?.from)     p.set('from', params.from);
-    if (params?.to)       p.set('to', params.to);
-    if (params?.branchId) p.set('branchId', params.branchId);
+    if (params?.from)      p.set('from', params.from);
+    if (params?.to)        p.set('to', params.to);
+    if (params?.branchId)  p.set('branchId', params.branchId);
+    if (params?.officerId) p.set('officerId', params.officerId);
     await downloadFile(`/api/v1/reports/export/officer-performance?${p}`, 'officer-performance.xlsx');
   },
 
