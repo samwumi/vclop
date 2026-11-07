@@ -398,8 +398,12 @@ export class LoanApplicationsService {
       include: { loanProduct: { include: { documentRequirements: true } }, guarantors: true, collaterals: true },
     });
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
-    if (application.status !== LoanApplicationStatus.DRAFT) {
-      throw new BusinessException(`Only DRAFT applications can be submitted (currently ${application.status})`);
+    
+    // Allow submission from DRAFT or resubmission from NEEDS_ATTENTION
+    if (application.status !== LoanApplicationStatus.DRAFT && application.status !== LoanApplicationStatus.NEEDS_ATTENTION) {
+      throw new BusinessException(
+        `Only DRAFT or NEEDS_ATTENTION applications can be submitted (currently ${application.status})`
+      );
     }
 
     // ── Customer profile completeness check ───────────────────────────────
@@ -915,9 +919,15 @@ export class LoanApplicationsService {
   private async assertEditable(applicationId: string) {
     const application = await this.prisma.loanApplication.findFirst({ where: { id: applicationId, deletedAt: null } });
     if (!application) throw new ResourceNotFoundException('Loan application', applicationId);
-    if (application.status !== LoanApplicationStatus.DRAFT) {
-      throw new BusinessException(`Cannot modify ${application.applicationNumber} — it is no longer in DRAFT status`);
+    
+    // Allow editing for DRAFT and NEEDS_ATTENTION statuses
+    if (application.status !== LoanApplicationStatus.DRAFT && application.status !== LoanApplicationStatus.NEEDS_ATTENTION) {
+      throw new BusinessException(
+        `Cannot modify ${application.applicationNumber} — it is in ${application.status} status. ` +
+        `Only DRAFT and NEEDS_ATTENTION applications can be edited.`
+      );
     }
+    
     return application;
   }
 
