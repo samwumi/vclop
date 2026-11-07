@@ -47,7 +47,6 @@ export class LoanApplicationsService {
       ...(query.status && { status: query.status }),
       ...(query.customerId && { customerId: query.customerId }),
       ...(query.loanProductId && { loanProductId: query.loanProductId }),
-      ...(query.submittedById && { submittedById: query.submittedById }),
       ...(query.branchId && { customer: { branchId: query.branchId } }),
       // Filter by loan status if specified (only applies to disbursed applications with loans)
       ...(query.loanStatus && { loan: { status: query.loanStatus } }),

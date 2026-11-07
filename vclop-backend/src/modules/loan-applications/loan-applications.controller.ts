@@ -24,29 +24,7 @@ export class LoanApplicationsController {
   @RequirePermissions('loan_applications:read')
   @ApiOperation({ summary: 'List/search loan applications' })
   findAll(@Query() query: QueryLoanApplicationsDto, @CurrentUser() actor: RequestUser) {
-    const isAdmin = actor.permissions.has('system:admin');
-    const isAccounting = actor.permissions.has('virtual_accounts:reconcile');
-    const canViewAll =
-      isAdmin ||
-      isAccounting ||
-      actor.permissions.has('loan_applications:compliance_review') ||
-      actor.permissions.has('loan_applications:internal_control_approve') ||
-      actor.permissions.has('customers:manage');
-
-    console.log('[LoanApps] User:', actor.email, 'branchId:', actor.branchId, 'canViewAll:', canViewAll);
-
-    // Users with full view access
-    if (canViewAll) {
-      console.log('[LoanApps] Path: canViewAll');
-      return this.service.findAll(query, actor.id);
-    }
-
-    // Loan officer — see only own submissions
-    console.log('[LoanApps] Path: loan-officer-own-only, setting submittedById:', actor.id);
-    if (!query.submittedById) {
-      query.submittedById = actor.id;
-    }
-
+    // Simply pass actor.id to service - let service handle all filtering logic
     return this.service.findAll(query, actor.id);
   }
 
@@ -133,17 +111,7 @@ export class LoanApplicationsController {
   @RequirePermissions('loan_applications:read')
   @ApiOperation({ summary: 'Export loan applications as CSV' })
   async exportCsv(@Query() query: QueryLoanApplicationsDto, @CurrentUser() actor: RequestUser, @Res() res: Response) {
-    const isAdmin = actor.permissions.has('system:admin');
-    const canViewAll =
-      isAdmin ||
-      actor.permissions.has('loan_applications:compliance_review') ||
-      actor.permissions.has('loan_applications:internal_control_approve') ||
-      actor.permissions.has('loan_applications:disburse_head');
-
-    if (!canViewAll && !query.submittedById) {
-      query.submittedById = actor.id;
-    }
-
+    // Service handles all filtering logic
     const csv = await this.service.exportCsv(query, actor.id);
     const today = new Date().toISOString().split('T')[0];
     res.set({
