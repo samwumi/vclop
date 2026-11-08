@@ -77,12 +77,21 @@ The backend already had full support for officer filtering:
 
 ## Technical Details
 
-**Filter Field:** `customers.createdById` (matches `assignedOfficerId` in the query)
+**Filter Fields:** 
+- Primary: `customers.assignedOfficerId` (explicitly assigned officer)
+- Fallback: `customers.createdById` (officer who registered the customer)
+- **The filter checks BOTH fields** to ensure backward compatibility
+
+**Why Both Fields?**
+- When a customer is created, `assignedOfficerId` defaults to the creating officer (`actorId`)
+- `createdById` is always set to the creating officer
+- Older customers might only have `createdById` populated
+- The OR filter ensures we catch customers regardless of which field is populated
 
 **Attribution Logic:** 
-- Customers are attributed to the officer who created/registered them
-- This is set automatically when a customer is created
-- The field is immutable after creation
+- Customers are attributed to the officer via `assignedOfficerId` OR `createdById`
+- Both fields are set automatically when a customer is created
+- The filter uses Prisma's OR clause: `{ OR: [{ assignedOfficerId }, { createdById }] }`
 
 **Permission Model:**
 - Admin/IC: See all customers across all officers
