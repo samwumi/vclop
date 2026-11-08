@@ -345,8 +345,13 @@ export function ReportsPage() {
                       {(officers.data ?? []).map((o) => (
                         <tr key={o.officerId}>
                           <td>
-                            <p className="text-sm font-medium text-gray-800 whitespace-nowrap">{o.name}</p>
-                            <p className="text-xs text-gray-400">{o.employeeId}</p>
+                            <button 
+                              onClick={() => navigate(`/customers?officerId=${o.officerId}`)}
+                              className="text-left hover:text-brand-600 transition-colors"
+                            >
+                              <p className="text-sm font-medium text-gray-800 whitespace-nowrap hover:underline">{o.name}</p>
+                              <p className="text-xs text-gray-400">{o.employeeId}</p>
+                            </button>
                           </td>
                           <td className="text-xs text-gray-600 whitespace-nowrap">{o.branch?.name ?? '—'}</td>
                           <td>{o.customers}</td>

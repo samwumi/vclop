@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Users, Plus, Download, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { customersService } from '@/services/customers.service';
+import { usersService } from '@/services/users.service';
 import { ModulePage } from '@/components/ui/ModulePage';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/auth.store';
@@ -23,12 +24,34 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'green' | 'red' | '
 export function CustomersPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [officerFilter, setOfficerFilter] = useState('');
   const { hasPermission } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Read officerId from URL query params and set it as the initial filter
+  useEffect(() => {
+    const officerIdFromUrl = searchParams.get('officerId');
+    if (officerIdFromUrl && officerIdFromUrl !== officerFilter) {
+      setOfficerFilter(officerIdFromUrl);
+    }
+  }, [searchParams]);
+
+  // Fetch officers list for the filter dropdown
+  const { data: officersData } = useQuery({
+    queryKey: ['users', 'officers'],
+    queryFn: () => usersService.list({ page: 1, limit: 100 }),
+    staleTime: 60_000,
+  });
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['customers', { page, search }],
-    queryFn: () => customersService.list({ page, limit: 25, search }),
+    queryKey: ['customers', { page, search, officerFilter }],
+    queryFn: () => customersService.list({ 
+      page, 
+      limit: 25, 
+      search,
+      ...(officerFilter && { assignedOfficerId: officerFilter })
+    }),
     placeholderData: (prev) => prev,
   });
 
@@ -49,12 +72,29 @@ export function CustomersPage() {
       icon={Users}
       search={search}
       onSearchChange={(v) => { setSearch(v); setPage(1); }}
+      filters={
+        <select 
+          className="form-input h-8 text-xs w-48" 
+          value={officerFilter} 
+          onChange={e => { setOfficerFilter(e.target.value); setPage(1); }}
+        >
+          <option value="">All loan officers</option>
+          {(officersData?.data ?? []).map(officer => (
+            <option key={officer.id} value={officer.id}>
+              {officer.firstName} {officer.lastName}
+            </option>
+          ))}
+        </select>
+      }
       actions={[
         {
           label: 'Export CSV',
           icon: Download,
           onClick: () => {
-            customersService.exportCsv({ search }).catch(() =>
+            customersService.exportCsv({ 
+              search,
+              ...(officerFilter && { assignedOfficerId: officerFilter })
+            }).catch(() =>
               toast.error('Export failed — please try again'),
             );
           },

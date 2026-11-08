@@ -4,7 +4,7 @@ import type { ApiResponse, PaginatedResponse, PaginationParams } from '@/types/a
 import type { Customer, Customer360, CustomerDocument, CustomerStatus } from '@/types/domain.types';
 
 export const customersService = {
-  async list(params?: PaginationParams & { status?: CustomerStatus; branchId?: string; search?: string }): Promise<PaginatedResponse<Customer>> {
+  async list(params?: PaginationParams & { status?: CustomerStatus; branchId?: string; search?: string; assignedOfficerId?: string }): Promise<PaginatedResponse<Customer>> {
     const p = new URLSearchParams();
     if (params) Object.entries(params).forEach(([k, v]) => {
       // Skip empty strings to avoid sending search= which could confuse the backend
@@ -101,12 +101,13 @@ export const customersService = {
   },
 
   /** Export customers list as CSV — uses authenticated fetch so JWT is included */
-  async exportCsv(params?: { search?: string; status?: string; branchId?: string }): Promise<void> {
+  async exportCsv(params?: { search?: string; status?: string; branchId?: string; assignedOfficerId?: string }): Promise<void> {
     const token = (await import('@/stores/auth.store')).useAuthStore.getState().accessToken;
     const p = new URLSearchParams();
-    if (params?.search)   p.set('search', params.search);
-    if (params?.status)   p.set('status', params.status);
-    if (params?.branchId) p.set('branchId', params.branchId);
+    if (params?.search)             p.set('search', params.search);
+    if (params?.status)             p.set('status', params.status);
+    if (params?.branchId)           p.set('branchId', params.branchId);
+    if (params?.assignedOfficerId)  p.set('assignedOfficerId', params.assignedOfficerId);
     const resp = await fetch(`/api/v1/customers/export/csv?${p}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
