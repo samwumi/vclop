@@ -29,13 +29,14 @@ export class CustomersService {
   async findAll(query: PaginationDto & { status?: CustomerStatus; branchId?: string; branchIds?: string[]; assignedOfficerId?: string }): Promise<PaginatedResult<unknown>> {
     // Transform decorator should have already converted empty string to undefined
     console.log('[CustomersService.findAll] query.status:', query.status);
+    console.log('[CustomersService.findAll] query.assignedOfficerId:', query.assignedOfficerId);
     
     // Extra safety: remove status from query if it's falsy
     if (!query.status) {
       delete query.status;
     }
     
-    const where = {
+    const where: any = {
       deletedAt: null,
       ...(query.status ? { status: query.status } : {}),
       // Support single branchId or multiple branchIds
@@ -44,19 +45,32 @@ export class CustomersService {
         : query.branchId
           ? { branchId: query.branchId }
           : {}),
-      ...(query.assignedOfficerId && { assignedOfficerId: query.assignedOfficerId }),
-      ...(query.search && {
-        OR: [
-          { firstName: { contains: query.search } },
-          { lastName: { contains: query.search } },
-          { businessName: { contains: query.search } },
-          { phone: { contains: query.search } },
-          { email: { contains: query.search } },
-          { customerNumber: { contains: query.search } },
-          // Note: BVN/NIN removed from search (encrypted fields can't be searched)
-        ],
-      }),
     };
+
+    // Filter by officer: check both assignedOfficerId and createdById for backward compatibility
+    if (query.assignedOfficerId) {
+      where.OR = [
+        { assignedOfficerId: query.assignedOfficerId },
+        { createdById: query.assignedOfficerId },
+      ];
+    }
+
+    // Add search filter
+    if (query.search) {
+      where.AND = [
+        {
+          OR: [
+            { firstName: { contains: query.search } },
+            { lastName: { contains: query.search } },
+            { businessName: { contains: query.search } },
+            { phone: { contains: query.search } },
+            { email: { contains: query.search } },
+            { customerNumber: { contains: query.search } },
+            // Note: BVN/NIN removed from search (encrypted fields can't be searched)
+          ],
+        },
+      ];
+    }
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.customer.findMany({
@@ -451,7 +465,7 @@ export class CustomersService {
   }
 
   async exportCsv(query: PaginationDto & { status?: CustomerStatus; branchId?: string; branchIds?: string[]; assignedOfficerId?: string }): Promise<string> {
-    const where = {
+    const where: any = {
       deletedAt: null,
       ...(query.status && { status: query.status }),
       ...(query.branchIds?.length
@@ -459,17 +473,30 @@ export class CustomersService {
         : query.branchId
           ? { branchId: query.branchId }
           : {}),
-      ...(query.assignedOfficerId && { assignedOfficerId: query.assignedOfficerId }),
-      ...(query.search && {
-        OR: [
-          { firstName: { contains: query.search } },
-          { lastName: { contains: query.search } },
-          { phone: { contains: query.search } },
-          { customerNumber: { contains: query.search } },
-          { bvn: { contains: query.search } },
-        ],
-      }),
     };
+
+    // Filter by officer: check both assignedOfficerId and createdById for backward compatibility
+    if (query.assignedOfficerId) {
+      where.OR = [
+        { assignedOfficerId: query.assignedOfficerId },
+        { createdById: query.assignedOfficerId },
+      ];
+    }
+
+    // Add search filter
+    if (query.search) {
+      where.AND = [
+        {
+          OR: [
+            { firstName: { contains: query.search } },
+            { lastName: { contains: query.search } },
+            { phone: { contains: query.search } },
+            { customerNumber: { contains: query.search } },
+            { bvn: { contains: query.search } },
+          ],
+        },
+      ];
+    }
 
     const customers = await this.prisma.customer.findMany({
       where,
