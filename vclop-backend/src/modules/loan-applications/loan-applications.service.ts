@@ -58,9 +58,10 @@ export class LoanApplicationsService {
       const user = await this.prisma.user.findUnique({
         where: { id: actorId },
         include: { 
-          roles: { 
+          userRoles: { 
             include: { role: { include: { permissions: { include: { permission: true } } } } } 
-          } 
+          },
+          managedBranches: { include: { branch: true } }
         }
       });
 
@@ -70,7 +71,7 @@ export class LoanApplicationsService {
 
       // Collect all permissions
       const permissions = new Set<string>();
-      user.roles.forEach(ur => {
+      user.userRoles.forEach(ur => {
         ur.role.permissions.forEach(rp => {
           permissions.add(rp.permission.code);
         });
@@ -86,7 +87,7 @@ export class LoanApplicationsService {
       if ((isAccounting || isCompliance) && !isAdmin && !isIC && !isAcctHead && !query.customerId) {
         const branchIds = [
           ...(user.branchId ? [user.branchId] : []),
-          ...(user.managedBranchIds ?? []),
+          ...user.managedBranches.map(mb => mb.branchId),
         ];
         const uniqueBranchIds = [...new Set(branchIds)];
         if (uniqueBranchIds.length > 0) {

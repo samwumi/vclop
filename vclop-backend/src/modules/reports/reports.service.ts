@@ -35,14 +35,15 @@ export class ReportsService {
     const user = await this.prisma.user.findUnique({
       where: { id: actorId },
       include: { 
-        roles: { 
+        userRoles: { 
           include: { role: { include: { permissions: { include: { permission: true } } } } } 
-        } 
+        },
+        managedBranches: { include: { branch: true } }
       }
     });
 
     const permissions = new Set<string>();
-    user?.roles.forEach(ur => {
+    user?.userRoles.forEach(ur => {
       ur.role.permissions.forEach(rp => {
         permissions.add(rp.permission.code);
       });
@@ -68,7 +69,7 @@ export class ReportsService {
     if (isAccounting && !isAdmin && !isIC && !isAcctHead) {
       const userBranchIds = [
         ...(user?.branchId ? [user.branchId] : []),
-        ...(user?.managedBranchIds ?? []),
+        ...(user?.managedBranches.map(mb => mb.branchId) ?? []),
       ];
       const uniqueBranchIds = [...new Set(userBranchIds)];
       
