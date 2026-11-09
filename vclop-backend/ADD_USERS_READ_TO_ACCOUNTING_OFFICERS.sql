@@ -2,7 +2,7 @@
 -- The backend filters users by branch, so accounting officers only see officers in their location
 -- MySQL/MariaDB version
 
--- Add permission to Accounting Officer role
+-- Add permission to Accountant role
 INSERT IGNORE INTO `role_permissions` (`id`, `roleId`, `permissionId`)
 SELECT 
   UUID() as id,
@@ -10,10 +10,10 @@ SELECT
   p.id as permissionId
 FROM `roles` r
 CROSS JOIN `permissions` p
-WHERE r.name = 'Accounting Officer'
+WHERE r.name = 'Accountant'
   AND p.code = 'users:read';
 
--- Add permission to Accounting Head role
+-- Add permission to Accounting Head role (if not already present)
 INSERT IGNORE INTO `role_permissions` (`id`, `roleId`, `permissionId`)
 SELECT 
   UUID() as id,
@@ -32,5 +32,5 @@ SELECT
 FROM `roles` r
 INNER JOIN `role_permissions` rp ON rp.roleId = r.id
 INNER JOIN `permissions` p ON p.id = rp.permissionId
-WHERE r.name LIKE '%accounting%'
+WHERE r.name IN ('Accountant', 'Accounting Head')
   AND p.code = 'users:read';
