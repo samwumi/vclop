@@ -50,19 +50,20 @@ export class CustomersController {
       const isIC = actor.permissions.has('loan_applications:internal_control_approve');
       const isCompliance = actor.permissions.has('loan_applications:compliance_review');
       const isAccounting = actor.permissions.has('virtual_accounts:reconcile');
-      const canViewAll = actor.permissions.has('customers:manage') || isAccounting;
+      const isAcctHead = actor.permissions.has('loan_applications:disburse_head');
+      const canViewAll = actor.permissions.has('customers:manage') || isAcctHead; // Only accounting HEAD sees all
       
-      console.log('[Customers] User:', actor.email, 'branchId:', actor.branchId, 'isAdmin:', isAdmin, 'isIC:', isIC, 'isCompliance:', isCompliance, 'canViewAll:', canViewAll);
+      console.log('[Customers] User:', actor.email, 'branchId:', actor.branchId, 'isAdmin:', isAdmin, 'isIC:', isIC, 'isCompliance:', isCompliance, 'isAccounting:', isAccounting, 'isAcctHead:', isAcctHead, 'canViewAll:', canViewAll);
 
-      // Admin, IC, or customers:manage — see all customers across all branches
+      // Admin, IC, customers:manage, or Accounting Head — see all customers across all branches
       if (isAdmin || isIC || canViewAll) {
-        console.log('[Customers] Path: admin/IC/viewAll');
+        console.log('[Customers] Path: admin/IC/viewAll/AcctHead');
         return this.service.findAll(query);
       }
 
-      // Compliance officers — scope to their branches
-      if (isCompliance) {
-        console.log('[Customers] Path: compliance (branch-scoped)');
+      // Compliance officers or regular Accounting officers — scope to their branches
+      if (isCompliance || isAccounting) {
+        console.log('[Customers] Path: compliance/accounting (branch-scoped)');
         if (!query.branchId) {
           const branchIds = [
             ...(actor.branchId ? [actor.branchId] : []),
@@ -72,7 +73,7 @@ export class CustomersController {
           if (uniqueBranchIds.length > 0) {
             (query as typeof query & { branchIds?: string[] }).branchIds = uniqueBranchIds;
           } else {
-            // Compliance officer with no branches - see all
+            // Officer with no branches - see all
             return this.service.findAll(query);
           }
         }
@@ -163,10 +164,10 @@ export class CustomersController {
     const isIC = actor.permissions.has('loan_applications:internal_control_approve');
     const isAcctHead = actor.permissions.has('loan_applications:disburse_head');
     const isCompliance = actor.permissions.has('loan_applications:compliance_review');
+    const isAccounting = actor.permissions.has('virtual_accounts:reconcile');
 
-    if (!isAdmin && !isIC && !isAcctHead && !isCompliance) {
-      query.assignedOfficerId = actor.id;
-    } else if ((isCompliance) && !isAdmin && !isIC && !isAcctHead) {
+    // Accounting officers (non-head) and compliance officers — scope to their branches
+    if ((isCompliance || isAccounting) && !isAdmin && !isIC && !isAcctHead) {
       if (!query.branchId) {
         const branchIds = [
           ...(actor.branchId ? [actor.branchId] : []),
@@ -177,6 +178,9 @@ export class CustomersController {
           (query as typeof query & { branchIds?: string[] }).branchIds = uniqueIds;
         }
       }
+    } else if (!isAdmin && !isIC && !isAcctHead && !isCompliance && !isAccounting) {
+      // Loan officers — only their own customers
+      query.assignedOfficerId = actor.id;
     }
 
     const csv = await this.service.exportCsv(query);

@@ -54,35 +54,51 @@ export class LoanApplicationsService {
 
     // Apply location-based permissions and role-based filtering if actorId is provided
     if (actorId) {
-      // Get user's roles to determine if they should see only their own applications
-      const userRoles = await this.prisma.userRole.findMany({
-        where: { userId: actorId },
-        select: { roleId: true }
+      // Get user with their permissions
+      const user = await this.prisma.user.findUnique({
+        where: { id: actorId },
+        include: { 
+          roles: { 
+            include: { role: { include: { permissions: { include: { permission: true } } } } } 
+          } 
+        }
       });
 
-      if (userRoles.length > 0) {
-        const roleIds = userRoles.map(ur => ur.roleId);
-        
-        // Check role names - if user has ONLY "Loan Officer" role, filter by assignedToId
-        const roles = await this.prisma.role.findMany({
-          where: { id: { in: roleIds } },
-          select: { name: true }
-        });
-
-        const roleNames = roles.map(r => r.name.toLowerCase());
-        const hasOnlyLoanOfficerRole = roleNames.includes('loan officer') && 
-                                       !roleNames.includes('admin') &&
-                                       !roleNames.includes('compliance officer') &&
-                                       !roleNames.includes('internal control') &&
-                                       !roleNames.includes('accounting head');
-
-        // Loan Officers should only see applications assigned to them
-        // UNLESS they're viewing a specific customer's applications (customerId filter)
-        if (hasOnlyLoanOfficerRole && !query.customerId) {
-          where.assignedToId = actorId;
-        }
+      if (!user) {
+        return paginate([], 0, query.page ?? 1, query.limit ?? 25);
       }
 
+      // Collect all permissions
+      const permissions = new Set<string>();
+      user.roles.forEach(ur => {
+        ur.role.permissions.forEach(rp => {
+          permissions.add(rp.permission.code);
+        });
+      });
+
+      const isAdmin = permissions.has('system:admin');
+      const isIC = permissions.has('loan_applications:internal_control_approve');
+      const isAcctHead = permissions.has('loan_applications:disburse_head');
+      const isAccounting = permissions.has('virtual_accounts:reconcile');
+      const isCompliance = permissions.has('loan_applications:compliance_review');
+
+      // Accounting officers (non-head) and compliance — scope to their branches
+      if ((isAccounting || isCompliance) && !isAdmin && !isIC && !isAcctHead && !query.customerId) {
+        const branchIds = [
+          ...(user.branchId ? [user.branchId] : []),
+          ...(user.managedBranchIds ?? []),
+        ];
+        const uniqueBranchIds = [...new Set(branchIds)];
+        if (uniqueBranchIds.length > 0) {
+          where.customer = { branchId: { in: uniqueBranchIds } };
+        }
+      }
+      // Loan Officers — only see their assigned applications (unless viewing specific customer)
+      else if (!isAdmin && !isIC && !isAcctHead && !isCompliance && !isAccounting && !query.customerId) {
+        where.assignedToId = actorId;
+      }
+
+      // Apply location permissions
       const permittedBranchIds = await this.usersService.getUserPermittedBranchIds(actorId);
       
       // If user has specific location permissions, filter by those branches
@@ -94,8 +110,8 @@ export class LoanApplicationsService {
             // User doesn't have permission for requested branch - return empty result
             return paginate([], 0, query.page ?? 1, query.limit ?? 25);
           }
-        } else {
-          // Apply location filter - only show applications from permitted branches
+        } else if (!where.customer) {
+          // Apply location filter if not already set by role-based filtering
           where.customer = { branchId: { in: permittedBranchIds } };
         }
       }

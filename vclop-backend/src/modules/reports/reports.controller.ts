@@ -35,12 +35,14 @@ export class ReportsController {
 
   @Get('disbursements')
   @RequirePermissions('reports:read')
-  @ApiOperation({ summary: 'Disbursement report with optional date range' })
+  @ApiOperation({ summary: 'Disbursement report with optional date range, branch, and officer filters' })
   async disbursements(@Query() query: DateRangeDto, @CurrentUser() user: RequestUser) {
     return ok(await this.service.disbursements(
       user.id,
       query.from ? new Date(query.from) : undefined,
       query.to   ? new Date(query.to)   : undefined,
+      query.branchId,
+      query.officerId,
     ));
   }
 
@@ -130,12 +132,14 @@ export class ReportsController {
 
   @Get('export/disbursements')
   @RequirePermissions('reports:export')
-  @ApiOperation({ summary: 'Export disbursements as Excel' })
+  @ApiOperation({ summary: 'Export disbursements as Excel with optional filters' })
   async exportDisbursements(@Query() query: DateRangeDto, @CurrentUser() user: RequestUser, @Res() res: Response) {
     const buffer = await this.service.exportDisbursements(
       user.id,
       query.from ? new Date(query.from) : undefined,
       query.to   ? new Date(query.to)   : undefined,
+      query.branchId,
+      query.officerId,
     );
     res.set({
       'Content-Type':        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

@@ -30,8 +30,74 @@ export class ReportsService {
     };
   }
 
-  async disbursements(actorId: string, from?: Date, to?: Date) {
-    const where = from || to ? { disbursedAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {};
+  async disbursements(actorId: string, from?: Date, to?: Date, branchId?: string, officerId?: string) {
+    // Get actor permissions to apply branch filtering for accounting officers
+    const user = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      include: { 
+        roles: { 
+          include: { role: { include: { permissions: { include: { permission: true } } } } } 
+        } 
+      }
+    });
+
+    const permissions = new Set<string>();
+    user?.roles.forEach(ur => {
+      ur.role.permissions.forEach(rp => {
+        permissions.add(rp.permission.code);
+      });
+    });
+
+    const isAdmin = permissions.has('system:admin');
+    const isIC = permissions.has('loan_applications:internal_control_approve');
+    const isAcctHead = permissions.has('loan_applications:disburse_head');
+    const isAccounting = permissions.has('virtual_accounts:reconcile');
+
+    // Build where clause
+    const where: any = {};
+    
+    // Date filtering
+    if (from || to) {
+      where.disbursedAt = {
+        ...(from ? { gte: from } : {}),
+        ...(to ? { lte: to } : {})
+      };
+    }
+
+    // For accounting officers (non-head), restrict to their branches
+    if (isAccounting && !isAdmin && !isIC && !isAcctHead) {
+      const userBranchIds = [
+        ...(user?.branchId ? [user.branchId] : []),
+        ...(user?.managedBranchIds ?? []),
+      ];
+      const uniqueBranchIds = [...new Set(userBranchIds)];
+      
+      if (uniqueBranchIds.length > 0) {
+        where.loanApplication = {
+          customer: { branchId: { in: uniqueBranchIds } }
+        };
+      }
+    }
+
+    // Apply branch filter if provided
+    if (branchId) {
+      where.loanApplication = {
+        ...where.loanApplication,
+        customer: { 
+          ...(where.loanApplication?.customer || {}),
+          branchId 
+        }
+      };
+    }
+
+    // Apply officer filter if provided
+    if (officerId) {
+      where.loanApplication = {
+        ...where.loanApplication,
+        submittedById: officerId
+      };
+    }
+
     const [items, totals] = await Promise.all([
       this.prisma.loan.findMany({
         where,
@@ -406,8 +472,8 @@ export class ReportsService {
     return Buffer.from(await wb.xlsx.writeBuffer() as ArrayBuffer);
   }
 
-  async exportDisbursements(actorId: string, from?: Date, to?: Date): Promise<Buffer> {
-    const { items } = await this.disbursements(actorId, from, to);
+  async exportDisbursements(actorId: string, from?: Date, to?: Date, branchId?: string, officerId?: string): Promise<Buffer> {
+    const { items } = await this.disbursements(actorId, from, to, branchId, officerId);
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Disbursements');
 
