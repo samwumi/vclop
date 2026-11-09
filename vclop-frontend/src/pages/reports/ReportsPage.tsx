@@ -313,7 +313,7 @@ export function ReportsPage() {
               <div className="card">
                 <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Location:</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Location:</span>
                     <select className="form-input h-8 text-xs w-44" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
                       <option value="">All locations</option>
                       {[...new Set((officers.data ?? []).map(o => o.branch?.name).filter(Boolean))].map(n => (
@@ -322,7 +322,7 @@ export function ReportsPage() {
                     </select>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Officer:</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Officer:</span>
                     <select className="form-input h-8 text-xs w-48" value={officerFilter} onChange={e => setOfficerFilter(e.target.value)}>
                       <option value="">All officers</option>
                       {(officers.data ?? []).map(o => (
