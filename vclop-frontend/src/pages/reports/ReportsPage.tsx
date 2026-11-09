@@ -312,18 +312,24 @@ export function ReportsPage() {
 
               <div className="card">
                 <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-                  <select className="form-input h-8 text-xs w-44" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
-                    <option value="">All locations</option>
-                    {[...new Set((officers.data ?? []).map(o => o.branch?.name).filter(Boolean))].map(n => (
-                      <option key={n} value={(officers.data ?? []).find(o => o.branch?.name === n)?.branch?.id ?? ''}>{n}</option>
-                    ))}
-                  </select>
-                  <select className="form-input h-8 text-xs w-48" value={officerFilter} onChange={e => setOfficerFilter(e.target.value)}>
-                    <option value="">All officers</option>
-                    {(officers.data ?? []).map(o => (
-                      <option key={o.officerId} value={o.officerId}>{o.name}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium text-gray-600">Location:</label>
+                    <select className="form-input h-8 text-xs w-44" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+                      <option value="">All locations</option>
+                      {[...new Set((officers.data ?? []).map(o => o.branch?.name).filter(Boolean))].map(n => (
+                        <option key={n} value={(officers.data ?? []).find(o => o.branch?.name === n)?.branch?.id ?? ''}>{n}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium text-gray-600">Officer:</label>
+                    <select className="form-input h-8 text-xs w-48" value={officerFilter} onChange={e => setOfficerFilter(e.target.value)}>
+                      <option value="">All officers</option>
+                      {(officers.data ?? []).map(o => (
+                        <option key={o.officerId} value={o.officerId}>{o.name}</option>
+                      ))}
+                    </select>
+                  </div>
                   <span className="text-xs text-gray-400">{officers.data?.length ?? 0} officers</span>
                 </div>
                 {/* overflow-x-auto ensures the table scrolls horizontally instead of being clipped */}
@@ -345,13 +351,13 @@ export function ReportsPage() {
                       {(officers.data ?? []).map((o) => (
                         <tr key={o.officerId}>
                           <td>
-                            <button 
+                            <div 
                               onClick={() => navigate(`/customers?officerId=${o.officerId}`)}
-                              className="text-left hover:text-brand-600 transition-colors"
+                              className="cursor-pointer hover:text-brand-600 transition-colors"
                             >
                               <p className="text-sm font-medium text-gray-800 whitespace-nowrap hover:underline">{o.name}</p>
                               <p className="text-xs text-gray-400">{o.employeeId}</p>
-                            </button>
+                            </div>
                           </td>
                           <td className="text-xs text-gray-600 whitespace-nowrap">{o.branch?.name ?? '—'}</td>
                           <td>{o.customers}</td>
