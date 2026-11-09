@@ -3,8 +3,9 @@
 -- MySQL/MariaDB version
 
 -- Add permission to Accounting Officer role
-INSERT IGNORE INTO `role_permissions` (`roleId`, `permissionId`)
+INSERT IGNORE INTO `role_permissions` (`id`, `roleId`, `permissionId`)
 SELECT 
+  UUID() as id,
   r.id as roleId,
   p.id as permissionId
 FROM `roles` r
@@ -13,8 +14,9 @@ WHERE r.name = 'Accounting Officer'
   AND p.code = 'users:read';
 
 -- Add permission to Accounting Head role
-INSERT IGNORE INTO `role_permissions` (`roleId`, `permissionId`)
+INSERT IGNORE INTO `role_permissions` (`id`, `roleId`, `permissionId`)
 SELECT 
+  UUID() as id,
   r.id as roleId,
   p.id as permissionId
 FROM `roles` r
