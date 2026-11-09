@@ -59,7 +59,7 @@ export class LoanApplicationsService {
         where: { id: actorId },
         include: { 
           userRoles: { 
-            include: { role: { include: { permissions: { include: { permission: true } } } } } 
+            include: { role: { include: { rolePermissions: { include: { permission: true } } } } } 
           },
           managedBranches: { include: { branch: true } }
         }
@@ -72,7 +72,7 @@ export class LoanApplicationsService {
       // Collect all permissions
       const permissions = new Set<string>();
       user.userRoles.forEach(ur => {
-        ur.role.permissions.forEach(rp => {
+        ur.role.rolePermissions.forEach(rp => {
           permissions.add(rp.permission.code);
         });
       });
