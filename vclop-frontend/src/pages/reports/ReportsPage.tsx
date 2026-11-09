@@ -311,26 +311,28 @@ export function ReportsPage() {
               )}
 
               <div className="card">
-                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Location:</span>
-                    <select className="form-input h-8 text-xs w-44" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
-                      <option value="">All locations</option>
-                      {[...new Set((officers.data ?? []).map(o => o.branch?.name).filter(Boolean))].map(n => (
-                        <option key={n} value={(officers.data ?? []).find(o => o.branch?.name === n)?.branch?.id ?? ''}>{n}</option>
-                      ))}
-                    </select>
+                <div className="px-5 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <strong style={{ color: '#000', fontSize: '14px' }}>Location:</strong>
+                      <select className="form-input h-8 text-xs w-44" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+                        <option value="">All locations</option>
+                        {[...new Set((officers.data ?? []).map(o => o.branch?.name).filter(Boolean))].map(n => (
+                          <option key={n} value={(officers.data ?? []).find(o => o.branch?.name === n)?.branch?.id ?? ''}>{n}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <strong style={{ color: '#000', fontSize: '14px' }}>Officer:</strong>
+                      <select className="form-input h-8 text-xs w-48" value={officerFilter} onChange={e => setOfficerFilter(e.target.value)}>
+                        <option value="">All officers</option>
+                        {(officers.data ?? []).map(o => (
+                          <option key={o.officerId} value={o.officerId}>{o.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <span className="text-xs text-gray-400">{officers.data?.length ?? 0} officers</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Officer:</span>
-                    <select className="form-input h-8 text-xs w-48" value={officerFilter} onChange={e => setOfficerFilter(e.target.value)}>
-                      <option value="">All officers</option>
-                      {(officers.data ?? []).map(o => (
-                        <option key={o.officerId} value={o.officerId}>{o.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <span className="text-xs text-gray-400">{officers.data?.length ?? 0} officers</span>
                 </div>
                 {/* overflow-x-auto ensures the table scrolls horizontally instead of being clipped */}
                 <div className="overflow-x-auto">
@@ -353,9 +355,10 @@ export function ReportsPage() {
                           <td>
                             <div 
                               onClick={() => navigate(`/customers?officerId=${o.officerId}`)}
-                              className="cursor-pointer hover:text-brand-600 transition-colors"
+                              style={{ cursor: 'pointer' }}
+                              className="hover:text-brand-600 transition-colors"
                             >
-                              <p className="text-sm font-medium text-gray-800 whitespace-nowrap hover:underline">{o.name}</p>
+                              <p style={{ fontSize: '14px', fontWeight: '500', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' }}>{o.name}</p>
                               <p className="text-xs text-gray-400">{o.employeeId}</p>
                             </div>
                           </td>
