@@ -35,8 +35,11 @@ export class UsersController {
   @Get()
   @RequirePermissions('users:read')
   @ApiOperation({ summary: 'List users with pagination, search, filter' })
-  findAll(@Query() query: QueryUsersDto) {
-    return this.service.findAll(query);
+  findAll(
+    @Query() query: QueryUsersDto,
+    @CurrentUser() actor: RequestUser,
+  ) {
+    return this.service.findAll(query, actor);
   }
 
   // ── Get one ─────────────────────────────────────────────────────────────────

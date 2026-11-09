@@ -11,6 +11,7 @@ import { QueryUsersDto } from './dto/query-users.dto';
 import { AssignRolesDto, RevokeRolesDto } from './dto/assign-roles.dto';
 import { BulkAssignPermissionsDto, RevokePermissionsDto } from './dto/assign-permissions.dto';
 import { PaginatedResult } from '../../common/interfaces/api-response.interface';
+import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { paginate } from '../../common/utils/pagination.util';
 import {
   ResourceNotFoundException,
@@ -54,12 +55,28 @@ export class UsersService {
   // LIST
   // ────────────────────────────────────────────────────────────────────────────
 
-  async findAll(query: QueryUsersDto): Promise<PaginatedResult<unknown>> {
+  async findAll(query: QueryUsersDto, actor?: RequestUser): Promise<PaginatedResult<unknown>> {
+    // Check if actor is a regular accounting officer (not head)
+    const isAcctOfficer = actor && actor.permissions.has('virtual_accounts:reconcile');
+    const isAcctHead = actor && actor.permissions.has('loan_applications:disburse_head');
+    
+    // Build branch filter for accounting officers
+    let branchFilter = {};
+    if (isAcctOfficer && !isAcctHead && actor) {
+      const branchIds = [
+        actor.branchId,
+        ...actor.managedBranchIds,
+      ].filter(Boolean);
+      
+      branchFilter = branchIds.length > 0 ? { branchId: { in: branchIds } } : {};
+    }
+
     const where = {
       ...(!query.withDeleted && { deletedAt: null }),
       ...(query.status && { status: query.status }),
       ...(query.branchId && { branchId: query.branchId }),
       ...(query.departmentId && { departmentId: query.departmentId }),
+      ...branchFilter, // Apply branch scoping for accounting officers
       ...(query.search && {
         OR: [
           { firstName: { contains: query.search } },
