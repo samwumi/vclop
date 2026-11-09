@@ -38,11 +38,13 @@ export function CustomersPage() {
   }, [searchParams]);
 
   // Fetch officers list for the filter dropdown
-  const { data: officersData } = useQuery({
+  const { data: officersData, isLoading: officersLoading } = useQuery({
     queryKey: ['users', 'officers'],
     queryFn: () => usersService.list({ page: 1, limit: 100 }),
     staleTime: 60_000,
   });
+
+  console.log('[CustomersPage] Officers data:', officersData);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['customers', { page, search, officerFilter }],
@@ -79,7 +81,7 @@ export function CustomersPage() {
           onChange={e => { setOfficerFilter(e.target.value); setPage(1); }}
         >
           <option value="">All loan officers</option>
-          {(officersData?.data ?? []).map(officer => (
+          {(officersData ?? []).map(officer => (
             <option key={officer.id} value={officer.id}>
               {officer.firstName} {officer.lastName}
             </option>
