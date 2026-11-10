@@ -67,6 +67,20 @@ export class LoanApplicationsService {
           ...(query.toDate && { lte: new Date(new Date(query.toDate).setHours(23, 59, 59, 999)) }),
         },
       }),
+      // Search across application number, customer name, and loan number
+      ...(query.search && {
+        OR: [
+          { applicationNumber: { contains: query.search, mode: 'insensitive' } },
+          { customer: { 
+            OR: [
+              { firstName: { contains: query.search, mode: 'insensitive' } },
+              { lastName: { contains: query.search, mode: 'insensitive' } },
+              { customerNumber: { contains: query.search, mode: 'insensitive' } },
+            ]
+          }},
+          { loan: { loanNumber: { contains: query.search, mode: 'insensitive' } } },
+        ],
+      }),
     };
 
     console.log('[LoanApplications] Where clause:', JSON.stringify(where, null, 2));
