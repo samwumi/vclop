@@ -68,17 +68,18 @@ export class LoanApplicationsService {
         },
       }),
       // Search across application number, customer name, and loan number
+      // Note: MySQL/MariaDB uses 'contains' for case-insensitive search by default
       ...(query.search && {
         OR: [
-          { applicationNumber: { contains: query.search, mode: 'insensitive' } },
+          { applicationNumber: { contains: query.search } },
           { customer: { 
             OR: [
-              { firstName: { contains: query.search, mode: 'insensitive' } },
-              { lastName: { contains: query.search, mode: 'insensitive' } },
-              { customerNumber: { contains: query.search, mode: 'insensitive' } },
+              { firstName: { contains: query.search } },
+              { lastName: { contains: query.search } },
+              { customerNumber: { contains: query.search } },
             ]
           }},
-          { loan: { loanNumber: { contains: query.search, mode: 'insensitive' } } },
+          { loan: { loanNumber: { contains: query.search } } },
         ],
       }),
     };
