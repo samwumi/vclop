@@ -42,6 +42,16 @@ export class LoanApplicationsService {
   ) {}
 
   async findAll(query: QueryLoanApplicationsDto & PaginationDto, actorId?: string): Promise<PaginatedResult<unknown>> {
+    // Debug logging for date filters
+    if (query.fromDate || query.toDate) {
+      console.log('[LoanApplications] Date filters:', {
+        fromDate: query.fromDate,
+        toDate: query.toDate,
+        fromDateParsed: query.fromDate ? new Date(query.fromDate) : null,
+        toDateParsed: query.toDate ? new Date(new Date(query.toDate).setHours(23, 59, 59, 999)) : null,
+      });
+    }
+
     const where: any = {
       deletedAt: null,
       ...(query.status && { status: query.status }),
@@ -58,6 +68,8 @@ export class LoanApplicationsService {
         },
       }),
     };
+
+    console.log('[LoanApplications] Where clause:', JSON.stringify(where, null, 2));
 
     // Apply location-based permissions and role-based filtering if actorId is provided
     if (actorId) {
