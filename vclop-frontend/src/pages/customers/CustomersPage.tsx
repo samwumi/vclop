@@ -38,17 +38,21 @@ export function CustomersPage() {
   }, [searchParams]);
 
   // Fetch officers list for the filter dropdown
-  const { data: officersData, isError: officersError, error: officersErrorDetail } = useQuery({
+  const { data: officersResponse, isError: officersError, error: officersErrorDetail } = useQuery({
     queryKey: ['users', 'officers'],
     queryFn: () => usersService.list({ page: 1, limit: 100 }),
     staleTime: 60_000,
   });
 
-  const officers = officersData?.data ?? [];
+  // The usersService.list returns the unwrapped { data: User[] } from backend
+  // Check if it's already an array (direct) or has a data property (wrapped)
+  const officers = Array.isArray(officersResponse) 
+    ? officersResponse 
+    : (officersResponse?.data ?? []);
 
   // Debug logging
   console.log('[CustomersPage] Officers query result:', { 
-    officersData, 
+    officersResponse, 
     officers, 
     officersError, 
     officersErrorDetail 
