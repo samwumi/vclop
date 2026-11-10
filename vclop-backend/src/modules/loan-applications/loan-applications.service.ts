@@ -50,6 +50,13 @@ export class LoanApplicationsService {
       ...(query.branchId && { customer: { branchId: query.branchId } }),
       // Filter by loan status if specified (only applies to disbursed applications with loans)
       ...(query.loanStatus && { loan: { status: query.loanStatus } }),
+      // Date range filtering on createdAt
+      ...((query.fromDate || query.toDate) && {
+        createdAt: {
+          ...(query.fromDate && { gte: new Date(query.fromDate) }),
+          ...(query.toDate && { lte: new Date(new Date(query.toDate).setHours(23, 59, 59, 999)) }),
+        },
+      }),
     };
 
     // Apply location-based permissions and role-based filtering if actorId is provided

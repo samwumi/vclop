@@ -3,7 +3,14 @@ import type { ApiResponse, PaginatedResponse, PaginationParams } from '@/types/a
 import type { Loan, LoanApplication, LoanApplicationStatus } from '@/types/domain.types';
 
 export const loansService = {
-  async list(params?: PaginationParams & { status?: LoanApplicationStatus; customerId?: string; loanProductId?: string }): Promise<PaginatedResponse<LoanApplication>> {
+  async list(params?: PaginationParams & { 
+    status?: LoanApplicationStatus; 
+    customerId?: string; 
+    loanProductId?: string;
+    loanStatus?: string;
+    fromDate?: string;
+    toDate?: string;
+  }): Promise<PaginatedResponse<LoanApplication>> {
     const p = new URLSearchParams();
     if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined) p.set(k, String(v)); });
     const { data } = await api.get<ApiResponse<LoanApplication[]>>(`/loan-applications?${p}`);

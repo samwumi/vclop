@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { LoanApplicationStatus, LoanStatus } from '@prisma/client';
-import { IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsUUID, IsDateString } from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class QueryLoanApplicationsDto extends PaginationDto {
@@ -33,4 +33,14 @@ export class QueryLoanApplicationsDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   branchId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter applications created from this date (ISO 8601 format: YYYY-MM-DD)' })
+  @IsOptional()
+  @IsDateString()
+  fromDate?: string;
+
+  @ApiPropertyOptional({ description: 'Filter applications created until this date (ISO 8601 format: YYYY-MM-DD)' })
+  @IsOptional()
+  @IsDateString()
+  toDate?: string;
 }

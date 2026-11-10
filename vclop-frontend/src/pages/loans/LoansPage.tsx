@@ -40,6 +40,8 @@ export function LoansPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<LoanApplicationStatus | ''>('');
   const [loanStatusFilter, setLoanStatusFilter] = useState<'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'WRITTEN_OFF' | ''>('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const { hasPermission, user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -51,7 +53,7 @@ export function LoansPage() {
     !hasPermission('loan_applications:disburse');
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['loans', { page, search, status, loanStatus: loanStatusFilter, userId: isLoanOfficer ? user?.id : undefined }],
+    queryKey: ['loans', { page, search, status, loanStatus: loanStatusFilter, fromDate, toDate, userId: isLoanOfficer ? user?.id : undefined }],
     queryFn: () =>
       loansService.list({
         page,
@@ -59,6 +61,8 @@ export function LoansPage() {
         search,
         ...(status ? { status } : {}),
         ...(loanStatusFilter ? { loanStatus: loanStatusFilter } : {}),
+        ...(fromDate ? { fromDate } : {}),
+        ...(toDate ? { toDate } : {}),
         // Backend now filters by assignedToId for loan officers
       }),
     placeholderData: (prev) => prev,
@@ -119,7 +123,7 @@ export function LoansPage() {
       meta={data?.meta}
       onPageChange={setPage}
       filters={
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <select
             className="form-input h-9 text-sm w-44"
             value={status}
@@ -136,6 +140,20 @@ export function LoansPage() {
             <option value="">All loan statuses</option>
             {LOAN_STATUS_OPTS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+          <input
+            type="date"
+            className="form-input h-9 text-sm w-40"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+            placeholder="From date"
+          />
+          <input
+            type="date"
+            className="form-input h-9 text-sm w-40"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+            placeholder="To date"
+          />
         </div>
       }
       rows={
