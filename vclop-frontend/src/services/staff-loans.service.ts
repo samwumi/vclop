@@ -164,7 +164,10 @@ class StaffLoansService {
   async getMyLoans(status?: StaffLoanStatus): Promise<StaffLoan[]> {
     const params = status ? { status } : {};
     const response = await api.get(`${this.baseUrl}/my-loans`, { params });
-    return response.data.data || response.data || [];
+    // Backend returns { success: true, data: [...] }
+    const result = response.data.data || response.data || [];
+    // Ensure we always return an array
+    return Array.isArray(result) ? result : [];
   }
 
   /**
@@ -247,7 +250,8 @@ class StaffLoansService {
    */
   async getPaymentHistory(loanId: string): Promise<StaffLoanPayment[]> {
     const response = await api.get(`${this.baseUrl}/${loanId}/payments`);
-    return response.data.data || response.data || [];
+    const result = response.data.data || response.data || [];
+    return Array.isArray(result) ? result : [];
   }
 
   /**
@@ -262,7 +266,8 @@ class StaffLoansService {
    */
   async getRepaymentSchedule(loanId: string): Promise<StaffLoanInstallment[]> {
     const response = await api.get(`${this.baseUrl}/${loanId}/schedule`);
-    return response.data.data || response.data || [];
+    const result = response.data.data || response.data || [];
+    return Array.isArray(result) ? result : [];
   }
 
   /**
