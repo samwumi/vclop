@@ -28,12 +28,72 @@ export function MyStaffLoansPage() {
     queryFn: () => staffLoansService.getMyLoans(statusFilter || undefined),
   });
 
+  // Check eligibility
+  const { data: eligibility } = useQuery({
+    queryKey: ['staff-loan-eligibility'],
+    queryFn: () => staffLoansService.checkEligibility(),
+  });
+
   const activeLoan = loans?.find(l => ['ACTIVE', 'DISBURSED'].includes(l.status));
   const pendingLoan = loans?.find(l => l.status === 'PENDING_APPROVAL');
-  const canApply = !activeLoan && !pendingLoan;
+  const canApply = !activeLoan && !pendingLoan && eligibility?.eligible;
+
+  const hasEligibilityIssues = eligibility && !eligibility.eligible;
+  const missingEmployment = hasEligibilityIssues && !eligibility?.reasons?.activeEmployment;
+  const missingSalary = hasEligibilityIssues && eligibility?.reasons?.activeEmployment && !eligibility?.reasons?.hasValidSalary;
 
   return (
-    <ModulePage
+    <div>
+      {/* Eligibility Warning Banner */}
+      {missingEmployment && (
+        <div className="container mx-auto mb-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-900 mb-1">⚠️ Employment Record Required</h3>
+                <p className="text-sm text-yellow-800 mb-3">
+                  You need an employment record to apply for staff loans. This record contains your salary information used to determine loan eligibility.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <p className="text-sm font-medium text-yellow-900">What to do:</p>
+                  <p className="text-sm text-yellow-800">Contact HR Department (hr@company.com) to create your employment record.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {missingSalary && (
+        <div className="container mx-auto mb-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-900 mb-1">⚠️ Salary Information Required</h3>
+                <p className="text-sm text-yellow-800 mb-3">
+                  Your employment record exists but doesn't have salary information. Salary is required to calculate your loan eligibility.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <p className="text-sm font-medium text-yellow-900">What to do:</p>
+                  <p className="text-sm text-yellow-800">Contact HR Department to update your employment record with your monthly salary.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ModulePage
       title="My Staff Loans"
       subtitle="View and manage your loan applications"
       icon={DollarSign}
@@ -102,5 +162,6 @@ export function MyStaffLoansPage() {
         </>
       }
     />
+    </div>
   );
 }

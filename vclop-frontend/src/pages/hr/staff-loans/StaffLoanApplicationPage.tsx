@@ -67,16 +67,151 @@ export function StaffLoanApplicationPage() {
   }
 
   if (!eligibility?.eligible) {
+    const reasons = eligibility?.reasons;
+    
     return (
-      <div className="container mx-auto py-8 max-w-2xl">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-red-900 mb-2">Not Eligible</h2>
-          <p className="text-red-700">{eligibility?.reasons ? 'Check eligibility requirements' : 'You are not currently eligible for a staff loan'}</p>
-          <button onClick={() => navigate('/hr/staff-loans/my-loans')} className="btn btn-secondary mt-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to My Loans
-          </button>
+      <div className="container mx-auto py-8 max-w-3xl">
+        <button onClick={() => navigate('/hr/staff-loans/my-loans')} className="btn-ghost mb-6">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to My Loans
+        </button>
+
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+          <h2 className="text-2xl font-semibold text-red-900 mb-4">❌ Not Eligible for Staff Loan</h2>
+          <p className="text-red-700 mb-4">
+            You don't currently meet the eligibility requirements for a staff loan. Please review the issues below:
+          </p>
+
+          <div className="space-y-3">
+            {/* Employment Record Check */}
+            {!reasons?.activeEmployment && (
+              <div className="bg-white border-l-4 border-red-500 p-4 rounded">
+                <h3 className="font-semibold text-red-900 mb-2">❌ No Active Employment Record</h3>
+                <p className="text-sm text-gray-700 mb-3">
+                  You don't have an active employment record in the system. This record is required to determine your salary and loan eligibility.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-2">
+                  <p className="text-sm font-semibold text-blue-900 mb-2">What to do:</p>
+                  <ol className="text-sm text-blue-800 list-decimal list-inside space-y-1">
+                    <li>Contact HR Department to create your employment record</li>
+                    <li>Or email hr@company.com with:
+                      <ul className="ml-6 mt-1 list-disc list-inside">
+                        <li>Your name and employee ID</li>
+                        <li>Request: "Please create my employment record in the system"</li>
+                      </ul>
+                    </li>
+                    <li>HR will add your hire date, job title, and salary information</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            {/* Valid Salary Check */}
+            {reasons?.activeEmployment && !reasons?.hasValidSalary && (
+              <div className="bg-white border-l-4 border-red-500 p-4 rounded">
+                <h3 className="font-semibold text-red-900 mb-2">❌ No Salary Information</h3>
+                <p className="text-sm text-gray-700 mb-3">
+                  Your employment record exists but doesn't have salary information. Salary is required to calculate your loan eligibility.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                  <p className="text-sm font-semibold text-blue-900 mb-2">What to do:</p>
+                  <p className="text-sm text-blue-800">
+                    Contact HR to update your employment record with your monthly salary (minimum ₦1,000).
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Account Status Check */}
+            {!reasons?.accountActive && (
+              <div className="bg-white border-l-4 border-red-500 p-4 rounded">
+                <h3 className="font-semibold text-red-900 mb-2">❌ Account Not Active</h3>
+                <p className="text-sm text-gray-700 mb-3">
+                  Your user account is not in active status.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                  <p className="text-sm font-semibold text-blue-900 mb-2">What to do:</p>
+                  <p className="text-sm text-blue-800">
+                    Contact your administrator or IT support to activate your account.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Active Loans Check */}
+            {!reasons?.noActiveLoans && (
+              <div className="bg-white border-l-4 border-yellow-500 p-4 rounded">
+                <h3 className="font-semibold text-yellow-900 mb-2">⚠️ Active Loan Exists</h3>
+                <p className="text-sm text-gray-700 mb-3">
+                  You already have an active or pending staff loan. Only one loan is allowed at a time.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                  <p className="text-sm font-semibold text-blue-900 mb-2">What to do:</p>
+                  <p className="text-sm text-blue-800">
+                    Wait until your current loan is fully paid off before applying for a new one.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Overdue Payments Check */}
+            {!reasons?.noOverduePayments && (
+              <div className="bg-white border-l-4 border-red-500 p-4 rounded">
+                <h3 className="font-semibold text-red-900 mb-2">❌ Overdue Payments</h3>
+                <p className="text-sm text-gray-700 mb-3">
+                  You have overdue loan payments that must be cleared before applying for a new loan.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                  <p className="text-sm font-semibold text-blue-900 mb-2">What to do:</p>
+                  <p className="text-sm text-blue-800">
+                    Clear all overdue payments, then try applying again.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* HR Contact Information */}
+          <div className="mt-6 p-4 bg-white rounded-lg border">
+            <h3 className="font-semibold text-gray-900 mb-2">Need Help?</h3>
+            <p className="text-sm text-gray-700 mb-2">
+              Contact the HR Department:
+            </p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>📧 Email: hr@company.com</li>
+              <li>📞 Phone: Extension 500</li>
+              <li>🏢 Office: HR Department, 2nd Floor</li>
+            </ul>
+          </div>
+
+          <div className="mt-4 flex gap-3">
+            <button
+              onClick={() => navigate('/hr/staff-loans/my-loans')}
+              className="btn-secondary"
+            >
+              Back to My Loans
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary"
+            >
+              Refresh Eligibility
+            </button>
+          </div>
         </div>
+
+        {/* Eligibility Requirements */}
+        {eligibility?.businessRules && (
+          <div className="bg-white border rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4">Staff Loan Policy</h3>
+            <div className="space-y-2 text-sm text-gray-700">
+              <p><strong>Interest Rate:</strong> {eligibility.businessRules.interestRate}</p>
+              <p><strong>Maximum Repayment Period:</strong> {eligibility.businessRules.maxRepaymentPeriod}</p>
+              <p><strong>Maximum Salary Deduction:</strong> {eligibility.businessRules.maxSalaryDeduction}</p>
+              <p className="text-gray-600 italic mt-3">{eligibility.businessRules.description}</p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
