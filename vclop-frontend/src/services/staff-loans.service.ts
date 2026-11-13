@@ -233,7 +233,7 @@ class StaffLoansService {
    * Record payment
    */
   async recordPayment(data: RecordPaymentDto): Promise<StaffLoanPayment> {
-    const response = await apiClient.post(`${this.baseUrl}/payments/record`, data);
+    const response = await api.post(`${this.baseUrl}/payments/record`, data);
     return response.data;
   }
 
@@ -241,7 +241,7 @@ class StaffLoansService {
    * Get payment history for a loan
    */
   async getPaymentHistory(loanId: string): Promise<StaffLoanPayment[]> {
-    const response = await apiClient.get(`${this.baseUrl}/${loanId}/payments`);
+    const response = await api.get(`${this.baseUrl}/${loanId}/payments`);
     return response.data;
   }
 
@@ -249,14 +249,14 @@ class StaffLoansService {
    * Reverse payment (Admin only)
    */
   async reversePayment(paymentId: string, reason: string): Promise<void> {
-    await apiClient.post(`${this.baseUrl}/payments/${paymentId}/reverse`, { reason });
+    await api.post(`${this.baseUrl}/payments/${paymentId}/reverse`, { reason });
   }
 
   /**
    * Get repayment schedule
    */
   async getRepaymentSchedule(loanId: string): Promise<StaffLoanInstallment[]> {
-    const response = await apiClient.get(`${this.baseUrl}/${loanId}/schedule`);
+    const response = await api.get(`${this.baseUrl}/${loanId}/schedule`);
     return response.data;
   }
 
@@ -268,7 +268,7 @@ class StaffLoansService {
     totalRepayable: number;
     totalInterest: number;
   }> {
-    const response = await apiClient.post(`${this.baseUrl}/calculate`, {
+    const response = await api.post(`${this.baseUrl}/calculate`, {
       amount,
       tenureMonths,
     });

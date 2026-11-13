@@ -21,6 +21,7 @@ const STATUS_CONFIG: Record<StaffLoanStatus, { label: string; variant: 'gray' | 
 export function MyStaffLoansPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<StaffLoanStatus | ''>('');
+  const [search, setSearch] = useState('');
 
   const { data: loans, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['my-staff-loans', statusFilter],
@@ -38,7 +39,7 @@ export function MyStaffLoansPage() {
       icon={DollarSign}
       search={search}
       onSearchChange={setSearch}
-      filter={
+      filters={
         <select 
           value={statusFilter} 
           onChange={(e) => setStatusFilter(e.target.value as StaffLoanStatus | '')}

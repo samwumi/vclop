@@ -113,7 +113,7 @@ export function DailyTransactionsPage() {
         icon={ArrowDownUp}
         search={search}
         onSearchChange={setSearch}
-        filter={
+        filters={
           <div className="flex gap-2">
             {/* Date Range */}
             <input
