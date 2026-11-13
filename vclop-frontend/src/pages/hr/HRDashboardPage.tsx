@@ -8,7 +8,8 @@ import {
   FolderOpen,
   TrendingUp,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Briefcase
 } from 'lucide-react';
 import { leavesService } from '@/services/leaves.service';
 import { offboardingService } from '@/services/offboarding.service';
@@ -271,6 +272,32 @@ export function HRDashboardPage() {
             className="btn-secondary btn-sm w-full"
           >
             View Resources
+          </button>
+        </div>
+
+        {/* Employee Management Module */}
+        <div className="bg-white border rounded-lg p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-indigo-100 rounded-lg">
+              <Briefcase className="w-6 h-6 text-indigo-600" />
+            </div>
+            <h3 className="font-semibold">Employees</h3>
+          </div>
+          <div className="space-y-2 mb-4">
+            <div className="text-sm">
+              <p className="text-gray-600">Manage Staff</p>
+              <p className="font-semibold text-indigo-600">Employment Records</p>
+            </div>
+            <div className="text-sm">
+              <p className="text-gray-600">View</p>
+              <p className="font-semibold text-gray-700">Salary & Details</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/hr/employees')}
+            className="btn-secondary btn-sm w-full"
+          >
+            View Employees
           </button>
         </div>
       </div>

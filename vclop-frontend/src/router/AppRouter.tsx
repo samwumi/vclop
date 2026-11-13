@@ -66,7 +66,7 @@ import { ImportRecoveryAccountsPage } from '@/pages/recovery/ImportRecoveryAccou
 // Phase 6 — Transactions
 import { DailyTransactionsPage } from '@/pages/transactions/DailyTransactionsPage';
 
-// Phase 7 — HR Module (Staff Loans, Leaves, Offboarding, Resources)
+// Phase 7 — HR Module (Staff Loans, Leaves, Offboarding, Resources, Employees)
 import {
   MyStaffLoansPage,
   StaffLoanApplicationPage,
@@ -85,6 +85,7 @@ import {
   OffboardingManagementPage,
 } from '@/pages/hr/offboarding';
 import { MyResourcesPage } from '@/pages/hr/resources';
+import { EmployeesListPage, EmployeeDetailsPage } from '@/pages/hr/employees';
 import { HRDashboardPage } from '@/pages/hr/HRDashboardPage';
 
 // Error pages
@@ -150,6 +151,10 @@ export function AppRouter() {
 
         {/* HR Module */}
         <Route path="/hr" element={<ProtectedRoute permission="dashboard:read"><HRDashboardPage /></ProtectedRoute>} />
+        
+        {/* HR - Employees */}
+        <Route path="/hr/employees" element={<ProtectedRoute permission="employees:read"><EmployeesListPage /></ProtectedRoute>} />
+        <Route path="/hr/employees/:userId" element={<ProtectedRoute permission="employees:read"><EmployeeDetailsPage /></ProtectedRoute>} />
         
         {/* HR - Staff Loans */}
         <Route path="/hr/staff-loans/my-loans" element={<ProtectedRoute permission="staff_loans:read"><MyStaffLoansPage /></ProtectedRoute>} />
