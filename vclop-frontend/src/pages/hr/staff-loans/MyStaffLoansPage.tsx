@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tantml:react-query';
+import { useQuery } from '@tanstack/react-query';
 import { DollarSign, Plus, Eye } from 'lucide-react';
 import { staffLoansService, type StaffLoanStatus } from '@/services/staff-loans.service';
 import { ModulePage } from '@/components/ui/ModulePage';
@@ -61,7 +61,15 @@ export function MyStaffLoansPage() {
           permission: canApply 
         },
       ]}
-      columns={['Loan ID', 'Amount', 'Purpose', 'Monthly', 'Status', 'Date', 'Actions']}
+      columns={[
+        { key: 'loanId', label: 'Loan ID' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'purpose', label: 'Purpose' },
+        { key: 'monthly', label: 'Monthly' },
+        { key: 'status', label: 'Status' },
+        { key: 'date', label: 'Date' },
+        { key: 'actions', label: 'Actions' },
+      ]}
       isLoading={isLoading}
       isEmpty={!isLoading && (loans?.length ?? 0) === 0}
       isError={isError}
@@ -77,7 +85,7 @@ export function MyStaffLoansPage() {
             return (
               <tr key={loan.id} className="cursor-pointer" onClick={() => navigate(`/hr/staff-loans/${loan.id}`)}>
                 <td className="text-xs font-mono text-gray-600">{loan.id.slice(0, 8)}</td>
-                <td className="font-semibold">{formatCurrency(loan.amount)}</td>
+                <td className="font-semibold">{formatCurrency(loan.principalAmount)}</td>
                 <td className="text-sm text-gray-700">{loan.purpose}</td>
                 <td className="text-sm">{formatCurrency(loan.monthlyInstallment)}</td>
                 <td><Badge variant={status.variant}>{status.label}</Badge></td>

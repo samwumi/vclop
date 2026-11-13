@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, User, DollarSign, FileText } from 'lucide-react';
+import { ArrowLeft, DollarSign, FileText } from 'lucide-react';
 import { staffLoansService } from '@/services/staff-loans.service';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -22,7 +22,7 @@ export function StaffLoanDetailsPage() {
 
   const { data: loan, isLoading } = useQuery({
     queryKey: ['staff-loan', loanId],
-    queryFn: () => staffLoansService.getLoanDetails(loanId!),
+    queryFn: () => staffLoansService.getLoanById(loanId!),
     enabled: !!loanId,
   });
 

@@ -22,10 +22,12 @@ export function StaffLoansManagementPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<StaffLoanStatus | ''>('');
 
-  const { data: loans, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['all-staff-loans', statusFilter],
-    queryFn: () => staffLoansService.getAllLoans(statusFilter || undefined),
+    queryFn: () => staffLoansService.getAllLoans({ status: statusFilter || undefined }),
   });
+
+  const loans = data?.data || [];
 
   return (
     <ModulePage
@@ -48,7 +50,16 @@ export function StaffLoansManagementPage() {
           <option value="REJECTED">Rejected</option>
         </select>
       }
-      columns={['Employee', 'Loan ID', 'Amount', 'Purpose', 'Monthly', 'Status', 'Date', 'Actions']}
+      columns={[
+        { key: 'employee', label: 'Employee' },
+        { key: 'loanId', label: 'Loan ID' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'purpose', label: 'Purpose' },
+        { key: 'monthly', label: 'Monthly' },
+        { key: 'status', label: 'Status' },
+        { key: 'date', label: 'Date' },
+        { key: 'actions', label: 'Actions' },
+      ]}
       isLoading={isLoading}
       isEmpty={!isLoading && (loans?.length ?? 0) === 0}
       isError={isError}
@@ -65,12 +76,12 @@ export function StaffLoansManagementPage() {
               <tr key={loan.id} className="cursor-pointer" onClick={() => navigate(`/hr/staff-loans/${loan.id}`)}>
                 <td>
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{loan.employeeName || 'Unknown'}</p>
-                    <p className="text-xs text-gray-400">{loan.employeeNumber || '—'}</p>
+                    <p className="text-sm font-medium text-gray-800">{loan.user?.firstName} {loan.user?.lastName}</p>
+                    <p className="text-xs text-gray-400">{loan.user?.employeeId || '—'}</p>
                   </div>
                 </td>
                 <td className="text-xs font-mono text-gray-600">{loan.id.slice(0, 8)}</td>
-                <td className="font-semibold">{formatCurrency(loan.amount)}</td>
+                <td className="font-semibold">{formatCurrency(loan.principalAmount)}</td>
                 <td className="text-sm text-gray-700 max-w-xs truncate">{loan.purpose}</td>
                 <td className="text-sm">{formatCurrency(loan.monthlyInstallment)}</td>
                 <td><Badge variant={status.variant}>{status.label}</Badge></td>

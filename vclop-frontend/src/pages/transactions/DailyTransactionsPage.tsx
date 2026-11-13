@@ -167,14 +167,14 @@ export function DailyTransactionsPage() {
           },
         ]}
         columns={[
-          'Time',
-          'Type',
-          'Customer',
-          'Loan #',
-          'Amount',
-          'Reference',
-          'Status',
-          'Actions',
+          { key: 'time', label: 'Time' },
+          { key: 'type', label: 'Type' },
+          { key: 'customer', label: 'Customer' },
+          { key: 'loan', label: 'Loan #' },
+          { key: 'amount', label: 'Amount' },
+          { key: 'reference', label: 'Reference' },
+          { key: 'status', label: 'Status' },
+          { key: 'actions', label: 'Actions' },
         ]}
         isLoading={isLoading}
         isEmpty={!isLoading && transactions.length === 0}

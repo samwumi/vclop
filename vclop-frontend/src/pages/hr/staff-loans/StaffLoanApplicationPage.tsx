@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
-import { staffLoansService, type StaffLoanApplicationDto } from '@/services/staff-loans.service';
+import { staffLoansService, type ApplyLoanDto } from '@/services/staff-loans.service';
 import { formatCurrency } from '@/lib/utils';
 
 export function StaffLoanApplicationPage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<StaffLoanApplicationDto>({
-    amount: 0,
-    purpose: '',
-    tenureMonths: 5,
+  const [formData, setFormData] = useState<ApplyLoanDto>({
+    requestedAmount: 0,
+    loanPurpose: '',
+    proposedTenureMonths: 5,
     justification: '',
   });
 
@@ -21,7 +21,7 @@ export function StaffLoanApplicationPage() {
   });
 
   const applyMutation = useMutation({
-    mutationFn: (data: StaffLoanApplicationDto) => staffLoansService.applyForLoan(data),
+    mutationFn: (data: ApplyLoanDto) => staffLoansService.applyForLoan(data),
     onSuccess: () => {
       toast.success('Loan application submitted successfully');
       navigate('/hr/staff-loans/my-loans');
@@ -31,19 +31,19 @@ export function StaffLoanApplicationPage() {
     },
   });
 
-  const monthlyInstallment = formData.amount > 0 ? formData.amount / formData.tenureMonths : 0;
-  const percentageOfSalary = eligibility?.salary ? (monthlyInstallment / eligibility.salary) * 100 : 0;
+  const monthlyInstallment = formData.requestedAmount > 0 ? formData.requestedAmount / formData.proposedTenureMonths : 0;
+  const percentageOfSalary = eligibility?.loanLimits?.monthlySalary ? (monthlyInstallment / eligibility.loanLimits.monthlySalary) * 100 : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!eligibility?.isEligible) {
+    if (!eligibility?.eligible) {
       toast.error('You are not eligible for a staff loan');
       return;
     }
 
-    if (formData.amount > (eligibility?.maxLoanAmount || 0)) {
-      toast.error(`Amount exceeds maximum eligible: ${formatCurrency(eligibility?.maxLoanAmount || 0)}`);
+    if (formData.requestedAmount > (eligibility?.loanLimits?.maxEligibleAmount || 0)) {
+      toast.error(`Amount exceeds maximum eligible: ${formatCurrency(eligibility?.loanLimits?.maxEligibleAmount || 0)}`);
       return;
     }
 
@@ -66,12 +66,12 @@ export function StaffLoanApplicationPage() {
     );
   }
 
-  if (!eligibility?.isEligible) {
+  if (!eligibility?.eligible) {
     return (
       <div className="container mx-auto py-8 max-w-2xl">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <h2 className="text-xl font-semibold text-red-900 mb-2">Not Eligible</h2>
-          <p className="text-red-700">{eligibility?.reason || 'You are not currently eligible for a staff loan'}</p>
+          <p className="text-red-700">{eligibility?.reasons ? 'Check eligibility requirements' : 'You are not currently eligible for a staff loan'}</p>
           <button onClick={() => navigate('/hr/staff-loans/my-loans')} className="btn btn-secondary mt-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to My Loans
@@ -98,11 +98,11 @@ export function StaffLoanApplicationPage() {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-blue-700">Monthly Salary</p>
-            <p className="font-semibold text-blue-900">{formatCurrency(eligibility.salary || 0)}</p>
+            <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.monthlySalary || 0)}</p>
           </div>
           <div>
             <p className="text-blue-700">Maximum Loan Amount</p>
-            <p className="font-semibold text-blue-900">{formatCurrency(eligibility.maxLoanAmount || 0)}</p>
+            <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.maxEligibleAmount || 0)}</p>
           </div>
         </div>
       </div>
@@ -117,14 +117,14 @@ export function StaffLoanApplicationPage() {
             type="number"
             required
             min="1000"
-            max={eligibility.maxLoanAmount}
-            value={formData.amount || ''}
-            onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+            max={eligibility.loanLimits?.maxEligibleAmount}
+            value={formData.requestedAmount || ''}
+            onChange={(e) => setFormData({ ...formData, requestedAmount: Number(e.target.value) })}
             className="input w-full"
             placeholder="Enter amount"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Maximum: {formatCurrency(eligibility.maxLoanAmount || 0)}
+            Maximum: {formatCurrency(eligibility.loanLimits?.maxEligibleAmount || 0)}
           </p>
         </div>
 
@@ -137,8 +137,8 @@ export function StaffLoanApplicationPage() {
             type="text"
             required
             maxLength={200}
-            value={formData.purpose}
-            onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+            value={formData.loanPurpose}
+            onChange={(e) => setFormData({ ...formData, loanPurpose: e.target.value })}
             className="input w-full"
             placeholder="e.g., Medical expenses, Education, etc."
           />
@@ -150,8 +150,8 @@ export function StaffLoanApplicationPage() {
             Repayment Period (Months) <span className="text-red-500">*</span>
           </label>
           <select
-            value={formData.tenureMonths}
-            onChange={(e) => setFormData({ ...formData, tenureMonths: Number(e.target.value) })}
+            value={formData.proposedTenureMonths}
+            onChange={(e) => setFormData({ ...formData, proposedTenureMonths: Number(e.target.value) })}
             className="input w-full"
           >
             {[1, 2, 3, 4, 5].map(m => (
@@ -178,7 +178,7 @@ export function StaffLoanApplicationPage() {
         </div>
 
         {/* Calculator */}
-        {formData.amount > 0 && (
+        {formData.requestedAmount > 0 && (
           <div className="bg-gray-50 border rounded-lg p-4 mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Calculator className="w-5 h-5 text-gray-600" />
@@ -197,7 +197,7 @@ export function StaffLoanApplicationPage() {
               </div>
               <div>
                 <p className="text-gray-600">Total Repayable</p>
-                <p className="text-lg font-bold">{formatCurrency(formData.amount)}</p>
+                <p className="text-lg font-bold">{formatCurrency(formData.requestedAmount)}</p>
               </div>
               <div>
                 <p className="text-gray-600">Interest Rate</p>
