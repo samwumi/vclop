@@ -53,8 +53,13 @@ export const loansService = {
     return data.data!;
   },
 
-  async review(applicationId: string, decision: 'APPROVED' | 'REJECTED', reviewNotes?: string, rejectionReason?: string): Promise<LoanApplication> {
-    const { data } = await api.patch<ApiResponse<LoanApplication>>(`/loan-applications/${applicationId}/review`, { decision, reviewNotes, rejectionReason });
+  async review(applicationId: string, decision: 'APPROVED' | 'REJECTED', reviewNotes?: string, rejectionReason?: string, approvedAmount?: number): Promise<LoanApplication> {
+    const { data } = await api.patch<ApiResponse<LoanApplication>>(`/loan-applications/${applicationId}/review`, { 
+      decision, 
+      reviewNotes, 
+      rejectionReason,
+      approvedAmount 
+    });
     return data.data!;
   },
 

@@ -11,6 +11,15 @@ export class ReviewLoanApplicationDto {
   @IsEnum(ReviewDecision)
   decision!: ReviewDecision;
 
+  @ApiPropertyOptional({ 
+    description: 'Approved loan amount (optional - if not provided, uses requested amount)',
+    example: 450000 
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1000)
+  approvedAmount?: number;
+
   @ApiPropertyOptional({ maxLength: 500 })
   @IsOptional()
   @IsString()

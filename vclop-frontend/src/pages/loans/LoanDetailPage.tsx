@@ -38,6 +38,7 @@ export function LoanDetailPage() {
   const userId = user?.id;
   const qc = useQueryClient();
   const [reviewNotes, setReviewNotes] = useState('');
+  const [approvedAmount, setApprovedAmount] = useState<number | undefined>(undefined);
   const [rejectReason, setRejectReason] = useState('');
   const [showReject, setShowReject] = useState(false);
   const [showComplianceActions, setShowComplianceActions] = useState(false);
@@ -132,7 +133,7 @@ export function LoanDetailPage() {
   });
 
   const reviewMutation = useMutation({
-    mutationFn: (decision: 'APPROVED' | 'REJECTED') => loansService.review(id!, decision, reviewNotes || undefined, decision === 'REJECTED' ? rejectReason : undefined),
+    mutationFn: (decision: 'APPROVED' | 'REJECTED') => loansService.review(id!, decision, reviewNotes || undefined, decision === 'REJECTED' ? rejectReason : undefined, decision === 'APPROVED' ? approvedAmount : undefined),
     onSuccess: (_, decision) => { toast.success(decision === 'APPROVED' ? 'Application approved' : 'Application rejected'); setShowReject(false); invalidate(); },
     onError: (e: unknown) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Review failed'),
   });
@@ -408,7 +409,50 @@ export function LoanDetailPage() {
             </div>
           )}
           {application.status === 'INTERNAL_CONTROL_REVIEW' && hasPermission('loan_applications:internal_control_approve') && !showReject && (
-            <div className="w-full space-y-2"><input className="form-input text-xs h-8 max-w-sm" placeholder="Internal control notes" value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)} /><div className="flex gap-2"><button onClick={() => workflowMutation.mutate('APPROVE')} disabled={workflowMutation.isPending} className="btn-primary btn-sm gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Approve</button><button onClick={() => setShowReject(true)} className="btn-secondary btn-sm gap-1.5"><XCircle className="w-3.5 h-3.5" /> Reject / Return</button></div></div>
+            <div className="w-full space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Approved Amount (₦) <span className="text-gray-500">(Optional - defaults to requested amount)</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="form-input text-xs h-8"
+                    placeholder={`Default: ₦${application.amount?.toLocaleString() || 0}`}
+                    value={approvedAmount || ''}
+                    onChange={(e) => setApprovedAmount(e.target.value ? Number(e.target.value) : undefined)}
+                    min="1000"
+                    step="1000"
+                  />
+                  {approvedAmount && approvedAmount !== application.amount && (
+                    <p className="text-xs mt-1 text-orange-600">
+                      Modified from ₦{application.amount?.toLocaleString()} to ₦{approvedAmount.toLocaleString()}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Internal Control Notes</label>
+                  <input
+                    className="form-input text-xs h-8"
+                    placeholder="Internal control notes"
+                    value={reviewNotes}
+                    onChange={(e) => setReviewNotes(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => workflowMutation.mutate('APPROVE')}
+                  disabled={workflowMutation.isPending}
+                  className="btn-primary btn-sm gap-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Approve{approvedAmount ? ` (₦${approvedAmount.toLocaleString()})` : ''}
+                </button>
+                <button onClick={() => setShowReject(true)} className="btn-secondary btn-sm gap-1.5">
+                  <XCircle className="w-3.5 h-3.5" /> Reject / Return
+                </button>
+              </div>
+            </div>
           )}
           {application.status === 'ACCOUNTING_REVIEW' && hasPermission('loan_applications:disburse') && !showReject && (
             <div className="w-full space-y-2"><input className="form-input text-xs h-8 max-w-sm" placeholder="Accounting verification notes" value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)} /><button onClick={() => workflowMutation.mutate('APPROVE')} disabled={workflowMutation.isPending} className="btn-primary btn-sm gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Approve for Disbursement</button></div>

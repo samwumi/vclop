@@ -586,22 +586,34 @@ export class LoanApplicationsService {
       notes: dto.reviewNotes,
     }, actor);
 
-    // Update denormalized fields (status is already updated by workflow)
+    // Update denormalized fields and approved amount if provided
+    const updateData: any = {
+      reviewedById: actor.id,
+      reviewedAt: new Date(),
+      reviewNotes: dto.reviewNotes,
+      rejectionReason: dto.decision === ReviewDecision.REJECTED ? dto.rejectionReason : null,
+    };
+
+    // If IC modifies the approved amount, update it
+    if (dto.decision === ReviewDecision.APPROVED && dto.approvedAmount !== undefined) {
+      updateData.approvedAmount = dto.approvedAmount;
+      
+      // Add note about amount modification
+      const originalNote = dto.reviewNotes || '';
+      const amountNote = `\n[Amount modified by IC: Original ₦${application.amount?.toLocaleString() || 0} → Approved ₦${dto.approvedAmount.toLocaleString()}]`;
+      updateData.reviewNotes = originalNote + amountNote;
+    }
+
     await this.prisma.loanApplication.update({
       where: { id: applicationId },
-      data: {
-        reviewedById: actor.id,
-        reviewedAt: new Date(),
-        reviewNotes: dto.reviewNotes,
-        rejectionReason: dto.decision === ReviewDecision.REJECTED ? dto.rejectionReason : null,
-      },
+      data: updateData,
     });
 
     this.emitAudit(
       dto.decision === ReviewDecision.APPROVED ? AuditAction.APPROVE : AuditAction.REJECT, 
       actor.id, 
       applicationId, 
-      `${dto.decision === ReviewDecision.APPROVED ? 'Approved' : 'Rejected'} ${application.applicationNumber} via workflow`
+      `${dto.decision === ReviewDecision.APPROVED ? 'Approved' : 'Rejected'} ${application.applicationNumber} via workflow${dto.approvedAmount ? ` (Amount: ₦${dto.approvedAmount.toLocaleString()})` : ''}`
     );
     this.events.emit('loan_application.reviewed', { applicationId, decision: dto.decision, actorId: actor.id });
     return this.findOne(applicationId);
