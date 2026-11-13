@@ -74,13 +74,13 @@ export interface TransactionStats {
 export const transactionsService = {
   async getDailyTransactions(params?: TransactionQueryParams): Promise<DailyTransactionsResponse> {
     const response = await api.get('/transactions/daily', { params });
-    return response.data;
+    return response.data.data || response.data;
   },
 
   async getStats(date?: string): Promise<TransactionStats> {
     const response = await api.get('/transactions/stats', {
       params: date ? { date } : undefined,
     });
-    return response.data;
+    return response.data.data || response.data;
   },
 };

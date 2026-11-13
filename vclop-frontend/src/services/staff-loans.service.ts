@@ -147,7 +147,7 @@ class StaffLoansService {
    */
   async checkEligibility(): Promise<StaffLoanEligibility> {
     const response = await api.get(`${this.baseUrl}/eligibility`);
-    return response.data;
+    return response.data.data || response.data;
   }
 
   /**
@@ -155,7 +155,7 @@ class StaffLoansService {
    */
   async applyForLoan(data: ApplyLoanDto): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/apply`, data);
-    return response.data;
+    return response.data.data || response.data;
   }
 
   /**
@@ -164,7 +164,7 @@ class StaffLoansService {
   async getMyLoans(status?: StaffLoanStatus): Promise<StaffLoan[]> {
     const params = status ? { status } : {};
     const response = await api.get(`${this.baseUrl}/my-loans`, { params });
-    return response.data;
+    return response.data.data || response.data || [];
   }
 
   /**
@@ -172,7 +172,7 @@ class StaffLoansService {
    */
   async getLoanById(loanId: string): Promise<StaffLoan> {
     const response = await api.get(`${this.baseUrl}/${loanId}`);
-    return response.data;
+    return response.data.data || response.data;
   }
 
   /**
@@ -180,7 +180,7 @@ class StaffLoansService {
    */
   async submitLoan(loanId: string): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/${loanId}/submit`);
-    return response.data;
+    return response.data.data || response.data;
   }
 
   /**
@@ -193,7 +193,12 @@ class StaffLoansService {
     limit?: number;
   }): Promise<{ data: StaffLoan[]; total: number }> {
     const response = await api.get(this.baseUrl, { params });
-    return response.data;
+    const result = response.data.data || response.data;
+    // Handle both paginated and non-paginated responses
+    if (Array.isArray(result)) {
+      return { data: result, total: result.length };
+    }
+    return result;
   }
 
   /**
@@ -201,7 +206,7 @@ class StaffLoansService {
    */
   async approveLoan(loanId: string, data: ApproveLoanDto): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/${loanId}/approve`, data);
-    return response.data;
+    return response.data.data || response.data;
   }
 
   /**
@@ -209,7 +214,7 @@ class StaffLoansService {
    */
   async rejectLoan(loanId: string, reason: string): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/${loanId}/reject`, { reason });
-    return response.data;
+    return response.data.data || response.data;
   }
 
   /**
@@ -226,7 +231,7 @@ class StaffLoansService {
     }
   ): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/${loanId}/disburse`, data);
-    return response.data;
+    return response.data.data || response.data;
   }
 
   /**
@@ -234,7 +239,7 @@ class StaffLoansService {
    */
   async recordPayment(data: RecordPaymentDto): Promise<StaffLoanPayment> {
     const response = await api.post(`${this.baseUrl}/payments/record`, data);
-    return response.data;
+    return response.data.data || response.data;
   }
 
   /**
@@ -242,7 +247,7 @@ class StaffLoansService {
    */
   async getPaymentHistory(loanId: string): Promise<StaffLoanPayment[]> {
     const response = await api.get(`${this.baseUrl}/${loanId}/payments`);
-    return response.data;
+    return response.data.data || response.data || [];
   }
 
   /**
@@ -257,7 +262,7 @@ class StaffLoansService {
    */
   async getRepaymentSchedule(loanId: string): Promise<StaffLoanInstallment[]> {
     const response = await api.get(`${this.baseUrl}/${loanId}/schedule`);
-    return response.data;
+    return response.data.data || response.data || [];
   }
 
   /**
@@ -272,7 +277,7 @@ class StaffLoansService {
       amount,
       tenureMonths,
     });
-    return response.data;
+    return response.data.data || response.data;
   }
 }
 
