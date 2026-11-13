@@ -106,7 +106,7 @@ export function OffboardingManagementPage() {
           { 
             label: 'Initiate Offboarding', 
             icon: Plus, 
-            onClick: () => setShowInitiateModal(true), 
+            onClick: () => alert('Offboarding initiation feature coming soon'), 
             variant: 'primary',
             permission: true
           },

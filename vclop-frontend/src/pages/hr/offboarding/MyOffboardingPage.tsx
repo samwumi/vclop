@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { LogOut, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { offboardingService } from '@/services/offboarding.service';
 import { useAuthStore } from '@/stores/auth.store';
