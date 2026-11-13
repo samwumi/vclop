@@ -66,13 +66,26 @@ import { ImportRecoveryAccountsPage } from '@/pages/recovery/ImportRecoveryAccou
 // Phase 6 — Transactions
 import { DailyTransactionsPage } from '@/pages/transactions/DailyTransactionsPage';
 
-// Phase 7 — HR & Staff Loans Module
+// Phase 7 — HR Module (Staff Loans, Leaves, Offboarding, Resources)
 import {
   MyStaffLoansPage,
   StaffLoanApplicationPage,
   StaffLoanDetailsPage,
   StaffLoansManagementPage,
 } from '@/pages/hr/staff-loans';
+import {
+  MyLeavesPage,
+  LeaveApplicationPage,
+  LeaveDetailsPage,
+  LeavesManagementPage,
+} from '@/pages/hr/leaves';
+import {
+  MyOffboardingPage,
+  OffboardingDetailsPage,
+  OffboardingManagementPage,
+} from '@/pages/hr/offboarding';
+import { MyResourcesPage } from '@/pages/hr/resources';
+import { HRDashboardPage } from '@/pages/hr/HRDashboardPage';
 
 // Error pages
 import { NotFoundPage } from '@/pages/errors/NotFoundPage';
@@ -135,11 +148,28 @@ export function AppRouter() {
         <Route path="/recovery/payments/verify" element={<ProtectedRoute permission="recovery:payments_verify"><PaymentVerificationPage /></ProtectedRoute>} />
         <Route path="/recovery/import" element={<ProtectedRoute permission="recovery:accounts_import"><ImportRecoveryAccountsPage /></ProtectedRoute>} />
 
-        {/* HR & Staff Loans */}
-        <Route path="/hr/staff-loans/my-loans" element={<ProtectedRoute permission="dashboard:read"><MyStaffLoansPage /></ProtectedRoute>} />
-        <Route path="/hr/staff-loans/apply" element={<ProtectedRoute permission="dashboard:read"><StaffLoanApplicationPage /></ProtectedRoute>} />
-        <Route path="/hr/staff-loans/:loanId" element={<ProtectedRoute permission="dashboard:read"><StaffLoanDetailsPage /></ProtectedRoute>} />
+        {/* HR Module */}
+        <Route path="/hr" element={<ProtectedRoute permission="dashboard:read"><HRDashboardPage /></ProtectedRoute>} />
+        
+        {/* HR - Staff Loans */}
+        <Route path="/hr/staff-loans/my-loans" element={<ProtectedRoute permission="staff_loans:read"><MyStaffLoansPage /></ProtectedRoute>} />
+        <Route path="/hr/staff-loans/apply" element={<ProtectedRoute permission="staff_loans:create"><StaffLoanApplicationPage /></ProtectedRoute>} />
+        <Route path="/hr/staff-loans/:loanId" element={<ProtectedRoute permission="staff_loans:read"><StaffLoanDetailsPage /></ProtectedRoute>} />
         <Route path="/hr/staff-loans/management" element={<ProtectedRoute permission="users:read"><StaffLoansManagementPage /></ProtectedRoute>} />
+
+        {/* HR - Leaves */}
+        <Route path="/hr/leaves/my-applications" element={<ProtectedRoute permission="leaves:read"><MyLeavesPage /></ProtectedRoute>} />
+        <Route path="/hr/leaves/apply" element={<ProtectedRoute permission="leaves:create"><LeaveApplicationPage /></ProtectedRoute>} />
+        <Route path="/hr/leaves/:leaveId" element={<ProtectedRoute permission="leaves:read"><LeaveDetailsPage /></ProtectedRoute>} />
+        <Route path="/hr/leaves/management" element={<ProtectedRoute permission="users:read"><LeavesManagementPage /></ProtectedRoute>} />
+
+        {/* HR - Offboarding */}
+        <Route path="/hr/offboarding/my-status" element={<ProtectedRoute permission="dashboard:read"><MyOffboardingPage /></ProtectedRoute>} />
+        <Route path="/hr/offboarding/:offboardingId" element={<ProtectedRoute permission="offboarding:read"><OffboardingDetailsPage /></ProtectedRoute>} />
+        <Route path="/hr/offboarding" element={<ProtectedRoute permission="offboarding:read"><OffboardingManagementPage /></ProtectedRoute>} />
+
+        {/* HR - Resources */}
+        <Route path="/hr/resources/my-resources" element={<ProtectedRoute permission="resources:read"><MyResourcesPage /></ProtectedRoute>} />
 
         {/* Administration */}
         <Route path="/users"       element={<ProtectedRoute permission="users:read"><UsersPage /></ProtectedRoute>} />

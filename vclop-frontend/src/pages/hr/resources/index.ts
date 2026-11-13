@@ -1,0 +1,1 @@
+export { MyResourcesPage } from './MyResourcesPage';
