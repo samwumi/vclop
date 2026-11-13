@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Plus, Eye, Search, Briefcase } from 'lucide-react';
+import { Users, Eye, Search, Briefcase } from 'lucide-react';
 import { api } from '@/lib/axios';
 
 interface User {

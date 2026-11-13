@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Briefcase, Plus, Edit, DollarSign, Users, Calendar, MapPin } from 'lucide-react';
+import { ArrowLeft, Briefcase, Plus, Edit } from 'lucide-react';
 import { employmentService, type CreateEmploymentDto, type ContractType } from '@/services/employment.service';
 import { api } from '@/lib/axios';
 import { formatDate } from '@/lib/utils';
