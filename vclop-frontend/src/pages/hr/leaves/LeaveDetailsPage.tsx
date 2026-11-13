@@ -4,7 +4,6 @@ import { ArrowLeft, Calendar, FileText, User, CheckCircle, XCircle, Clock } from
 import { leavesService, type LeaveStatus } from '@/services/leaves.service';
 import { Badge } from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
-import { toast } from 'react-hot-toast';
 import { useState } from 'react';
 
 const STATUS_CONFIG: Record<LeaveStatus, { label: string; variant: 'gray' | 'yellow' | 'blue' | 'green' | 'red' }> = {
@@ -41,12 +40,12 @@ export function LeaveDetailsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-application', leaveId] });
       queryClient.invalidateQueries({ queryKey: ['my-leave-applications'] });
-      toast.success('Leave application cancelled successfully');
+      alert('Leave application cancelled successfully');
       setShowCancelModal(false);
       navigate('/hr/leaves/my-applications');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to cancel application');
+      alert(error.response?.data?.message || 'Failed to cancel application');
     },
   });
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Eye, CheckCircle } from 'lucide-react';
 import { leavesService, type LeaveStatus } from '@/services/leaves.service';
 import { ModulePage } from '@/components/ui/ModulePage';
 import { Badge } from '@/components/ui/Badge';

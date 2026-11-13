@@ -6,13 +6,12 @@ import { useAuthStore } from '@/stores/auth.store';
 import { formatDate } from '@/lib/utils';
 
 export function MyOffboardingPage() {
-  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
 
   const { data: cases, isLoading } = useQuery({
     queryKey: ['my-offboarding-cases'],
     queryFn: () => offboardingService.getOffboardingCases(),
-    select: (data) => data.filter(c => c.userId === user?.userId),
+    select: (data) => data.filter(c => c.userId === user?.id),
   });
 
   const myCase = cases?.[0]; // Assuming only one active offboarding per person

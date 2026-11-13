@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle, XCircle, AlertCircle, User } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, User } from 'lucide-react';
 import { offboardingService, type OffboardingStatus } from '@/services/offboarding.service';
 import { Badge } from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
-import { toast } from 'react-hot-toast';
 
 const STATUS_CONFIG: Record<OffboardingStatus, { label: string; variant: 'gray' | 'yellow' | 'blue' | 'green' | 'red' }> = {
   INITIATED: { label: 'Initiated', variant: 'gray' },
@@ -35,12 +34,12 @@ export function OffboardingDetailsPage() {
     mutationFn: () => offboardingService.revokeITAccess(offboardingId!, formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['offboarding-details', offboardingId] });
-      toast.success('IT access revoked successfully');
+      alert('IT access revoked successfully');
       setShowModal(null);
       setFormData({});
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to revoke IT access');
+      alert(error.response?.data?.message || 'Failed to revoke IT access');
     },
   });
 
@@ -48,12 +47,12 @@ export function OffboardingDetailsPage() {
     mutationFn: () => offboardingService.processFinanceClearance(offboardingId!, formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['offboarding-details', offboardingId] });
-      toast.success('Finance clearance processed');
+      alert('Finance clearance processed');
       setShowModal(null);
       setFormData({});
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to process finance clearance');
+      alert(error.response?.data?.message || 'Failed to process finance clearance');
     },
   });
 
@@ -61,12 +60,12 @@ export function OffboardingDetailsPage() {
     mutationFn: () => offboardingService.processAssetClearance(offboardingId!, formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['offboarding-details', offboardingId] });
-      toast.success('Asset clearance processed');
+      alert('Asset clearance processed');
       setShowModal(null);
       setFormData({});
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to process asset clearance');
+      alert(error.response?.data?.message || 'Failed to process asset clearance');
     },
   });
 
@@ -74,12 +73,12 @@ export function OffboardingDetailsPage() {
     mutationFn: () => offboardingService.processHRClearance(offboardingId!, formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['offboarding-details', offboardingId] });
-      toast.success('HR clearance processed - Offboarding complete!');
+      alert('HR clearance processed - Offboarding complete!');
       setShowModal(null);
       setFormData({});
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to process HR clearance');
+      alert(error.response?.data?.message || 'Failed to process HR clearance');
     },
   });
 

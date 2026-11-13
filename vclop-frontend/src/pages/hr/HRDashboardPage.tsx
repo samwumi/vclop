@@ -8,7 +8,6 @@ import {
   FolderOpen,
   TrendingUp,
   Clock,
-  CheckCircle,
   AlertCircle
 } from 'lucide-react';
 import { leavesService } from '@/services/leaves.service';

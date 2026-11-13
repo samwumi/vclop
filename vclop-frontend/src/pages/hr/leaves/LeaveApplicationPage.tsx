@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, FileText, Send } from 'lucide-react';
 import { leavesService, type DayType } from '@/services/leaves.service';
-import { toast } from 'react-hot-toast';
 
 export function LeaveApplicationPage() {
   const navigate = useNavigate();
@@ -31,28 +30,22 @@ export function LeaveApplicationPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (draft: boolean) => {
-      if (draft) {
-        return leavesService.createApplication(formData);
-      } else {
-        return leavesService.createApplication(formData).then(app =>
-          leavesService.submitApplication(app.id)
-        );
+    mutationFn: async (draft: boolean) => {
+      const application = await leavesService.createApplication(formData);
+      if (!draft) {
+        await leavesService.submitApplication(application.id);
       }
+      return application;
     },
-    onSuccess: (data, draft) => {
+    onSuccess: (_application, draft) => {
       queryClient.invalidateQueries({ queryKey: ['my-leave-applications'] });
       queryClient.invalidateQueries({ queryKey: ['my-leave-balances'] });
       
-      if (draft) {
-        toast.success('Leave application saved as draft');
-      } else {
-        toast.success('Leave application submitted successfully');
-      }
+      alert(draft ? 'Leave application saved as draft' : 'Leave application submitted successfully');
       navigate('/hr/leaves/my-applications');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create application');
+      alert(error.response?.data?.message || 'Failed to create application');
     },
   });
 
@@ -64,7 +57,7 @@ export function LeaveApplicationPage() {
     e.preventDefault();
     
     if (!formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason) {
-      toast.error('Please fill in all required fields');
+      alert('Please fill in all required fields');
       return;
     }
 

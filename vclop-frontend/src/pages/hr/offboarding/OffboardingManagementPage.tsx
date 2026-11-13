@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { LogOut, Plus, Eye } from 'lucide-react';
 import { offboardingService, type OffboardingStatus } from '@/services/offboarding.service';
 import { ModulePage } from '@/components/ui/ModulePage';
 import { Badge } from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
-import { toast } from 'react-hot-toast';
 
 const STATUS_CONFIG: Record<OffboardingStatus, { label: string; variant: 'gray' | 'yellow' | 'blue' | 'green' | 'red' }> = {
   INITIATED: { label: 'Initiated', variant: 'gray' },
@@ -22,7 +21,6 @@ export function OffboardingManagementPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<OffboardingStatus | ''>('');
   const [search, setSearch] = useState('');
-  const [showInitiateModal, setShowInitiateModal] = useState(false);
 
   const { data: cases, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['offboarding-cases', statusFilter],
