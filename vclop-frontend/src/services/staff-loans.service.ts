@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/axios';
 
 export interface StaffLoanEligibility {
   eligible: boolean;
@@ -146,7 +146,7 @@ class StaffLoansService {
    * Check eligibility for staff loan
    */
   async checkEligibility(): Promise<StaffLoanEligibility> {
-    const response = await apiClient.get(`${this.baseUrl}/eligibility`);
+    const response = await api.get(`${this.baseUrl}/eligibility`);
     return response.data;
   }
 
@@ -154,7 +154,7 @@ class StaffLoansService {
    * Apply for staff loan
    */
   async applyForLoan(data: ApplyLoanDto): Promise<StaffLoan> {
-    const response = await apiClient.post(`${this.baseUrl}/apply`, data);
+    const response = await api.post(`${this.baseUrl}/apply`, data);
     return response.data;
   }
 
@@ -163,7 +163,7 @@ class StaffLoansService {
    */
   async getMyLoans(status?: StaffLoanStatus): Promise<StaffLoan[]> {
     const params = status ? { status } : {};
-    const response = await apiClient.get(`${this.baseUrl}/my-loans`, { params });
+    const response = await api.get(`${this.baseUrl}/my-loans`, { params });
     return response.data;
   }
 
@@ -171,7 +171,7 @@ class StaffLoansService {
    * Get loan by ID
    */
   async getLoanById(loanId: string): Promise<StaffLoan> {
-    const response = await apiClient.get(`${this.baseUrl}/${loanId}`);
+    const response = await api.get(`${this.baseUrl}/${loanId}`);
     return response.data;
   }
 
@@ -179,7 +179,7 @@ class StaffLoansService {
    * Submit loan for approval (change status from DRAFT to PENDING_APPROVAL)
    */
   async submitLoan(loanId: string): Promise<StaffLoan> {
-    const response = await apiClient.post(`${this.baseUrl}/${loanId}/submit`);
+    const response = await api.post(`${this.baseUrl}/${loanId}/submit`);
     return response.data;
   }
 
@@ -192,7 +192,7 @@ class StaffLoansService {
     page?: number;
     limit?: number;
   }): Promise<{ data: StaffLoan[]; total: number }> {
-    const response = await apiClient.get(this.baseUrl, { params });
+    const response = await api.get(this.baseUrl, { params });
     return response.data;
   }
 
@@ -200,7 +200,7 @@ class StaffLoansService {
    * Approve loan (Admin/HR Manager)
    */
   async approveLoan(loanId: string, data: ApproveLoanDto): Promise<StaffLoan> {
-    const response = await apiClient.post(`${this.baseUrl}/${loanId}/approve`, data);
+    const response = await api.post(`${this.baseUrl}/${loanId}/approve`, data);
     return response.data;
   }
 
@@ -208,7 +208,7 @@ class StaffLoansService {
    * Reject loan (Admin/HR Manager)
    */
   async rejectLoan(loanId: string, reason: string): Promise<StaffLoan> {
-    const response = await apiClient.post(`${this.baseUrl}/${loanId}/reject`, { reason });
+    const response = await api.post(`${this.baseUrl}/${loanId}/reject`, { reason });
     return response.data;
   }
 
@@ -225,7 +225,7 @@ class StaffLoansService {
       bankCode?: string;
     }
   ): Promise<StaffLoan> {
-    const response = await apiClient.post(`${this.baseUrl}/${loanId}/disburse`, data);
+    const response = await api.post(`${this.baseUrl}/${loanId}/disburse`, data);
     return response.data;
   }
 

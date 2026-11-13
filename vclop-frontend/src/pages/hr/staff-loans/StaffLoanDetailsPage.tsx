@@ -51,6 +51,11 @@ export function StaffLoanDetailsPage() {
   }
 
   const status = STATUS_CONFIG[loan.status] || { label: loan.status, variant: 'gray' as const };
+  
+  // Calculate paid/outstanding amounts from repayment schedule if available
+  const totalPaid = loan.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+  const outstanding = loan.totalRepayable - totalPaid;
+  const installmentsPaid = loan.repaymentSchedule?.filter(i => i.status === 'PAID').length || 0;
 
   return (
     <div className="container mx-auto py-8 max-w-5xl">
@@ -72,7 +77,7 @@ export function StaffLoanDetailsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
           <div>
             <p className="text-xs text-gray-500 mb-1">Loan Amount</p>
-            <p className="text-xl font-bold">{formatCurrency(loan.amount)}</p>
+            <p className="text-xl font-bold">{formatCurrency(loan.principalAmount)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Monthly Installment</p>
@@ -109,10 +114,10 @@ export function StaffLoanDetailsPage() {
               <p className="text-gray-500">Applied On</p>
               <p className="font-medium">{formatDate(loan.createdAt)}</p>
             </div>
-            {loan.approvedAt && (
+            {loan.reviewedAt && (
               <div>
                 <p className="text-gray-500">Approved On</p>
-                <p className="font-medium">{formatDate(loan.approvedAt)}</p>
+                <p className="font-medium">{formatDate(loan.reviewedAt)}</p>
               </div>
             )}
             {loan.disbursedAt && (
@@ -132,20 +137,20 @@ export function StaffLoanDetailsPage() {
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">Total Amount</span>
-              <span className="font-semibold">{formatCurrency(loan.amount)}</span>
+              <span className="font-semibold">{formatCurrency(loan.totalRepayable)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Amount Paid</span>
-              <span className="font-semibold text-green-600">{formatCurrency(loan.amountPaid || 0)}</span>
+              <span className="font-semibold text-green-600">{formatCurrency(totalPaid)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Outstanding</span>
-              <span className="font-semibold text-orange-600">{formatCurrency(loan.outstandingAmount || loan.amount)}</span>
+              <span className="font-semibold text-orange-600">{formatCurrency(outstanding)}</span>
             </div>
             <div className="h-px bg-gray-200 my-2"></div>
             <div className="flex justify-between">
               <span className="text-gray-500">Installments Paid</span>
-              <span className="font-semibold">{loan.installmentsPaid || 0} / {loan.tenureMonths}</span>
+              <span className="font-semibold">{installmentsPaid} / {loan.tenureMonths}</span>
             </div>
           </div>
 
@@ -153,12 +158,12 @@ export function StaffLoanDetailsPage() {
           <div className="mt-4">
             <div className="flex justify-between text-xs text-gray-500 mb-1">
               <span>Payment Progress</span>
-              <span>{Math.round(((loan.amountPaid || 0) / loan.amount) * 100)}%</span>
+              <span>{Math.round((totalPaid / loan.totalRepayable) * 100)}%</span>
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-brand-500 rounded-full transition-all"
-                style={{ width: `${Math.min(((loan.amountPaid || 0) / loan.amount) * 100, 100)}%` }}
+                style={{ width: `${Math.min((totalPaid / loan.totalRepayable) * 100, 100)}%` }}
               />
             </div>
           </div>

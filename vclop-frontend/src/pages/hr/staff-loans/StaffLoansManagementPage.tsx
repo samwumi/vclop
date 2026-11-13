@@ -34,8 +34,8 @@ export function StaffLoansManagementPage() {
       title="Staff Loans Management"
       subtitle="Manage all staff loan applications"
       icon={Briefcase}
-      searchPlaceholder="Search by employee name or loan ID..."
-      onSearchChange={() => {}}
+      search={search}
+      onSearchChange={setSearch}
       filter={
         <select 
           value={statusFilter} 

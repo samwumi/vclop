@@ -8,7 +8,7 @@ import {
   type TransactionType,
   type TransactionStatus,
 } from '@/services/transactions.service';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
   { value: 'ALL', label: 'All Types' },
@@ -113,7 +113,6 @@ export function DailyTransactionsPage() {
         icon={ArrowDownUp}
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search by customer, loan #, reference..."
         filter={
           <div className="flex gap-2">
             {/* Date Range */}

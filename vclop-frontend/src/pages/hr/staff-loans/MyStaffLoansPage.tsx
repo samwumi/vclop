@@ -36,8 +36,8 @@ export function MyStaffLoansPage() {
       title="My Staff Loans"
       subtitle="View and manage your loan applications"
       icon={DollarSign}
-      searchPlaceholder="Search loans..."
-      onSearchChange={() => {}}
+      search={search}
+      onSearchChange={setSearch}
       filter={
         <select 
           value={statusFilter} 

@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/axios';
 
 export type TransactionType = 'ALL' | 'VIRTUAL_ACCOUNT' | 'MANUAL';
 export type TransactionStatus = 'ALL' | 'MATCHED' | 'UNMATCHED' | 'PENDING';
@@ -73,12 +73,12 @@ export interface TransactionStats {
 
 export const transactionsService = {
   async getDailyTransactions(params?: TransactionQueryParams): Promise<DailyTransactionsResponse> {
-    const response = await apiClient.get('/transactions/daily', { params });
+    const response = await api.get('/transactions/daily', { params });
     return response.data;
   },
 
   async getStats(date?: string): Promise<TransactionStats> {
-    const response = await apiClient.get('/transactions/stats', {
+    const response = await api.get('/transactions/stats', {
       params: date ? { date } : undefined,
     });
     return response.data;
