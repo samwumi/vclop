@@ -43,6 +43,8 @@ import { HealthModule } from './modules/health/health.module';
 import { CommonModule } from './common/common.module';
 import { OfficerTargetsModule } from './modules/officer-targets/officer-targets.module';
 import { RecoveryModule } from './modules/recovery/recovery.module';
+import { HrModule } from './modules/hr/hr.module';
+import { TransactionsModule } from './modules/transactions/transactions.module';
 
 @Module({
   imports: [
@@ -129,6 +131,8 @@ import { RecoveryModule } from './modules/recovery/recovery.module';
     HealthModule,
     OfficerTargetsModule,
     RecoveryModule,
+    HrModule,
+    TransactionsModule,
   ],
   providers: [
     // ── Global guards (applied to every route in declaration order) ──────

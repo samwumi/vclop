@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Users, FileText, ShieldCheck, ShieldAlert, BookOpen,
   TrendingDown, BarChart2, Settings, GitBranch, Building2,
   Layers, Key, ScrollText, Package, GitMerge, Car, Target, HandCoins,
+  DollarSign, Briefcase, ArrowDownUp,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -31,9 +32,18 @@ export const APP_ROUTES: RouteConfig[] = [
   { path: '/compliance',        label: 'Compliance',       icon: ShieldCheck,  permission: 'loan_applications:compliance_review',        group: 'Operations' },
   { path: '/internal-control',  label: 'Internal Control', icon: ShieldAlert,  permission: 'loan_applications:internal_control_approve', group: 'Operations' },
   { path: '/collections',       label: 'Collections',      icon: TrendingDown, permission: 'loan_applications:record_repayment',          group: 'Operations' },
+  { path: '/transactions',      label: 'Daily Transactions', icon: ArrowDownUp,  permission: 'loan_applications:record_repayment',          group: 'Operations' },
   { path: '/transport',         label: 'Transport',        icon: Car,          anyPermission: ['loan_applications:compliance_review', 'transport:approve', 'loan_applications:disburse_head'], group: 'Operations' },
   { path: '/performance',       label: 'My Performance',   icon: Target,       permission: 'dashboard:read',                              group: 'Operations' },
   { path: '/officer-targets',   label: 'Officer Targets',  icon: Target,       permission: 'reports:read',                                group: 'Operations' },
+
+  // ── HR & Staff ─────────────────────────────────────────────────────────────
+  { path: '/hr/staff-loans/my-loans', label: 'My Loans', icon: DollarSign, permission: 'dashboard:read', group: 'HR & Staff' },
+  
+  // hidden staff loan sub-routes
+  { path: '/hr/staff-loans/apply',      label: 'Apply for Loan',      icon: DollarSign, hidden: true },
+  { path: '/hr/staff-loans/:loanId',    label: 'Loan Details',        icon: DollarSign, hidden: true },
+  { path: '/hr/staff-loans/management', label: 'Staff Loans Admin',   icon: Briefcase,  permission: 'users:read', hidden: true },
 
   // hidden sub-routes — exist in router but not shown in sidebar
   { path: '/customers/new', label: 'New Customer', icon: Users,    hidden: true },

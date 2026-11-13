@@ -1,0 +1,243 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { ContractType, TerminationType } from '@prisma/client';
+
+@Injectable()
+export class EmploymentService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Get employment history for a user
+   */
+  async getEmploymentHistory(userId: string) {
+    const periods = await this.prisma.employmentPeriod.findMany({
+      where: { userId },
+      include: {
+        department: true,
+        branch: true,
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        offboarding: {
+          select: {
+            id: true,
+            caseNumber: true,
+            overallStatus: true,
+          },
+        },
+      },
+      orderBy: { periodNumber: 'desc' },
+    });
+
+    return periods;
+  }
+
+  /**
+   * Get current employment period
+   */
+  async getCurrentEmployment(userId: string) {
+    const current = await this.prisma.employmentPeriod.findFirst({
+      where: {
+        userId,
+        isCurrent: true,
+      },
+      include: {
+        department: true,
+        branch: true,
+      },
+    });
+
+    if (!current) {
+      throw new NotFoundException(`No current employment found for user ${userId}`);
+    }
+
+    return current;
+  }
+
+  /**
+   * Create initial employment period
+   */
+  async createEmploymentPeriod(data: {
+    userId: string;
+    hireDate: Date;
+    jobTitle: string;
+    departmentId: string;
+    branchId: string;
+    contractType: ContractType;
+    salary?: number;
+    createdById: string;
+  }) {
+    // Check if user already has a current employment period
+    const existing = await this.prisma.employmentPeriod.findFirst({
+      where: {
+        userId: data.userId,
+        isCurrent: true,
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestException('User already has an active employment period');
+    }
+
+    // Get next period number
+    const lastPeriod = await this.prisma.employmentPeriod.findFirst({
+      where: { userId: data.userId },
+      orderBy: { periodNumber: 'desc' },
+    });
+
+    const periodNumber = lastPeriod ? lastPeriod.periodNumber + 1 : 1;
+
+    // Create employment period
+    const period = await this.prisma.employmentPeriod.create({
+      data: {
+        userId: data.userId,
+        periodNumber,
+        hireDate: data.hireDate,
+        jobTitle: data.jobTitle,
+        departmentId: data.departmentId,
+        branchId: data.branchId,
+        contractType: data.contractType,
+        salary: data.salary,
+        salaryEffectiveDate: data.salary ? data.hireDate : null,
+        isCurrent: true,
+        createdById: data.createdById,
+      },
+      include: {
+        department: true,
+        branch: true,
+      },
+    });
+
+    // Update user record
+    await this.prisma.user.update({
+      where: { id: data.userId },
+      data: {
+        jobTitle: data.jobTitle,
+        departmentId: data.departmentId,
+        branchId: data.branchId,
+        status: 'ACTIVE',
+      },
+    });
+
+    return period;
+  }
+
+  /**
+   * Update salary
+   */
+  async updateSalary(
+    employmentPeriodId: string,
+    newSalary: number,
+    effectiveDate: Date,
+    updatedById: string,
+  ) {
+    const period = await this.prisma.employmentPeriod.findUnique({
+      where: { id: employmentPeriodId },
+    });
+
+    if (!period) {
+      throw new NotFoundException('Employment period not found');
+    }
+
+    if (!period.isCurrent) {
+      throw new BadRequestException('Cannot update salary for past employment period');
+    }
+
+    return await this.prisma.employmentPeriod.update({
+      where: { id: employmentPeriodId },
+      data: {
+        salary: newSalary,
+        salaryEffectiveDate: effectiveDate,
+      },
+    });
+  }
+
+  /**
+   * Transfer employee to different branch/department
+   */
+  async transferEmployee(data: {
+    userId: string;
+    newDepartmentId?: string;
+    newBranchId?: string;
+    effectiveDate: Date;
+    updatedById: string;
+  }) {
+    const current = await this.getCurrentEmployment(data.userId);
+
+    const updateData: any = {};
+    if (data.newDepartmentId) updateData.departmentId = data.newDepartmentId;
+    if (data.newBranchId) updateData.branchId = data.newBranchId;
+
+    const updated = await this.prisma.employmentPeriod.update({
+      where: { id: current.id },
+      data: updateData,
+      include: {
+        department: true,
+        branch: true,
+      },
+    });
+
+    // Also update user record
+    await this.prisma.user.update({
+      where: { id: data.userId },
+      data: updateData,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Check if user is eligible for rehire
+   */
+  async checkRehireEligibility(userId: string) {
+    const lastPeriod = await this.prisma.employmentPeriod.findFirst({
+      where: { userId },
+      orderBy: { periodNumber: 'desc' },
+    });
+
+    if (!lastPeriod) {
+      return { eligible: true, reason: 'No previous employment' };
+    }
+
+    if (lastPeriod.isCurrent) {
+      return { eligible: false, reason: 'Currently employed' };
+    }
+
+    if (!lastPeriod.rehireEligible) {
+      return {
+        eligible: false,
+        reason: lastPeriod.terminationReason || 'Marked not eligible for rehire',
+      };
+    }
+
+    return { eligible: true, reason: null };
+  }
+
+  /**
+   * Rehire employee (create new employment period)
+   */
+  async rehireEmployee(data: {
+    userId: string;
+    hireDate: Date;
+    jobTitle: string;
+    departmentId: string;
+    branchId: string;
+    contractType: ContractType;
+    salary?: number;
+    createdById: string;
+  }) {
+    // Check eligibility
+    const eligibility = await this.checkRehireEligibility(data.userId);
+    if (!eligibility.eligible) {
+      throw new BadRequestException(`Cannot rehire: ${eligibility.reason}`);
+    }
+
+    // Create new employment period (reuse createEmploymentPeriod logic)
+    return await this.createEmploymentPeriod(data);
+  }
+}

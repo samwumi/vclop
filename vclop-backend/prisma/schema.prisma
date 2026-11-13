@@ -8,30 +8,35 @@ datasource db {
 }
 
 model Branch {
-  id             String       @id @default(uuid()) @db.VarChar(36)
-  code           String       @unique @db.VarChar(20)
-  name           String       @db.VarChar(100)
-  address        String?      @db.VarChar(500)
-  city           String?      @db.VarChar(100)
-  state          String?      @db.VarChar(100)
-  country        String       @default("Philippines") @db.VarChar(100)
-  postalCode     String?      @db.VarChar(20)
-  latitude       Decimal?     @db.Decimal(10, 8)
-  longitude      Decimal?     @db.Decimal(11, 8)
-  phone          String?      @db.VarChar(30)
-  email          String?      @db.VarChar(150)
-  managerName    String?      @db.VarChar(150)
-  isHeadOffice   Boolean      @default(false)
-  isActive       Boolean      @default(true)
-  metadata       String?      @db.LongText
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  deletedAt      DateTime?
-  auditLogs      AuditLog[]
-  settings       Setting[]
-  managedByUsers UserBranch[]
-  users          User[]
+  id               String            @id @default(uuid()) @db.VarChar(36)
+  code             String            @unique @db.VarChar(20)
+  name             String            @db.VarChar(100)
+  address          String?           @db.VarChar(500)
+  city             String?           @db.VarChar(100)
+  state            String?           @db.VarChar(100)
+  country          String            @default("Philippines") @db.VarChar(100)
+  postalCode       String?           @db.VarChar(20)
+  latitude         Decimal?          @db.Decimal(10, 8)
+  longitude        Decimal?          @db.Decimal(11, 8)
+  phone            String?           @db.VarChar(30)
+  email            String?           @db.VarChar(150)
+  managerName      String?           @db.VarChar(150)
+  isHeadOffice     Boolean           @default(false)
+  isActive         Boolean           @default(true)
+  metadata         String?           @db.LongText
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+  auditLogs        AuditLog[]
+  settings         Setting[]
+  managedByUsers   UserBranch[]
+  users            User[]
   recoveryAccounts RecoveryAccount[]
+
+  // HR Module Relations
+  employmentPeriods EmploymentPeriod[] @relation("PeriodBranch")
+  publicHolidays    PublicHoliday[]    @relation("HolidayBranch")
+  workweeks         BranchWorkweek[]   @relation("WorkweekBranch")
 
   @@index([code])
   @@index([isActive])
@@ -54,6 +59,9 @@ model Department {
   parent      Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
   children    Department[] @relation("DepartmentHierarchy")
   users       User[]
+
+  // HR Module Relations
+  employmentPeriods EmploymentPeriod[] @relation("PeriodDepartment")
 
   @@index([parentId])
   @@index([isActive])
@@ -121,62 +129,101 @@ model RolePermission {
 }
 
 model User {
-  id                      String                   @id @default(uuid()) @db.VarChar(36)
-  employeeId              String?                  @unique @db.VarChar(30)
-  email                   String                   @db.VarChar(150)
-  phone                   String?                  @db.VarChar(30)
-  username                String                   @db.VarChar(50)
-  passwordHash            String                   @db.VarChar(255)
-  firstName               String                   @db.VarChar(80)
-  middleName              String?                  @db.VarChar(80)
-  lastName                String                   @db.VarChar(80)
-  suffix                  String?                  @db.VarChar(20)
-  gender                  Gender?
-  dateOfBirth             DateTime?                @db.Date
-  avatarPath              String?                  @db.VarChar(500)
-  status                  UserStatus               @default(PENDING_VERIFICATION)
-  departmentId            String?                  @db.VarChar(36)
-  branchId                String?                  @db.VarChar(36)
-  supervisorId            String?                  @db.VarChar(36)
-  jobTitle                String?                  @db.VarChar(100)
-  emailVerifiedAt         DateTime?
-  phoneVerifiedAt         DateTime?
-  lastLoginAt             DateTime?
-  lastLoginIp             String?                  @db.VarChar(45)
-  failedLoginCount        Int                      @default(0)
-  lockedUntil             DateTime?
-  mustChangePassword      Boolean                  @default(false)
-  twoFactorEnabled        Boolean                  @default(false)
-  twoFactorSecret         String?                  @db.VarChar(255)
-  timezone                String                   @default("Asia/Manila") @db.VarChar(50)
-  locale                  String                   @default("en-PH") @db.VarChar(10)
-  metadata                String?                  @db.LongText
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  deletedAt               DateTime?
-  createdById             String?                  @db.VarChar(36)
-  updatedById             String?                  @db.VarChar(36)
-  auditLogs               AuditLog[]
-  dashboardLayouts        DashboardLayout[]
-  notificationPreferences NotificationPreference[]
-  tokens                  Token[]
-  otpCodes                OtpCode[]
-  managedBranches         UserBranch[]
-  userPermissions         UserPermission[]
-  userRoles               UserRole[]
-  branch                  Branch?                  @relation(fields: [branchId], references: [id])
-  department              Department?              @relation(fields: [departmentId], references: [id])
-  supervisor              User?                    @relation("UserHierarchy", fields: [supervisorId], references: [id])
-  subordinates            User[]                   @relation("UserHierarchy")
-  targets                 OfficerTarget[]          @relation("OfficerTargets")
-  recoveryAccountsAssigned RecoveryAccount[]       @relation("RecoveryOfficer")
-  recoveryAccountsCreated  RecoveryAccount[]       @relation("RecoveryAccountCreator")
-  recoveryActivities       RecoveryActivity[]      @relation("ActivityRecorder")
-  recoveryPaymentsRecorded RecoveryPayment[]       @relation("PaymentRecordedBy")
-  recoveryPaymentsVerified RecoveryPayment[]       @relation("PaymentVerifiedBy")
-  repaymentPromises        RepaymentPromise[]      @relation("PromiseRecorder")
-  recoveryDocuments        RecoveryDocument[]      @relation("RecoveryDocUploader")
-  recoveryExpenses         RecoveryExpense[]       @relation("ExpenseRecorder")
+  id                       String                   @id @default(uuid()) @db.VarChar(36)
+  employeeId               String?                  @unique @db.VarChar(30)
+  email                    String                   @db.VarChar(150)
+  phone                    String?                  @db.VarChar(30)
+  username                 String                   @db.VarChar(50)
+  passwordHash             String                   @db.VarChar(255)
+  firstName                String                   @db.VarChar(80)
+  middleName               String?                  @db.VarChar(80)
+  lastName                 String                   @db.VarChar(80)
+  suffix                   String?                  @db.VarChar(20)
+  gender                   Gender?
+  dateOfBirth              DateTime?                @db.Date
+  avatarPath               String?                  @db.VarChar(500)
+  status                   UserStatus               @default(PENDING_VERIFICATION)
+  departmentId             String?                  @db.VarChar(36)
+  branchId                 String?                  @db.VarChar(36)
+  supervisorId             String?                  @db.VarChar(36)
+  jobTitle                 String?                  @db.VarChar(100)
+  emailVerifiedAt          DateTime?
+  phoneVerifiedAt          DateTime?
+  lastLoginAt              DateTime?
+  lastLoginIp              String?                  @db.VarChar(45)
+  failedLoginCount         Int                      @default(0)
+  lockedUntil              DateTime?
+  mustChangePassword       Boolean                  @default(false)
+  twoFactorEnabled         Boolean                  @default(false)
+  twoFactorSecret          String?                  @db.VarChar(255)
+  timezone                 String                   @default("Asia/Manila") @db.VarChar(50)
+  locale                   String                   @default("en-PH") @db.VarChar(10)
+  metadata                 String?                  @db.LongText
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  deletedAt                DateTime?
+  createdById              String?                  @db.VarChar(36)
+  updatedById              String?                  @db.VarChar(36)
+  auditLogs                AuditLog[]
+  dashboardLayouts         DashboardLayout[]
+  notificationPreferences  NotificationPreference[]
+  tokens                   Token[]
+  otpCodes                 OtpCode[]
+  managedBranches          UserBranch[]
+  userPermissions          UserPermission[]
+  userRoles                UserRole[]
+  branch                   Branch?                  @relation(fields: [branchId], references: [id])
+  department               Department?              @relation(fields: [departmentId], references: [id])
+  supervisor               User?                    @relation("UserHierarchy", fields: [supervisorId], references: [id])
+  subordinates             User[]                   @relation("UserHierarchy")
+  targets                  OfficerTarget[]          @relation("OfficerTargets")
+  recoveryAccountsAssigned RecoveryAccount[]        @relation("RecoveryOfficer")
+  recoveryAccountsCreated  RecoveryAccount[]        @relation("RecoveryAccountCreator")
+  recoveryActivities       RecoveryActivity[]       @relation("ActivityRecorder")
+  recoveryPaymentsRecorded RecoveryPayment[]        @relation("PaymentRecordedBy")
+  recoveryPaymentsVerified RecoveryPayment[]        @relation("PaymentVerifiedBy")
+  repaymentPromises        RepaymentPromise[]       @relation("PromiseRecorder")
+  recoveryDocuments        RecoveryDocument[]       @relation("RecoveryDocUploader")
+  recoveryExpenses         RecoveryExpense[]        @relation("ExpenseRecorder")
+
+  // HR Module Relations
+  employmentPeriods            EmploymentPeriod[]           @relation("EmploymentPeriods")
+  employmentPeriodsCreated     EmploymentPeriod[]           @relation("EmploymentPeriodCreator")
+  leaveEntitlements            LeaveEntitlement[]           @relation("LeaveEntitlements")
+  leaveEntitlementsCreated     LeaveEntitlement[]           @relation("EntitlementCreator")
+  leaveEntitlementsUpdated     LeaveEntitlement[]           @relation("EntitlementUpdater")
+  leaveAdjustmentsApproved     LeaveEntitlementAdjustment[] @relation("AdjustmentApprover")
+  leaveApplications            LeaveApplication[]           @relation("LeaveApplications")
+  leaveApplicationsSubmitted   LeaveApplication[]           @relation("LeaveSubmitter")
+  leaveApplicationsApproved    LeaveApplication[]           @relation("LeaveApprover")
+  leaveApplicationsRejected    LeaveApplication[]           @relation("LeaveRejecter")
+  leaveApplicationsCancelled   LeaveApplication[]           @relation("LeaveCanceller")
+  leaveApprovalsAsApprover     LeaveApproval[]              @relation("LeaveApproverUser")
+  leaveApprovalsAsDelegator    LeaveApproval[]              @relation("LeaveApprovalDelegator")
+  staffLoans                   StaffLoan[]                  @relation("StaffLoanBorrower")
+  staffLoansCreated            StaffLoan[]                  @relation("StaffLoanCreator")
+  staffLoansSubmitted          StaffLoan[]                  @relation("StaffLoanSubmitter")
+  staffLoansReviewed           StaffLoan[]                  @relation("StaffLoanReviewer")
+  staffLoansDisbursed          StaffLoan[]                  @relation("StaffLoanDisbursing")
+  staffLoanPaymentsRecorded    StaffLoanPayment[]           @relation("StaffPaymentRecorder")
+  staffLoanPaymentsVerified    StaffLoanPayment[]           @relation("StaffPaymentVerifier")
+  staffLoanReversalsApproved   StaffLoanReversal[]          @relation("ReversalApprover")
+  staffLoanAdjustmentsApproved StaffLoanAdjustment[]        @relation("AdjustmentApprover")
+  staffLoanApprovalsGiven      StaffLoanApproval[]          @relation("StaffLoanApprovalDecision")
+  resourceOwnerships           ResourceOwnership[]          @relation("ResourceOwner")
+  ownershipAssignments         ResourceOwnership[]          @relation("OwnershipAssigner")
+  delegationsAsFrom            ResourceDelegation[]         @relation("Delegator")
+  delegationsAsTo              ResourceDelegation[]         @relation("Delegate")
+  delegationsCreated           ResourceDelegation[]         @relation("DelegationCreator")
+  offboardingCases             OffboardingCase[]            @relation("OffboardingEmployee")
+  offboardingsInitiated        OffboardingCase[]            @relation("OffboardingInitiator")
+  itAccessRevocations          OffboardingCase[]            @relation("ITAccessRevoker")
+  financeClearances            OffboardingCase[]            @relation("FinanceClearer")
+  assetClearances              OffboardingCase[]            @relation("AssetClearer")
+  hrClearances                 OffboardingCase[]            @relation("HRClearer")
+  exitInterviews               OffboardingCase[]            @relation("ExitInterviewer")
+  offboardingsCompleted        OffboardingCase[]            @relation("OffboardingCompleter")
+  approvalPoliciesCreated      ApprovalPolicy[]             @relation("PolicyCreator")
 
   @@unique([email, deletedAt])
   @@unique([username, deletedAt])
@@ -246,19 +293,19 @@ model UserPermission {
 }
 
 model OfficerTarget {
-  id                    String    @id @default(uuid()) @db.VarChar(36)
-  userId                String    @db.VarChar(36)
-  targetMonth           DateTime  @db.Date // First day of the target month
-  disbursementTarget    Decimal   @default(0) @db.Decimal(15, 2) // Target disbursement amount
-  customerTarget        Int       @default(0) // Target number of new customers
-  disbursementAchieved  Decimal   @default(0) @db.Decimal(15, 2) // Actual disbursement amount
-  customerAchieved      Int       @default(0) // Actual number of customers registered
-  notes                 String?   @db.Text
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  createdById           String?   @db.VarChar(36)
+  id                   String   @id @default(uuid()) @db.VarChar(36)
+  userId               String   @db.VarChar(36)
+  targetMonth          DateTime @db.Date // First day of the target month
+  disbursementTarget   Decimal  @default(0) @db.Decimal(15, 2) // Target disbursement amount
+  customerTarget       Int      @default(0) // Target number of new customers
+  disbursementAchieved Decimal  @default(0) @db.Decimal(15, 2) // Actual disbursement amount
+  customerAchieved     Int      @default(0) // Actual number of customers registered
+  notes                String?  @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  createdById          String?  @db.VarChar(36)
 
-  user                  User      @relation("OfficerTargets", fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation("OfficerTargets", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, targetMonth])
   @@index([userId])
@@ -599,64 +646,68 @@ model DocumentType {
 }
 
 model Customer {
-  id                 String             @id @default(uuid()) @db.VarChar(36)
-  customerNumber     String             @unique @db.VarChar(20)
-  type               CustomerType       @default(INDIVIDUAL)
-  status             CustomerStatus     @default(PROSPECT)
-  firstName          String             @db.VarChar(100)
-  lastName           String             @db.VarChar(100)
-  middleName         String?            @db.VarChar(100)
-  businessName       String?            @db.VarChar(200)
-  gender             Gender?
-  dateOfBirth        DateTime?
-  phone              String             @unique @db.VarChar(20)
-  alternatePhone     String?            @db.VarChar(20)
-  email              String?            @unique @db.VarChar(150)
-  bvn                String?            @unique @db.VarChar(11) // Plain BVN (deprecated, use bvnEncrypted)
-  bvnEncrypted       String?            @db.Text // Encrypted BVN (format: encrypted$iv$authTag)
-  nin                String?            @unique @db.VarChar(11) // Plain NIN (deprecated, use ninEncrypted)
-  ninEncrypted       String?            @db.Text // Encrypted NIN (format: encrypted$iv$authTag)
-  encryptionKeyVersion Int?             @default(1) // For key rotation
-  bankAccountNumber  String?            @db.VarChar(20)
-  bankCode           String?            @db.VarChar(10)
-  residentialAddress String?            @db.VarChar(500)
-  businessAddress    String?            @db.VarChar(500)
-  gpsLat             Float?
-  gpsLng             Float?
+  id                               String             @id @default(uuid()) @db.VarChar(36)
+  customerNumber                   String             @unique @db.VarChar(20)
+  type                             CustomerType       @default(INDIVIDUAL)
+  status                           CustomerStatus     @default(PROSPECT)
+  firstName                        String             @db.VarChar(100)
+  lastName                         String             @db.VarChar(100)
+  middleName                       String?            @db.VarChar(100)
+  businessName                     String?            @db.VarChar(200)
+  gender                           Gender?
+  dateOfBirth                      DateTime?
+  phone                            String             @unique @db.VarChar(20)
+  alternatePhone                   String?            @db.VarChar(20)
+  email                            String?            @unique @db.VarChar(150)
+  bvn                              String?            @unique @db.VarChar(11) // Plain BVN (deprecated, use bvnEncrypted)
+  bvnEncrypted                     String?            @db.Text // Encrypted BVN (format: encrypted$iv$authTag)
+  nin                              String?            @unique @db.VarChar(11) // Plain NIN (deprecated, use ninEncrypted)
+  ninEncrypted                     String?            @db.Text // Encrypted NIN (format: encrypted$iv$authTag)
+  encryptionKeyVersion             Int?               @default(1) // For key rotation
+  bankAccountNumber                String?            @db.VarChar(20)
+  bankCode                         String?            @db.VarChar(10)
+  residentialAddress               String?            @db.VarChar(500)
+  businessAddress                  String?            @db.VarChar(500)
+  gpsLat                           Float?
+  gpsLng                           Float?
   // Employment fields
-  employerName       String?            @db.VarChar(200)
-  employmentType     String?            @db.VarChar(50)
-  jobTitle           String?            @db.VarChar(100)
-  monthlyIncome      Decimal?           @db.Decimal(15, 2)
-  employerPhone      String?            @db.VarChar(20)
-  employerAddress    String?            @db.VarChar(500)
+  employerName                     String?            @db.VarChar(200)
+  employmentType                   String?            @db.VarChar(50)
+  jobTitle                         String?            @db.VarChar(100)
+  monthlyIncome                    Decimal?           @db.Decimal(15, 2)
+  employerPhone                    String?            @db.VarChar(20)
+  employerAddress                  String?            @db.VarChar(500)
   // Next of Kin
-  nokName            String?            @db.VarChar(200)
-  nokRelationship    String?            @db.VarChar(100)
-  nokPhone           String?            @db.VarChar(20)
-  nokAddress         String?            @db.VarChar(500)
+  nokName                          String?            @db.VarChar(200)
+  nokRelationship                  String?            @db.VarChar(100)
+  nokPhone                         String?            @db.VarChar(20)
+  nokAddress                       String?            @db.VarChar(500)
   // NDPA Consent Fields
-  dataProcessingConsent           Boolean?   @default(false)
-  dataProcessingConsentDate       DateTime?
-  dataProcessingConsentIp         String?    @db.VarChar(50)
-  marketingConsent                Boolean?   @default(false)
-  marketingConsentDate            DateTime?
-  creditBureauConsent             Boolean?   @default(false)
-  creditBureauConsentDate         DateTime?
-  thirdPartyDataSharingConsent    Boolean?   @default(false)
+  dataProcessingConsent            Boolean?           @default(false)
+  dataProcessingConsentDate        DateTime?
+  dataProcessingConsentIp          String?            @db.VarChar(50)
+  marketingConsent                 Boolean?           @default(false)
+  marketingConsentDate             DateTime?
+  creditBureauConsent              Boolean?           @default(false)
+  creditBureauConsentDate          DateTime?
+  thirdPartyDataSharingConsent     Boolean?           @default(false)
   thirdPartyDataSharingConsentDate DateTime?
-  consentVersion                  String?    @default("v1.0") @db.VarChar(20)
-  branchId           String?            @db.VarChar(36)
-  assignedOfficerId  String?            @db.VarChar(36)
-  profileCompletion  Int                @default(0)
-  createdById        String?            @db.VarChar(36)
-  updatedById        String?            @db.VarChar(36)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  deletedAt          DateTime?
-  documents          CustomerDocument[]
-  loanApplications   LoanApplication[]
-  recoveryAccounts   RecoveryAccount[]
+  consentVersion                   String?            @default("v1.0") @db.VarChar(20)
+  branchId                         String?            @db.VarChar(36)
+  assignedOfficerId                String?            @db.VarChar(36)
+  profileCompletion                Int                @default(0)
+  createdById                      String?            @db.VarChar(36)
+  updatedById                      String?            @db.VarChar(36)
+  createdAt                        DateTime           @default(now())
+  updatedAt                        DateTime           @updatedAt
+  deletedAt                        DateTime?
+  documents                        CustomerDocument[]
+  loanApplications                 LoanApplication[]
+  recoveryAccounts                 RecoveryAccount[]
+
+  // HR Module Relations
+  resourceOwnerships  ResourceOwnership[]  @relation("ResourceOwnerCustomer")
+  resourceDelegations ResourceDelegation[] @relation("ResourceDelegationCustomer")
 
   @@index([status])
   @@index([branchId])
@@ -738,30 +789,34 @@ model LoanProductDocumentRequirement {
 }
 
 model LoanApplication {
-  id                String                @id @default(uuid()) @db.VarChar(36)
-  applicationNumber String                @unique @db.VarChar(20)
-  customerId        String                @db.VarChar(36)
-  loanProductId     String                @db.VarChar(36)
-  amount            Decimal               @db.Decimal(14, 2)
-  tenureDays        Int
-  purpose           String?               @db.VarChar(500)
-  status            LoanApplicationStatus @default(DRAFT)
-  assignedToId      String?               @db.VarChar(36)  // Loan officer who created/owns this
-  submittedById     String?               @db.VarChar(36)
-  submittedAt       DateTime?
-  reviewedById      String?               @db.VarChar(36)
-  reviewedAt        DateTime?
-  reviewNotes       String?               @db.VarChar(500)
-  rejectionReason   String?               @db.VarChar(500)
-  complianceFeedback String?              @db.Text          // Detailed feedback from CO when returning to LO
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  deletedAt         DateTime?
-  collaterals       Collateral[]
-  guarantors        Guarantor[]
-  customer          Customer              @relation(fields: [customerId], references: [id])
-  loanProduct       LoanProduct           @relation(fields: [loanProductId], references: [id])
-  loan              Loan?
+  id                 String                @id @default(uuid()) @db.VarChar(36)
+  applicationNumber  String                @unique @db.VarChar(20)
+  customerId         String                @db.VarChar(36)
+  loanProductId      String                @db.VarChar(36)
+  amount             Decimal               @db.Decimal(14, 2)
+  tenureDays         Int
+  purpose            String?               @db.VarChar(500)
+  status             LoanApplicationStatus @default(DRAFT)
+  assignedToId       String?               @db.VarChar(36) // Loan officer who created/owns this
+  submittedById      String?               @db.VarChar(36)
+  submittedAt        DateTime?
+  reviewedById       String?               @db.VarChar(36)
+  reviewedAt         DateTime?
+  reviewNotes        String?               @db.VarChar(500)
+  rejectionReason    String?               @db.VarChar(500)
+  complianceFeedback String?               @db.Text // Detailed feedback from CO when returning to LO
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  deletedAt          DateTime?
+  collaterals        Collateral[]
+  guarantors         Guarantor[]
+  customer           Customer              @relation(fields: [customerId], references: [id])
+  loanProduct        LoanProduct           @relation(fields: [loanProductId], references: [id])
+  loan               Loan?
+
+  // HR Module Relations
+  resourceOwnerships  ResourceOwnership[]  @relation("ResourceOwnerLoan")
+  resourceDelegations ResourceDelegation[] @relation("ResourceDelegationLoan")
 
   @@index([customerId])
   @@index([loanProductId])
@@ -1003,6 +1058,10 @@ model WorkflowTask {
   stage              WorkflowStage      @relation(fields: [stageId], references: [id])
   workflowInstance   WorkflowInstance   @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
 
+  // HR Module Relations
+  resourceOwnerships  ResourceOwnership[]  @relation("ResourceOwnerWorkflow")
+  resourceDelegations ResourceDelegation[] @relation("ResourceDelegationWorkflow")
+
   @@index([workflowInstanceId, status])
   @@index([assignedToId, status])
   @@index([stageId], map: "workflow_tasks_stageId_fkey")
@@ -1053,7 +1112,7 @@ model FieldVisit {
 
 model TransportRequest {
   id                String                 @id @default(uuid()) @db.VarChar(36)
-  loanApplicationId String?                @db.VarChar(36)  // Optional - can be general request
+  loanApplicationId String?                @db.VarChar(36) // Optional - can be general request
   requestedById     String                 @db.VarChar(36)
   purpose           String                 @db.VarChar(500)
   location          String                 @db.VarChar(500)
@@ -1147,6 +1206,18 @@ enum AuditAction {
   LOCK
   UNLOCK
   SYSTEM
+  // HR Module Actions
+  DISBURSE
+  VERIFY_PAYMENT
+  REVERSE_PAYMENT
+  ADJUST_BALANCE
+  REVOKE_ACCESS
+  DELEGATE_RESOURCE
+  ACCEPT_DELEGATION
+  REVOKE_DELEGATION
+  CLEAR_FINANCE
+  CLEAR_ASSETS
+  COMPLETE_OFFBOARDING
 }
 
 enum SettingType {
@@ -1302,7 +1373,7 @@ enum LoanApplicationStatus {
   DRAFT
   SUBMITTED
   COMPLIANCE_REVIEW
-  NEEDS_ATTENTION        // Application returned to LO for corrections
+  NEEDS_ATTENTION // Application returned to LO for corrections
   AWAITING_INFORMATION
   INTERNAL_CONTROL_REVIEW
   ACCOUNTING_REVIEW
@@ -1417,62 +1488,66 @@ enum OtpCodeType {
 // ═══════════════════════════════════════════════════════════════════════════
 
 model RecoveryAccount {
-  id                    String                @id @default(uuid()) @db.VarChar(36)
-  accountNumber         String                @unique @db.VarChar(20)
-  
+  id            String @id @default(uuid()) @db.VarChar(36)
+  accountNumber String @unique @db.VarChar(20)
+
   // Classification
-  source                RecoverySource        @default(LEGACY)
-  vclopLoanId           String?               @unique @db.VarChar(36)
-  
+  source      RecoverySource @default(LEGACY)
+  vclopLoanId String?        @unique @db.VarChar(36)
+
   // Customer information
-  customerId            String?               @db.VarChar(36)
-  customerName          String                @db.VarChar(200)
-  customerPhone         String                @db.VarChar(20)
-  customerEmail         String?               @db.VarChar(150)
-  customerAddress       String?               @db.Text
-  
+  customerId      String? @db.VarChar(36)
+  customerName    String  @db.VarChar(200)
+  customerPhone   String  @db.VarChar(20)
+  customerEmail   String? @db.VarChar(150)
+  customerAddress String? @db.Text
+
   // Loan details
-  originalPrincipal     Decimal               @db.Decimal(14, 2)
-  disbursementDate      DateTime              @db.Date
-  originalReference     String?               @db.VarChar(100)
-  
+  originalPrincipal Decimal  @db.Decimal(14, 2)
+  disbursementDate  DateTime @db.Date
+  originalReference String?  @db.VarChar(100)
+
   // Financial tracking
-  historicalRepayments  Decimal               @default(0) @db.Decimal(14, 2)
-  outstandingBalance    Decimal               @db.Decimal(14, 2)
-  recoveredAmount       Decimal               @default(0) @db.Decimal(14, 2)
-  totalExpenses         Decimal               @default(0) @db.Decimal(14, 2)
-  netRecovery           Decimal               @default(0) @db.Decimal(14, 2)
-  lastPaymentDate       DateTime?
-  lastPaymentAmount     Decimal?              @db.Decimal(14, 2)
-  
+  historicalRepayments Decimal   @default(0) @db.Decimal(14, 2)
+  outstandingBalance   Decimal   @db.Decimal(14, 2)
+  recoveredAmount      Decimal   @default(0) @db.Decimal(14, 2)
+  totalExpenses        Decimal   @default(0) @db.Decimal(14, 2)
+  netRecovery          Decimal   @default(0) @db.Decimal(14, 2)
+  lastPaymentDate      DateTime?
+  lastPaymentAmount    Decimal?  @db.Decimal(14, 2)
+
   // Assignment
-  assignedOfficerId     String?               @db.VarChar(36)
-  assignedDate          DateTime?
-  branchId              String?               @db.VarChar(36)
-  
+  assignedOfficerId String?   @db.VarChar(36)
+  assignedDate      DateTime?
+  branchId          String?   @db.VarChar(36)
+
   // Status
-  status                RecoveryStatus        @default(PENDING_VERIFICATION)
-  priorityLevel         PriorityLevel         @default(MEDIUM)
-  
+  status        RecoveryStatus @default(PENDING_VERIFICATION)
+  priorityLevel PriorityLevel  @default(MEDIUM)
+
   // Metadata
-  notes                 String?               @db.Text
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  createdById           String                @db.VarChar(36)
-  deletedAt             DateTime?
-  
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String    @db.VarChar(36)
+  deletedAt   DateTime?
+
   // Relations
-  customer              Customer?             @relation(fields: [customerId], references: [id])
-  vclopLoan             Loan?                 @relation(fields: [vclopLoanId], references: [id])
-  assignedOfficer       User?                 @relation("RecoveryOfficer", fields: [assignedOfficerId], references: [id])
-  branch                Branch?               @relation(fields: [branchId], references: [id])
-  createdBy             User                  @relation("RecoveryAccountCreator", fields: [createdById], references: [id])
-  activities            RecoveryActivity[]
-  payments              RecoveryPayment[]
-  promises              RepaymentPromise[]
-  documents             RecoveryDocument[]
-  expenses              RecoveryExpense[]
-  
+  customer        Customer?          @relation(fields: [customerId], references: [id])
+  vclopLoan       Loan?              @relation(fields: [vclopLoanId], references: [id])
+  assignedOfficer User?              @relation("RecoveryOfficer", fields: [assignedOfficerId], references: [id])
+  branch          Branch?            @relation(fields: [branchId], references: [id])
+  createdBy       User               @relation("RecoveryAccountCreator", fields: [createdById], references: [id])
+  activities      RecoveryActivity[]
+  payments        RecoveryPayment[]
+  promises        RepaymentPromise[]
+  documents       RecoveryDocument[]
+  expenses        RecoveryExpense[]
+
+  // HR Module Relations
+  resourceOwnerships  ResourceOwnership[]  @relation("ResourceOwnerRecovery")
+  resourceDelegations ResourceDelegation[] @relation("ResourceDelegationRecovery")
+
   @@index([accountNumber])
   @@index([customerId])
   @@index([assignedOfficerId])
@@ -1484,30 +1559,30 @@ model RecoveryAccount {
 }
 
 model RecoveryActivity {
-  id                String            @id @default(uuid()) @db.VarChar(36)
-  accountId         String            @db.VarChar(36)
-  activityType      ActivityType
-  activityDate      DateTime          @default(now())
-  
+  id           String       @id @default(uuid()) @db.VarChar(36)
+  accountId    String       @db.VarChar(36)
+  activityType ActivityType
+  activityDate DateTime     @default(now())
+
   // Activity details
-  contactMethod     ContactMethod?
-  contactOutcome    ContactOutcome?
-  notes             String?           @db.Text
-  nextFollowupDate  DateTime?
-  
+  contactMethod    ContactMethod?
+  contactOutcome   ContactOutcome?
+  notes            String?         @db.Text
+  nextFollowupDate DateTime?
+
   // Location (for field visits)
-  latitude          Decimal?          @db.Decimal(10, 8)
-  longitude         Decimal?          @db.Decimal(11, 8)
-  visitAddress      String?           @db.VarChar(500)
-  
+  latitude     Decimal? @db.Decimal(10, 8)
+  longitude    Decimal? @db.Decimal(11, 8)
+  visitAddress String?  @db.VarChar(500)
+
   // Recording
-  recordedById      String            @db.VarChar(36)
-  createdAt         DateTime          @default(now())
-  
+  recordedById String   @db.VarChar(36)
+  createdAt    DateTime @default(now())
+
   // Relations
-  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  recordedBy        User              @relation("ActivityRecorder", fields: [recordedById], references: [id])
-  
+  account    RecoveryAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recordedBy User            @relation("ActivityRecorder", fields: [recordedById], references: [id])
+
   @@index([accountId])
   @@index([activityType])
   @@index([activityDate])
@@ -1516,36 +1591,36 @@ model RecoveryActivity {
 }
 
 model RecoveryPayment {
-  id                String            @id @default(uuid()) @db.VarChar(36)
-  accountId         String            @db.VarChar(36)
-  
+  id        String @id @default(uuid()) @db.VarChar(36)
+  accountId String @db.VarChar(36)
+
   // Payment details
-  amount            Decimal           @db.Decimal(14, 2)
-  paymentDate       DateTime
-  paymentMethod     String            @db.VarChar(50)
-  reference         String?           @db.VarChar(100)
-  
+  amount        Decimal  @db.Decimal(14, 2)
+  paymentDate   DateTime
+  paymentMethod String   @db.VarChar(50)
+  reference     String?  @db.VarChar(100)
+
   // Verification
-  status            PaymentStatus     @default(PENDING_VERIFICATION)
-  recordedById      String            @db.VarChar(36)
-  verifiedById      String?           @db.VarChar(36)
+  status            PaymentStatus @default(PENDING_VERIFICATION)
+  recordedById      String        @db.VarChar(36)
+  verifiedById      String?       @db.VarChar(36)
   verifiedAt        DateTime?
-  verificationNotes String?           @db.Text
-  rejectionReason   String?           @db.Text
-  
+  verificationNotes String?       @db.Text
+  rejectionReason   String?       @db.Text
+
   // Evidence
-  receiptPath       String?           @db.VarChar(500)
-  
+  receiptPath String? @db.VarChar(500)
+
   // Metadata
-  notes             String?           @db.Text
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  recordedBy        User              @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
-  verifiedBy        User?             @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
-  
+  account    RecoveryAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recordedBy User            @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+  verifiedBy User?           @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+
   @@index([accountId])
   @@index([status])
   @@index([paymentDate])
@@ -1553,28 +1628,28 @@ model RecoveryPayment {
 }
 
 model RepaymentPromise {
-  id                String            @id @default(uuid()) @db.VarChar(36)
-  accountId         String            @db.VarChar(36)
-  
+  id        String @id @default(uuid()) @db.VarChar(36)
+  accountId String @db.VarChar(36)
+
   // Promise details
-  promisedAmount    Decimal           @db.Decimal(14, 2)
-  promisedDate      DateTime          @db.Date
-  promiseNotes      String?           @db.Text
-  
+  promisedAmount Decimal  @db.Decimal(14, 2)
+  promisedDate   DateTime @db.Date
+  promiseNotes   String?  @db.Text
+
   // Status tracking
-  status            PromiseStatus     @default(ACTIVE)
-  actualPaidAmount  Decimal?          @db.Decimal(14, 2)
-  actualPaidDate    DateTime?
-  
+  status           PromiseStatus @default(ACTIVE)
+  actualPaidAmount Decimal?      @db.Decimal(14, 2)
+  actualPaidDate   DateTime?
+
   // Recording
-  recordedById      String            @db.VarChar(36)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  
+  recordedById String   @db.VarChar(36)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   // Relations
-  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  recordedBy        User              @relation("PromiseRecorder", fields: [recordedById], references: [id])
-  
+  account    RecoveryAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recordedBy User            @relation("PromiseRecorder", fields: [recordedById], references: [id])
+
   @@index([accountId])
   @@index([status])
   @@index([promisedDate])
@@ -1582,48 +1657,48 @@ model RepaymentPromise {
 }
 
 model RecoveryDocument {
-  id                String            @id @default(uuid()) @db.VarChar(36)
-  accountId         String            @db.VarChar(36)
-  
+  id        String @id @default(uuid()) @db.VarChar(36)
+  accountId String @db.VarChar(36)
+
   // Document details
-  documentType      String            @db.VarChar(100)
-  fileName          String            @db.VarChar(255)
-  filePath          String            @db.VarChar(500)
-  fileSize          Int
-  mimeType          String            @db.VarChar(100)
-  
+  documentType String @db.VarChar(100)
+  fileName     String @db.VarChar(255)
+  filePath     String @db.VarChar(500)
+  fileSize     Int
+  mimeType     String @db.VarChar(100)
+
   // Metadata
-  description       String?           @db.VarChar(500)
-  uploadedById      String            @db.VarChar(36)
-  createdAt         DateTime          @default(now())
-  
+  description  String?  @db.VarChar(500)
+  uploadedById String   @db.VarChar(36)
+  createdAt    DateTime @default(now())
+
   // Relations
-  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  uploadedBy        User              @relation("RecoveryDocUploader", fields: [uploadedById], references: [id])
-  
+  account    RecoveryAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  uploadedBy User            @relation("RecoveryDocUploader", fields: [uploadedById], references: [id])
+
   @@index([accountId])
   @@map("recovery_documents")
 }
 
 model RecoveryExpense {
-  id                String            @id @default(uuid()) @db.VarChar(36)
-  accountId         String            @db.VarChar(36)
-  
+  id        String @id @default(uuid()) @db.VarChar(36)
+  accountId String @db.VarChar(36)
+
   // Expense details
-  expenseType       ExpenseType
-  amount            Decimal           @db.Decimal(14, 2)
-  expenseDate       DateTime          @db.Date
-  description       String?           @db.Text
-  receiptPath       String?           @db.VarChar(500)
-  
+  expenseType ExpenseType
+  amount      Decimal     @db.Decimal(14, 2)
+  expenseDate DateTime    @db.Date
+  description String?     @db.Text
+  receiptPath String?     @db.VarChar(500)
+
   // Recording
-  recordedById      String            @db.VarChar(36)
-  createdAt         DateTime          @default(now())
-  
+  recordedById String   @db.VarChar(36)
+  createdAt    DateTime @default(now())
+
   // Relations
-  account           RecoveryAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  recordedBy        User              @relation("ExpenseRecorder", fields: [recordedById], references: [id])
-  
+  account    RecoveryAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recordedBy User            @relation("ExpenseRecorder", fields: [recordedById], references: [id])
+
   @@index([accountId])
   @@index([expenseType])
   @@index([expenseDate])
@@ -1635,20 +1710,20 @@ model RecoveryExpense {
 // ═══════════════════════════════════════════════════════════════════════════
 
 enum RecoverySource {
-  LEGACY  // Historical loans from outside VCLOP
-  VCLOP   // Defaulted loans from VCLOP system
+  LEGACY // Historical loans from outside VCLOP
+  VCLOP // Defaulted loans from VCLOP system
 }
 
 enum RecoveryStatus {
-  PENDING_VERIFICATION  // Balance needs verification
-  ASSIGNED              // Assigned to recovery officer
-  IN_PROGRESS           // Active recovery efforts
-  PROMISE_ACTIVE        // Customer made payment promise
-  LEGAL_ACTION          // Escalated to legal
-  PARTIALLY_RECOVERED   // Some payments received
-  FULLY_RECOVERED       // All debt collected
-  WRITTEN_OFF           // Formally written off
-  CLOSED                // Case closed
+  PENDING_VERIFICATION // Balance needs verification
+  ASSIGNED // Assigned to recovery officer
+  IN_PROGRESS // Active recovery efforts
+  PROMISE_ACTIVE // Customer made payment promise
+  LEGAL_ACTION // Escalated to legal
+  PARTIALLY_RECOVERED // Some payments received
+  FULLY_RECOVERED // All debt collected
+  WRITTEN_OFF // Formally written off
+  CLOSED // Case closed
 }
 
 enum PriorityLevel {
@@ -1680,15 +1755,15 @@ enum ContactMethod {
 }
 
 enum ContactOutcome {
-  CONTACTED          // Successfully reached customer
-  NO_ANSWER          // Customer didn't answer
-  WRONG_NUMBER       // Number invalid
-  PROMISED_PAYMENT   // Customer committed to pay
-  REFUSED_TO_PAY     // Customer declined
-  PARTIAL_AGREEMENT  // Negotiation in progress
-  HOSTILE            // Customer was hostile
-  NOT_FOUND          // Customer not at address
-  PENDING_CALLBACK   // Scheduled for callback
+  CONTACTED // Successfully reached customer
+  NO_ANSWER // Customer didn't answer
+  WRONG_NUMBER // Number invalid
+  PROMISED_PAYMENT // Customer committed to pay
+  REFUSED_TO_PAY // Customer declined
+  PARTIAL_AGREEMENT // Negotiation in progress
+  HOSTILE // Customer was hostile
+  NOT_FOUND // Customer not at address
+  PENDING_CALLBACK // Scheduled for callback
 }
 
 enum PaymentStatus {
@@ -1698,19 +1773,841 @@ enum PaymentStatus {
 }
 
 enum PromiseStatus {
-  ACTIVE      // Promise is pending
-  KEPT        // Customer paid as promised
-  PARTIAL     // Customer paid less than promised
-  BROKEN      // Promise date passed without payment
-  CANCELLED   // Promise cancelled/renegotiated
+  ACTIVE // Promise is pending
+  KEPT // Customer paid as promised
+  PARTIAL // Customer paid less than promised
+  BROKEN // Promise date passed without payment
+  CANCELLED // Promise cancelled/renegotiated
 }
 
 enum ExpenseType {
-  FUEL              // Transportation costs
-  LEGAL_FEES        // Legal/attorney costs
-  COURT_FEES        // Court filing costs
-  INVESTIGATION     // Investigation/tracing costs
-  COMMUNICATION     // Phone/SMS costs
-  TRAVEL            // Travel expenses
-  OTHER             // Other recovery costs
+  FUEL // Transportation costs
+  LEGAL_FEES // Legal/attorney costs
+  COURT_FEES // Court filing costs
+  INVESTIGATION // Investigation/tracing costs
+  COMMUNICATION // Phone/SMS costs
+  TRAVEL // Travel expenses
+  OTHER // Other recovery costs
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HR & EMPLOYEE SELF-SERVICE MODULE
+// Architecture Version: 3.0
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ───────────────────────────────────────────────────────────────────────────
+// EMPLOYMENT HISTORY
+// ───────────────────────────────────────────────────────────────────────────
+
+model EmploymentPeriod {
+  id           String @id @default(uuid()) @db.VarChar(36)
+  userId       String @db.VarChar(36)
+  periodNumber Int
+
+  hireDate        DateTime  @db.Date
+  terminationDate DateTime? @db.Date
+  lastWorkingDay  DateTime? @db.Date
+
+  jobTitle     String       @db.VarChar(200)
+  departmentId String       @db.VarChar(36)
+  branchId     String       @db.VarChar(36)
+  contractType ContractType
+
+  salary              Decimal?  @db.Decimal(14, 2)
+  salaryEffectiveDate DateTime? @db.Date
+
+  terminationType   TerminationType?
+  terminationReason String?          @db.Text
+  isVoluntary       Boolean?
+  rehireEligible    Boolean          @default(true)
+
+  isCurrent Boolean @default(true)
+
+  createdAt   DateTime @default(now())
+  createdById String   @db.VarChar(36)
+  updatedAt   DateTime @updatedAt
+
+  user        User             @relation("EmploymentPeriods", fields: [userId], references: [id], onDelete: Restrict)
+  department  Department       @relation("PeriodDepartment", fields: [departmentId], references: [id])
+  branch      Branch           @relation("PeriodBranch", fields: [branchId], references: [id])
+  createdBy   User             @relation("EmploymentPeriodCreator", fields: [createdById], references: [id])
+  offboarding OffboardingCase?
+
+  @@unique([userId, periodNumber])
+  @@index([userId, isCurrent])
+  @@index([terminationDate])
+  @@map("employment_periods")
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// LEAVE MANAGEMENT
+// ───────────────────────────────────────────────────────────────────────────
+
+model LeaveType {
+  id                       String   @id @default(uuid()) @db.VarChar(36)
+  name                     String   @unique @db.VarChar(100)
+  code                     String   @unique @db.VarChar(20)
+  description              String?  @db.Text
+  defaultDaysPerYear       Int
+  carryForwardAllowed      Boolean  @default(false)
+  maxCarryForwardDays      Int?
+  requiresApproval         Boolean  @default(true)
+  minNoticeDays            Int      @default(0)
+  maxConsecutiveDays       Int?
+  allowHalfDay             Boolean  @default(true)
+  prorateForMidYearJoiners Boolean  @default(true)
+  countWeekendsAsLeave     Boolean  @default(false)
+  countHolidaysAsLeave     Boolean  @default(false)
+  isActive                 Boolean  @default(true)
+  sortOrder                Int      @default(0)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  entitlements LeaveEntitlement[]
+  applications LeaveApplication[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("leave_types")
+}
+
+model LeaveEntitlement {
+  id          String @id @default(uuid()) @db.VarChar(36)
+  userId      String @db.VarChar(36)
+  leaveTypeId String @db.VarChar(36)
+  year        Int
+
+  allocatedDays    Decimal @db.Decimal(5, 1)
+  carryForwardDays Decimal @default(0) @db.Decimal(5, 1)
+  adjustmentDays   Decimal @default(0) @db.Decimal(5, 1)
+
+  createdAt   DateTime @default(now())
+  createdById String   @db.VarChar(36)
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.VarChar(36)
+
+  user        User                         @relation("LeaveEntitlements", fields: [userId], references: [id])
+  leaveType   LeaveType                    @relation(fields: [leaveTypeId], references: [id])
+  createdBy   User                         @relation("EntitlementCreator", fields: [createdById], references: [id])
+  updatedBy   User?                        @relation("EntitlementUpdater", fields: [updatedById], references: [id])
+  adjustments LeaveEntitlementAdjustment[]
+
+  @@unique([userId, leaveTypeId, year])
+  @@index([userId, year])
+  @@index([year])
+  @@map("leave_entitlements")
+}
+
+model LeaveEntitlementAdjustment {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  entitlementId  String   @db.VarChar(36)
+  adjustmentDays Decimal  @db.Decimal(5, 1)
+  reason         String   @db.Text
+  approvedById   String   @db.VarChar(36)
+  createdAt      DateTime @default(now())
+
+  entitlement LeaveEntitlement @relation(fields: [entitlementId], references: [id])
+  approvedBy  User             @relation("AdjustmentApprover", fields: [approvedById], references: [id])
+
+  @@index([entitlementId])
+  @@map("leave_entitlement_adjustments")
+}
+
+model LeaveApplication {
+  id                String @id @default(uuid()) @db.VarChar(36)
+  applicationNumber String @unique @db.VarChar(20)
+  userId            String @db.VarChar(36)
+  leaveTypeId       String @db.VarChar(36)
+
+  startDate             DateTime @db.Date
+  endDate               DateTime @db.Date
+  startDayType          DayType  @default(FULL_DAY)
+  endDayType            DayType  @default(FULL_DAY)
+  businessDaysRequested Decimal  @db.Decimal(5, 1)
+
+  primaryEntitlementYear   Int
+  secondaryEntitlementYear Int?
+  daysFromPrimaryYear      Decimal? @db.Decimal(5, 1)
+  daysFromSecondaryYear    Decimal? @db.Decimal(5, 1)
+
+  reason           String  @db.Text
+  handoverNotes    String? @db.Text
+  emergencyContact String? @db.VarChar(100)
+  emergencyPhone   String? @db.VarChar(20)
+
+  status LeaveStatus @default(DRAFT)
+
+  submittedAt   DateTime?
+  submittedById String?   @db.VarChar(36)
+
+  approvedById  String?   @db.VarChar(36)
+  approvedAt    DateTime?
+  approvalNotes String?   @db.Text
+
+  rejectedById    String?   @db.VarChar(36)
+  rejectedAt      DateTime?
+  rejectionReason String?   @db.VarChar(500)
+
+  cancelledById      String?   @db.VarChar(36)
+  cancelledAt        DateTime?
+  cancellationReason String?   @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User                 @relation("LeaveApplications", fields: [userId], references: [id])
+  leaveType   LeaveType            @relation(fields: [leaveTypeId], references: [id])
+  submittedBy User?                @relation("LeaveSubmitter", fields: [submittedById], references: [id])
+  approvedBy  User?                @relation("LeaveApprover", fields: [approvedById], references: [id])
+  rejectedBy  User?                @relation("LeaveRejecter", fields: [rejectedById], references: [id])
+  cancelledBy User?                @relation("LeaveCanceller", fields: [cancelledById], references: [id])
+  approvals   LeaveApproval[]
+  delegations ResourceDelegation[] @relation("LeaveDelegations")
+
+  @@index([userId, status])
+  @@index([status, startDate])
+  @@index([leaveTypeId])
+  @@index([primaryEntitlementYear])
+  @@map("leave_applications")
+}
+
+model LeaveApproval {
+  id                 String @id @default(uuid()) @db.VarChar(36)
+  leaveApplicationId String @db.VarChar(36)
+  approvalLevel      Int
+
+  approverId      String  @db.VarChar(36)
+  delegatedFromId String? @db.VarChar(36)
+
+  status    ApprovalStatus    @default(PENDING)
+  decision  ApprovalDecision?
+  decidedAt DateTime?
+  comments  String?           @db.Text
+
+  requestedAt DateTime  @default(now())
+  dueAt       DateTime?
+
+  policyVersionId String @db.VarChar(36)
+
+  leaveApplication LeaveApplication @relation(fields: [leaveApplicationId], references: [id], onDelete: Restrict)
+  approver         User             @relation("LeaveApproverUser", fields: [approverId], references: [id])
+  delegatedFrom    User?            @relation("LeaveApprovalDelegator", fields: [delegatedFromId], references: [id])
+  policyVersion    ApprovalPolicy   @relation(fields: [policyVersionId], references: [id])
+
+  @@index([leaveApplicationId])
+  @@index([approverId, status])
+  @@index([status, dueAt])
+  @@map("leave_approvals")
+}
+
+model PublicHoliday {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  name        String   @db.VarChar(200)
+  date        DateTime @db.Date
+  year        Int
+  isRecurring Boolean  @default(false)
+  branchId    String?  @db.VarChar(36)
+  createdAt   DateTime @default(now())
+
+  branch Branch? @relation("HolidayBranch", fields: [branchId], references: [id])
+
+  @@unique([date, branchId])
+  @@index([year, branchId])
+  @@index([date])
+  @@map("public_holidays")
+}
+
+model BranchWorkweek {
+  id       String  @id @default(uuid()) @db.VarChar(36)
+  branchId String? @db.VarChar(36)
+
+  isSundayWorkday    Boolean @default(false)
+  isMondayWorkday    Boolean @default(true)
+  isTuesdayWorkday   Boolean @default(true)
+  isWednesdayWorkday Boolean @default(true)
+  isThursdayWorkday  Boolean @default(true)
+  isFridayWorkday    Boolean @default(true)
+  isSaturdayWorkday  Boolean @default(false)
+
+  effectiveFrom DateTime  @db.Date
+  effectiveTo   DateTime? @db.Date
+  createdAt     DateTime  @default(now())
+
+  branch Branch? @relation("WorkweekBranch", fields: [branchId], references: [id])
+
+  @@unique([branchId, effectiveFrom])
+  @@index([branchId])
+  @@map("branch_workweeks")
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// STAFF LOAN MANAGEMENT
+// ───────────────────────────────────────────────────────────────────────────
+
+model StaffLoan {
+  id         String @id @default(uuid()) @db.VarChar(36)
+  loanNumber String @unique @db.VarChar(20)
+  userId     String @db.VarChar(36)
+
+  principalAmount Decimal               @db.Decimal(14, 2)
+  interestRate    Decimal               @db.Decimal(6, 3)
+  interestType    StaffLoanInterestType @default(FLAT)
+  tenureMonths    Int
+
+  totalInterest      Decimal @db.Decimal(14, 2)
+  totalRepayable     Decimal @db.Decimal(14, 2)
+  monthlyInstallment Decimal @db.Decimal(14, 2)
+
+  purpose         String  @db.Text
+  requestedAmount Decimal @db.Decimal(14, 2)
+  justification   String? @db.Text
+
+  status StaffLoanStatus @default(DRAFT)
+
+  submittedAt     DateTime?
+  submittedById   String?   @db.VarChar(36)
+  reviewedById    String?   @db.VarChar(36)
+  reviewedAt      DateTime?
+  approvalNotes   String?   @db.Text
+  rejectionReason String?   @db.VarChar(500)
+
+  approvedAmount            Decimal?  @db.Decimal(14, 2)
+  disbursedById             String?   @db.VarChar(36)
+  disbursedAt               DateTime?
+  disbursementReference     String?   @db.VarChar(100)
+  disbursementMethod        String?   @db.VarChar(50)
+  disbursementAccountNumber String?   @db.VarChar(50)
+  disbursementBankCode      String?   @db.VarChar(20)
+
+  earlySettlementAllowed Boolean  @default(true)
+  earlySettlementPenalty Decimal? @db.Decimal(6, 3)
+
+  completedAt    DateTime?
+  settlementDate DateTime?
+
+  createdAt   DateTime @default(now())
+  createdById String   @db.VarChar(36)
+  updatedAt   DateTime @updatedAt
+
+  user              User                   @relation("StaffLoanBorrower", fields: [userId], references: [id], onDelete: Restrict)
+  createdBy         User                   @relation("StaffLoanCreator", fields: [createdById], references: [id])
+  submittedBy       User?                  @relation("StaffLoanSubmitter", fields: [submittedById], references: [id])
+  reviewedBy        User?                  @relation("StaffLoanReviewer", fields: [reviewedById], references: [id])
+  disbursedBy       User?                  @relation("StaffLoanDisbursing", fields: [disbursedById], references: [id])
+  repaymentSchedule StaffLoanInstallment[]
+  payments          StaffLoanPayment[]
+  reversals         StaffLoanReversal[]
+  adjustments       StaffLoanAdjustment[]
+  approvals         StaffLoanApproval[]
+
+  @@index([userId, status])
+  @@index([status])
+  @@index([loanNumber])
+  @@map("staff_loans")
+}
+
+model StaffLoanInstallment {
+  id                String   @id @default(uuid()) @db.VarChar(36)
+  staffLoanId       String   @db.VarChar(36)
+  installmentNumber Int
+  dueDate           DateTime @db.Date
+
+  principalDue Decimal @db.Decimal(14, 2)
+  interestDue  Decimal @db.Decimal(14, 2)
+  totalDue     Decimal @db.Decimal(14, 2)
+
+  principalBalanceBefore Decimal @db.Decimal(14, 2)
+  principalBalanceAfter  Decimal @db.Decimal(14, 2)
+
+  status InstallmentStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staffLoan StaffLoan          @relation(fields: [staffLoanId], references: [id], onDelete: Restrict)
+  payments  StaffLoanPayment[]
+
+  @@unique([staffLoanId, installmentNumber])
+  @@index([dueDate, status])
+  @@index([staffLoanId])
+  @@map("staff_loan_installments")
+}
+
+model StaffLoanPayment {
+  id            String @id @default(uuid()) @db.VarChar(36)
+  paymentNumber String @unique @db.VarChar(20)
+  staffLoanId   String @db.VarChar(36)
+  installmentId String @db.VarChar(36)
+
+  amount        Decimal       @db.Decimal(14, 2)
+  paymentDate   DateTime      @db.Date
+  paymentMethod PaymentMethod
+
+  principalPaid Decimal @db.Decimal(14, 2)
+  interestPaid  Decimal @db.Decimal(14, 2)
+
+  transactionReference String?   @db.VarChar(100)
+  isVerified           Boolean   @default(false)
+  verifiedById         String?   @db.VarChar(36)
+  verifiedAt           DateTime?
+  verificationNotes    String?   @db.Text
+
+  isReversed Boolean @default(false)
+  reversalId String? @unique @db.VarChar(36)
+
+  notes String? @db.Text
+
+  recordedById String   @db.VarChar(36)
+  recordedAt   DateTime @default(now())
+
+  staffLoan   StaffLoan            @relation(fields: [staffLoanId], references: [id], onDelete: Restrict)
+  installment StaffLoanInstallment @relation(fields: [installmentId], references: [id], onDelete: Restrict)
+  recordedBy  User                 @relation("StaffPaymentRecorder", fields: [recordedById], references: [id])
+  verifiedBy  User?                @relation("StaffPaymentVerifier", fields: [verifiedById], references: [id])
+  reversal    StaffLoanReversal?   @relation("PaymentReversed")
+
+  @@index([staffLoanId])
+  @@index([installmentId])
+  @@index([paymentDate])
+  @@index([isVerified])
+  @@index([isReversed])
+  @@map("staff_loan_payments")
+}
+
+model StaffLoanReversal {
+  id                String @id @default(uuid()) @db.VarChar(36)
+  reversalNumber    String @unique @db.VarChar(20)
+  staffLoanId       String @db.VarChar(36)
+  originalPaymentId String @db.VarChar(36)
+
+  reversalAmount Decimal        @db.Decimal(14, 2)
+  reversalDate   DateTime       @db.Date
+  reason         String         @db.Text
+  reasonCategory ReversalReason
+
+  approvedById String   @db.VarChar(36)
+  approvedAt   DateTime @default(now())
+
+  accountingReference String? @db.VarChar(100)
+
+  staffLoan       StaffLoan        @relation(fields: [staffLoanId], references: [id], onDelete: Restrict)
+  originalPayment StaffLoanPayment @relation("PaymentReversed", fields: [originalPaymentId], references: [id], onDelete: Restrict)
+  approvedBy      User             @relation("ReversalApprover", fields: [approvedById], references: [id])
+
+  @@unique([originalPaymentId])
+  @@index([staffLoanId])
+  @@index([originalPaymentId])
+  @@index([reversalDate])
+  @@map("staff_loan_reversals")
+}
+
+model StaffLoanAdjustment {
+  id               String @id @default(uuid()) @db.VarChar(36)
+  adjustmentNumber String @unique @db.VarChar(20)
+  staffLoanId      String @db.VarChar(36)
+
+  adjustmentType   AdjustmentType
+  amount           Decimal        @db.Decimal(14, 2)
+  affectsPrincipal Boolean        @default(false)
+  affectsInterest  Boolean        @default(true)
+
+  reason                 String  @db.Text
+  supportingDocumentPath String? @db.VarChar(500)
+
+  approvedById String   @db.VarChar(36)
+  approvedAt   DateTime @default(now())
+
+  accountingReference String? @db.VarChar(100)
+
+  staffLoan  StaffLoan @relation(fields: [staffLoanId], references: [id], onDelete: Restrict)
+  approvedBy User      @relation("AdjustmentApprover", fields: [approvedById], references: [id])
+
+  @@index([staffLoanId])
+  @@index([adjustmentType])
+  @@map("staff_loan_adjustments")
+}
+
+model StaffLoanApproval {
+  id          String @id @default(uuid()) @db.VarChar(36)
+  staffLoanId String @db.VarChar(36)
+
+  approvalLevel Int
+  approverId    String           @db.VarChar(36)
+  decision      ApprovalDecision
+  comments      String?          @db.Text
+  decidedAt     DateTime         @default(now())
+
+  staffLoan StaffLoan @relation(fields: [staffLoanId], references: [id], onDelete: Restrict)
+  approver  User      @relation("StaffLoanApprovalDecision", fields: [approverId], references: [id])
+
+  @@index([staffLoanId])
+  @@index([approverId])
+  @@map("staff_loan_approvals")
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// RESOURCE OWNERSHIP & DELEGATION
+// ───────────────────────────────────────────────────────────────────────────
+
+model ResourceOwnership {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  resourceType      ResourceType
+  customerId        String?      @db.VarChar(36)
+  loanApplicationId String?      @db.VarChar(36)
+  recoveryAccountId String?      @db.VarChar(36)
+  workflowTaskId    String?      @db.VarChar(36)
+
+  ownerId String @db.VarChar(36)
+
+  effectiveFrom DateTime  @default(now())
+  effectiveTo   DateTime?
+
+  changeReason         OwnershipChangeReason?
+  changedDueToExit     Boolean                @default(false)
+  relatedOffboardingId String?                @db.VarChar(36)
+
+  assignedById String   @db.VarChar(36)
+  assignedAt   DateTime @default(now())
+  notes        String?  @db.Text
+
+  customer           Customer?        @relation("ResourceOwnerCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  loanApplication    LoanApplication? @relation("ResourceOwnerLoan", fields: [loanApplicationId], references: [id], onDelete: Restrict)
+  recoveryAccount    RecoveryAccount? @relation("ResourceOwnerRecovery", fields: [recoveryAccountId], references: [id], onDelete: Restrict)
+  workflowTask       WorkflowTask?    @relation("ResourceOwnerWorkflow", fields: [workflowTaskId], references: [id], onDelete: Restrict)
+  owner              User             @relation("ResourceOwner", fields: [ownerId], references: [id])
+  assignedBy         User             @relation("OwnershipAssigner", fields: [assignedById], references: [id])
+  relatedOffboarding OffboardingCase? @relation("OwnershipOffboarding", fields: [relatedOffboardingId], references: [id])
+
+  @@index([ownerId])
+  @@index([effectiveFrom, effectiveTo])
+  @@index([customerId])
+  @@index([loanApplicationId])
+  @@index([recoveryAccountId])
+  @@index([workflowTaskId])
+  @@map("resource_ownerships")
+}
+
+model ResourceDelegation {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  resourceType      ResourceType
+  customerId        String?      @db.VarChar(36)
+  loanApplicationId String?      @db.VarChar(36)
+  recoveryAccountId String?      @db.VarChar(36)
+  workflowTaskId    String?      @db.VarChar(36)
+
+  delegatedFrom String @db.VarChar(36)
+  delegatedTo   String @db.VarChar(36)
+
+  effectiveFrom DateTime @default(now())
+  effectiveTo   DateTime
+
+  delegationReason     DelegationReason
+  relatedLeaveId       String?          @db.VarChar(36)
+  relatedOffboardingId String?          @db.VarChar(36)
+
+  canApproveLoans      Boolean @default(false)
+  canDisburseFunds     Boolean @default(false)
+  canModifyCustomer    Boolean @default(true)
+  canViewSensitiveData Boolean @default(false)
+
+  status          DelegationStatus @default(PENDING_ACCEPTANCE)
+  acceptedAt      DateTime?
+  acceptedNotes   String?          @db.Text
+  rejectedAt      DateTime?
+  rejectionReason String?          @db.VarChar(500)
+
+  autoExpired           Boolean   @default(false)
+  expirationProcessedAt DateTime?
+  restorationCompleted  Boolean   @default(false)
+
+  createdById String   @db.VarChar(36)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer           Customer?         @relation("ResourceDelegationCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  loanApplication    LoanApplication?  @relation("ResourceDelegationLoan", fields: [loanApplicationId], references: [id], onDelete: Restrict)
+  recoveryAccount    RecoveryAccount?  @relation("ResourceDelegationRecovery", fields: [recoveryAccountId], references: [id], onDelete: Restrict)
+  workflowTask       WorkflowTask?     @relation("ResourceDelegationWorkflow", fields: [workflowTaskId], references: [id], onDelete: Restrict)
+  delegator          User              @relation("Delegator", fields: [delegatedFrom], references: [id])
+  delegate           User              @relation("Delegate", fields: [delegatedTo], references: [id])
+  createdBy          User              @relation("DelegationCreator", fields: [createdById], references: [id])
+  relatedLeave       LeaveApplication? @relation("LeaveDelegations", fields: [relatedLeaveId], references: [id])
+  relatedOffboarding OffboardingCase?  @relation("DelegationOffboarding", fields: [relatedOffboardingId], references: [id])
+
+  @@index([delegatedFrom])
+  @@index([delegatedTo, status])
+  @@index([effectiveFrom, effectiveTo])
+  @@index([status])
+  @@index([relatedLeaveId])
+  @@map("resource_delegations")
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// OFFBOARDING
+// ───────────────────────────────────────────────────────────────────────────
+
+model OffboardingCase {
+  id                 String @id @default(uuid()) @db.VarChar(36)
+  caseNumber         String @unique @db.VarChar(20)
+  employmentPeriodId String @unique @db.VarChar(36)
+  userId             String @db.VarChar(36)
+
+  initiatedById String   @db.VarChar(36)
+  initiatedAt   DateTime @default(now())
+
+  expectedLastWorkingDay DateTime  @db.Date
+  actualLastWorkingDay   DateTime? @db.Date
+
+  noticePeriodDays       Int?
+  noticeServedDays       Int?
+  noticeWaiverApproved   Boolean @default(false)
+  noticeWaiverApprovedBy String? @db.VarChar(36)
+
+  overallStatus OffboardingStatus @default(IN_PROGRESS)
+
+  itAccessStatus      ClearanceStatus @default(PENDING)
+  itAccessRevokedAt   DateTime?
+  itAccessRevokedById String?         @db.VarChar(36)
+  itAccessNotes       String?         @db.Text
+
+  allSessionsTerminated Boolean   @default(false)
+  sessionsTerminatedAt  DateTime?
+
+  accountSuspended   Boolean   @default(false)
+  accountSuspendedAt DateTime?
+
+  financeStatus      ClearanceStatus @default(PENDING)
+  financeClearedAt   DateTime?
+  financeClearedById String?         @db.VarChar(36)
+  financeNotes       String?         @db.Text
+
+  outstandingStaffLoans Decimal  @default(0) @db.Decimal(14, 2)
+  finalSettlementAmount Decimal? @db.Decimal(14, 2)
+  finalSettlementPaid   Boolean  @default(false)
+
+  assetStatus       ClearanceStatus @default(PENDING)
+  assetsClearedAt   DateTime?
+  assetsClearedById String?         @db.VarChar(36)
+  assetNotes        String?         @db.Text
+
+  hrStatus      ClearanceStatus @default(PENDING)
+  hrClearedAt   DateTime?
+  hrClearedById String?         @db.VarChar(36)
+  hrNotes       String?         @db.Text
+
+  exitInterviewCompleted Boolean   @default(false)
+  exitInterviewDate      DateTime?
+  exitInterviewNotes     String?   @db.Text
+  exitInterviewById      String?   @db.VarChar(36)
+
+  handoverStatus         ClearanceStatus @default(PENDING)
+  totalResourcesAssigned Int             @default(0)
+  resourcesReassigned    Int             @default(0)
+  handoverCompletedAt    DateTime?
+
+  completedAt   DateTime?
+  completedById String?   @db.VarChar(36)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employmentPeriod  EmploymentPeriod     @relation(fields: [employmentPeriodId], references: [id], onDelete: Restrict)
+  user              User                 @relation("OffboardingEmployee", fields: [userId], references: [id], onDelete: Restrict)
+  initiatedBy       User                 @relation("OffboardingInitiator", fields: [initiatedById], references: [id])
+  itAccessRevokedBy User?                @relation("ITAccessRevoker", fields: [itAccessRevokedById], references: [id])
+  financeClearedBy  User?                @relation("FinanceClearer", fields: [financeClearedById], references: [id])
+  assetsClearedBy   User?                @relation("AssetClearer", fields: [assetsClearedById], references: [id])
+  hrClearedBy       User?                @relation("HRClearer", fields: [hrClearedById], references: [id])
+  exitInterviewBy   User?                @relation("ExitInterviewer", fields: [exitInterviewById], references: [id])
+  completedBy       User?                @relation("OffboardingCompleter", fields: [completedById], references: [id])
+  resourceHandovers ResourceOwnership[]  @relation("OwnershipOffboarding")
+  delegations       ResourceDelegation[] @relation("DelegationOffboarding")
+
+  @@index([userId])
+  @@index([overallStatus])
+  @@index([expectedLastWorkingDay])
+  @@map("offboarding_cases")
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// APPROVAL POLICY ENGINE
+// ───────────────────────────────────────────────────────────────────────────
+
+model ApprovalPolicy {
+  id         String           @id @default(uuid()) @db.VarChar(36)
+  entityType PolicyEntityType
+  version    Int
+
+  levels String @db.LongText
+
+  effectiveFrom DateTime  @db.Date
+  effectiveTo   DateTime? @db.Date
+
+  createdById String   @db.VarChar(36)
+  createdAt   DateTime @default(now())
+  notes       String?  @db.Text
+
+  createdBy      User            @relation("PolicyCreator", fields: [createdById], references: [id])
+  leaveApprovals LeaveApproval[]
+
+  @@unique([entityType, version])
+  @@index([entityType, effectiveFrom, effectiveTo])
+  @@map("approval_policies")
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ───────────────────────────────────────────────────────────────────────────
+
+enum ContractType {
+  PERMANENT
+  CONTRACT
+  PROBATION
+  INTERN
+  CONSULTANT
+}
+
+enum TerminationType {
+  RESIGNATION
+  TERMINATION
+  RETIREMENT
+  CONTRACT_END
+  DEATH
+  ABSCONDING
+  MUTUAL_SEPARATION
+}
+
+enum DayType {
+  FULL_DAY
+  FIRST_HALF
+  SECOND_HALF
+}
+
+enum LeaveStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ACTIVE
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+  ESCALATED
+  EXPIRED
+}
+
+enum ApprovalDecision {
+  APPROVE
+  REJECT
+  RETURN_FOR_INFO
+  ESCALATE
+}
+
+enum PolicyEntityType {
+  LEAVE_APPLICATION
+  STAFF_LOAN
+  RESOURCE_ASSIGNMENT
+}
+
+enum StaffLoanInterestType {
+  FLAT
+  REDUCING
+  SIMPLE
+}
+
+enum StaffLoanStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  DISBURSED
+  ACTIVE
+  COMPLETED
+  WRITTEN_OFF
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  SALARY_DEDUCTION
+  BANK_TRANSFER
+  CASH
+  CHEQUE
+  MOBILE_MONEY
+}
+
+enum ReversalReason {
+  DUPLICATE_PAYMENT
+  INCORRECT_AMOUNT
+  WRONG_LOAN_ACCOUNT
+  EMPLOYEE_REQUEST
+  BANK_ERROR
+  SYSTEM_ERROR
+  FRAUD_INVESTIGATION
+  OTHER
+}
+
+enum AdjustmentType {
+  INTEREST_WAIVER
+  PENALTY_CHARGE
+  LATE_FEE
+  PRINCIPAL_WRITEOFF
+  GOODWILL_CREDIT
+  CORRECTION
+}
+
+enum ResourceType {
+  CUSTOMER
+  LOAN_APPLICATION
+  RECOVERY_ACCOUNT
+  WORKFLOW_TASK
+}
+
+enum OwnershipChangeReason {
+  INITIAL_ASSIGNMENT
+  WORKLOAD_REBALANCING
+  EMPLOYEE_EXIT
+  PERFORMANCE_BASED
+  BRANCH_TRANSFER
+  DEPARTMENT_RESTRUCTURING
+}
+
+enum DelegationReason {
+  ANNUAL_LEAVE
+  SICK_LEAVE
+  MATERNITY_LEAVE
+  EMERGENCY_LEAVE
+  TEMPORARY_REASSIGNMENT
+  TRAINING_PERIOD
+  EMPLOYEE_EXITING
+}
+
+enum DelegationStatus {
+  PENDING_ACCEPTANCE
+  ACTIVE
+  EXPIRED
+  REJECTED
+  REVOKED
+}
+
+enum OffboardingStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ClearanceStatus {
+  PENDING
+  IN_PROGRESS
+  CLEARED
+  CLEARED_WITH_CONDITIONS
+  NOT_APPLICABLE
+  BLOCKED
 }

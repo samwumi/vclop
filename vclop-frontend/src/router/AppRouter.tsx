@@ -63,6 +63,17 @@ import { MyRecoveryAccountsPage } from '@/pages/recovery/MyRecoveryAccountsPage'
 import { PaymentVerificationPage } from '@/pages/recovery/PaymentVerificationPage';
 import { ImportRecoveryAccountsPage } from '@/pages/recovery/ImportRecoveryAccountsPage';
 
+// Phase 6 — Transactions
+import { DailyTransactionsPage } from '@/pages/transactions/DailyTransactionsPage';
+
+// Phase 7 — HR & Staff Loans Module
+import {
+  MyStaffLoansPage,
+  StaffLoanApplicationPage,
+  StaffLoanDetailsPage,
+  StaffLoansManagementPage,
+} from '@/pages/hr/staff-loans';
+
 // Error pages
 import { NotFoundPage } from '@/pages/errors/NotFoundPage';
 import { ForbiddenPage } from '@/pages/errors/ForbiddenPage';
@@ -102,6 +113,7 @@ export function AppRouter() {
         <Route path="/compliance"        element={<ProtectedRoute permission="loan_applications:compliance_review"><CompliancePage /></ProtectedRoute>} />
         <Route path="/internal-control"  element={<ProtectedRoute permission="loan_applications:internal_control_approve"><InternalControlPage /></ProtectedRoute>} />
         <Route path="/collections"       element={<ProtectedRoute permission="loan_applications:record_repayment"><CollectionsPage /></ProtectedRoute>} />
+        <Route path="/transactions"      element={<ProtectedRoute permission="loan_applications:record_repayment"><DailyTransactionsPage /></ProtectedRoute>} />
         <Route path="/transport"         element={<ProtectedRoute permission="loan_applications:read"><TransportPage /></ProtectedRoute>} />
 
         {/* Finance */}
@@ -122,6 +134,12 @@ export function AppRouter() {
         <Route path="/recovery/my-accounts" element={<ProtectedRoute permission="recovery:accounts_read"><MyRecoveryAccountsPage /></ProtectedRoute>} />
         <Route path="/recovery/payments/verify" element={<ProtectedRoute permission="recovery:payments_verify"><PaymentVerificationPage /></ProtectedRoute>} />
         <Route path="/recovery/import" element={<ProtectedRoute permission="recovery:accounts_import"><ImportRecoveryAccountsPage /></ProtectedRoute>} />
+
+        {/* HR & Staff Loans */}
+        <Route path="/hr/staff-loans/my-loans" element={<ProtectedRoute permission="dashboard:read"><MyStaffLoansPage /></ProtectedRoute>} />
+        <Route path="/hr/staff-loans/apply" element={<ProtectedRoute permission="dashboard:read"><StaffLoanApplicationPage /></ProtectedRoute>} />
+        <Route path="/hr/staff-loans/:loanId" element={<ProtectedRoute permission="dashboard:read"><StaffLoanDetailsPage /></ProtectedRoute>} />
+        <Route path="/hr/staff-loans/management" element={<ProtectedRoute permission="users:read"><StaffLoansManagementPage /></ProtectedRoute>} />
 
         {/* Administration */}
         <Route path="/users"       element={<ProtectedRoute permission="users:read"><UsersPage /></ProtectedRoute>} />
