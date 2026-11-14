@@ -507,7 +507,7 @@ export function MyEmploymentPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {guarantors.map((guarantor: EmployeeGuarantor) => (
+                    {guarantors.map((guarantor) => (
                       <div key={guarantor.id} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
                         <div className="flex items-start justify-between mb-3">
                           <div>
@@ -588,7 +588,7 @@ export function MyEmploymentPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {nextOfKin.map((nok: EmployeeNextOfKin) => (
+                    {nextOfKin.map((nok) => (
                       <div key={nok.id} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
                         <div className="flex items-start justify-between mb-3">
                           <div>
