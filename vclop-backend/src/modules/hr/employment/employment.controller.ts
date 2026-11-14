@@ -225,8 +225,6 @@ export class EmploymentController {
   ) {
     return this.employmentService.updateNextOfKin(nextOfKinId, body);
   }
-}
-
 
   // Submission workflow endpoints
   @Post(':id/submit')
@@ -289,3 +287,4 @@ export class EmploymentController {
     const canEdit = await this.employmentService.canEditEmployment(userId);
     return { canEdit };
   }
+}
