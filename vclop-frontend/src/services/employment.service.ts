@@ -234,9 +234,6 @@ class EmploymentService {
     const response = await api.put(`/hr/employees/next-of-kin/${nextOfKinId}`, data);
     return response.data.data || response.data;
   }
-}
-
-export const employmentService = new EmploymentService();
 
   /**
    * Submit employment for HR review
@@ -302,3 +299,6 @@ export const employmentService = new EmploymentService();
     const response = await api.get(`/hr/employees/${userId}/can-edit`);
     return response.data.canEdit || false;
   }
+}
+
+export const employmentService = new EmploymentService();
