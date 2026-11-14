@@ -9,12 +9,14 @@ import {
   TrendingUp,
   Clock,
   AlertCircle,
-  Briefcase
+  Briefcase,
+  FileText
 } from 'lucide-react';
 import { leavesService } from '@/services/leaves.service';
 import { offboardingService } from '@/services/offboarding.service';
 import { staffLoansService } from '@/services/staff-loans.service';
 import { resourcesService } from '@/services/resources.service';
+import { employmentService } from '@/services/employment.service';
 
 export function HRDashboardPage() {
   const navigate = useNavigate();
@@ -56,6 +58,12 @@ export function HRDashboardPage() {
     queryFn: () => resourcesService.getReceivedDelegations('PENDING'),
   });
 
+  // Fetch pending employment submissions
+  const { data: pendingSubmissions } = useQuery({
+    queryKey: ['pending-submissions'],
+    queryFn: () => employmentService.getPendingSubmissions(),
+  });
+
   // Calculate stats
   const balanceArray = Array.isArray(myLeaveBalances) ? myLeaveBalances : [];
   const totalLeaveBalance = balanceArray.reduce((sum, b) => sum + b.remaining, 0);
@@ -69,6 +77,7 @@ export function HRDashboardPage() {
 
   const pendingDelegations = receivedDelegations?.length || 0;
   const myResourceCount = myResources?.length || 0;
+  const pendingEmploymentSubmissions = pendingSubmissions?.length || 0;
 
   return (
     <div className="container mx-auto py-8 max-w-7xl">
@@ -133,13 +142,22 @@ export function HRDashboardPage() {
       </div>
 
       {/* Pending Actions */}
-      {(pendingLeaveCount > 0 || allPendingLoans > 0 || pendingDelegations > 0) && (
+      {(pendingLeaveCount > 0 || allPendingLoans > 0 || pendingDelegations > 0 || pendingEmploymentSubmissions > 0) && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-yellow-600" />
             Pending Actions
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {pendingEmploymentSubmissions > 0 && (
+              <button
+                onClick={() => navigate('/hr/pending-submissions')}
+                className="p-4 bg-white rounded-lg hover:shadow-md transition-shadow text-left"
+              >
+                <p className="text-2xl font-bold text-yellow-600 mb-1">{pendingEmploymentSubmissions}</p>
+                <p className="text-sm text-gray-600">Employment Submissions</p>
+              </button>
+            )}
             {pendingLeaveCount > 0 && (
               <button
                 onClick={() => navigate('/hr/leaves/approvals')}

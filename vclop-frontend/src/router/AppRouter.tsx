@@ -87,6 +87,7 @@ import {
 import { MyResourcesPage } from '@/pages/hr/resources';
 import { EmployeesListPage, EmployeeDetailsPage } from '@/pages/hr/employees';
 import { MyEmploymentPage } from '@/pages/hr/MyEmploymentPage';
+import { PendingSubmissionsPage } from '@/pages/hr/PendingSubmissionsPage';
 import { HRDashboardPage } from '@/pages/hr/HRDashboardPage';
 
 // Error pages
@@ -155,6 +156,9 @@ export function AppRouter() {
         
         {/* HR - My Employment (Self-service) */}
         <Route path="/hr/my-employment" element={<ProtectedRoute permission="dashboard:read"><MyEmploymentPage /></ProtectedRoute>} />
+        
+        {/* HR - Pending Submissions (HR only) */}
+        <Route path="/hr/pending-submissions" element={<ProtectedRoute permission="employees:review"><PendingSubmissionsPage /></ProtectedRoute>} />
         
         {/* HR - Employees (HR staff only) */}
         <Route path="/hr/employees" element={<ProtectedRoute permission="employees:read"><EmployeesListPage /></ProtectedRoute>} />

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Shield, Users as UsersIcon, Plus, Edit, AlertCircle } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tantml/react-query';
+import { Briefcase, Shield, Users as UsersIcon, Plus, Edit, AlertCircle, Send, CheckCircle } from 'lucide-react';
 import { 
   employmentService, 
   type CreateGuarantorDto,
@@ -10,6 +10,7 @@ import {
   type EmployeeNextOfKin
 } from '@/services/employment.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
 import { api } from '@/lib/axios';
 import { formatDate } from '@/lib/utils';
 
@@ -139,6 +140,27 @@ export function MyEmploymentPage() {
     },
   });
 
+  // Submit employment for review mutation
+  const submitMutation = useMutation({
+    mutationFn: () => employmentService.submitForReview(user?.id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-current-employment'] });
+      alert('Your employment data has been submitted for HR review!');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to submit employment data');
+    },
+  });
+
+  // Check if can submit
+  const canSubmit = currentEmployment && 
+    (currentEmployment.submissionStatus === 'DRAFT' || currentEmployment.submissionStatus === 'NEEDS_REVISION') &&
+    guarantors.length > 0 && 
+    nextOfKin.length > 0;
+
+  const isEditable = currentEmployment?.isEditable ?? true;
+  const isPending = currentEmployment?.submissionStatus === 'SUBMITTED' || currentEmployment?.submissionStatus === 'UNDER_REVIEW';
+
   const resetGuarantorForm = () => {
     setGuarantorData({
       firstName: '',
@@ -230,7 +252,88 @@ export function MyEmploymentPage() {
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-6">My Employment Profile</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">My Employment Profile</h1>
+        {currentEmployment && (
+          <SubmissionStatusBadge status={currentEmployment.submissionStatus} />
+        )}
+      </div>
+
+      {/* Submit Button */}
+      {canSubmit && (
+        <div className="bg-brand-50 border-l-4 border-brand-500 p-6 rounded-lg mb-6">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-brand-900 mb-2 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                Ready to Submit
+              </h3>
+              <p className="text-brand-800 mb-3">
+                Your employment data is complete. Submit it for HR review to activate your account features.
+              </p>
+              <ul className="text-sm text-brand-700 space-y-1 mb-4">
+                <li>✓ Employment details filled</li>
+                <li>✓ {guarantors.length} guarantor(s) added</li>
+                <li>✓ {nextOfKin.length} next of kin added</li>
+              </ul>
+            </div>
+            <button
+              onClick={() => {
+                if (confirm('Submit your employment data for HR review? You won\'t be able to edit it until HR reviews it.')) {
+                  submitMutation.mutate();
+                }
+              }}
+              disabled={submitMutation.isPending}
+              className="btn-primary flex items-center gap-2 ml-4"
+            >
+              <Send className="w-4 h-4" />
+              {submitMutation.isPending ? 'Submitting...' : 'Submit for Review'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Review Message */}
+      {isPending && (
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
+          <div className="flex items-start gap-4">
+            <AlertCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                Submission Under Review
+              </h3>
+              <p className="text-blue-800">
+                Your employment data has been submitted and is awaiting HR review. You will be notified once the review is complete.
+              </p>
+              {currentEmployment.submittedAt && (
+                <p className="text-sm text-blue-700 mt-2">
+                  Submitted on {formatDate(currentEmployment.submittedAt)}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HR Feedback */}
+      {currentEmployment?.reviewNotes && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg mb-6">
+          <div className="flex items-start gap-4">
+            <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-yellow-900 mb-2">
+                HR Feedback
+              </h3>
+              <p className="text-yellow-800 whitespace-pre-wrap">{currentEmployment.reviewNotes}</p>
+              {currentEmployment.reviewedAt && (
+                <p className="text-sm text-yellow-700 mt-2">
+                  Reviewed on {formatDate(currentEmployment.reviewedAt)}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* No Employment Record */}
       {!currentEmployment && (
@@ -383,12 +486,21 @@ export function MyEmploymentPage() {
                       resetGuarantorForm();
                       setShowGuarantorModal(true);
                     }}
-                    className="btn-primary flex items-center gap-2"
+                    disabled={!isEditable}
+                    className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4" />
                     Add Guarantor
                   </button>
                 </div>
+
+                {!isEditable && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-gray-700">
+                      <strong>Note:</strong> Your data is currently locked. Contact HR if you need to make changes.
+                    </p>
+                  </div>
+                )}
 
                 {guarantors.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
@@ -409,7 +521,9 @@ export function MyEmploymentPage() {
                           </div>
                           <button
                             onClick={() => handleEditGuarantor(guarantor)}
-                            className="text-brand-600 hover:text-brand-700"
+                            disabled={!isEditable}
+                            className="text-brand-600 hover:text-brand-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={!isEditable ? 'Data is locked' : 'Edit guarantor'}
                           >
                             <Edit className="w-4 h-4" />
                           </button>
@@ -453,12 +567,21 @@ export function MyEmploymentPage() {
                       resetNextOfKinForm();
                       setShowNextOfKinModal(true);
                     }}
-                    className="btn-primary flex items-center gap-2"
+                    disabled={!isEditable}
+                    className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4" />
                     Add Next of Kin
                   </button>
                 </div>
+
+                {!isEditable && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-gray-700">
+                      <strong>Note:</strong> Your data is currently locked. Contact HR if you need to make changes.
+                    </p>
+                  </div>
+                )}
 
                 {nextOfKin.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
@@ -486,7 +609,9 @@ export function MyEmploymentPage() {
                           </div>
                           <button
                             onClick={() => handleEditNextOfKin(nok)}
-                            className="text-brand-600 hover:text-brand-700"
+                            disabled={!isEditable}
+                            className="text-brand-600 hover:text-brand-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={!isEditable ? 'Data is locked' : 'Edit next of kin'}
                           >
                             <Edit className="w-4 h-4" />
                           </button>
