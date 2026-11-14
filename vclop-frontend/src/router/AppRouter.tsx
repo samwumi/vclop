@@ -86,6 +86,7 @@ import {
 } from '@/pages/hr/offboarding';
 import { MyResourcesPage } from '@/pages/hr/resources';
 import { EmployeesListPage, EmployeeDetailsPage } from '@/pages/hr/employees';
+import { MyEmploymentPage } from '@/pages/hr/MyEmploymentPage';
 import { HRDashboardPage } from '@/pages/hr/HRDashboardPage';
 
 // Error pages
@@ -152,7 +153,10 @@ export function AppRouter() {
         {/* HR Module */}
         <Route path="/hr" element={<ProtectedRoute permission="dashboard:read"><HRDashboardPage /></ProtectedRoute>} />
         
-        {/* HR - Employees */}
+        {/* HR - My Employment (Self-service) */}
+        <Route path="/hr/my-employment" element={<ProtectedRoute permission="dashboard:read"><MyEmploymentPage /></ProtectedRoute>} />
+        
+        {/* HR - Employees (HR staff only) */}
         <Route path="/hr/employees" element={<ProtectedRoute permission="employees:read"><EmployeesListPage /></ProtectedRoute>} />
         <Route path="/hr/employees/:userId" element={<ProtectedRoute permission="employees:read"><EmployeeDetailsPage /></ProtectedRoute>} />
         

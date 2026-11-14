@@ -293,12 +293,20 @@ export function HRDashboardPage() {
               <p className="font-semibold text-gray-700">Salary & Details</p>
             </div>
           </div>
-          <button
-            onClick={() => navigate('/hr/employees')}
-            className="btn-secondary btn-sm w-full"
-          >
-            View Employees
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('/hr/my-employment')}
+              className="btn-primary btn-sm flex-1"
+            >
+              My Employment
+            </button>
+            <button
+              onClick={() => navigate('/hr/employees')}
+              className="btn-secondary btn-sm flex-1"
+            >
+              All Employees
+            </button>
+          </div>
         </div>
       </div>
     </div>
