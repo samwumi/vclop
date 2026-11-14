@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tantml/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Briefcase, Shield, Users as UsersIcon, Plus, Edit, AlertCircle, Send, CheckCircle } from 'lucide-react';
 import { 
   employmentService, 
@@ -11,13 +10,11 @@ import {
 } from '@/services/employment.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
-import { api } from '@/lib/axios';
 import { formatDate } from '@/lib/utils';
 
 type TabType = 'details' | 'guarantors' | 'next-of-kin';
 
 export function MyEmploymentPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabType>('details');
@@ -510,7 +507,7 @@ export function MyEmploymentPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {guarantors.map((guarantor) => (
+                    {guarantors.map((guarantor: EmployeeGuarantor) => (
                       <div key={guarantor.id} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
                         <div className="flex items-start justify-between mb-3">
                           <div>
@@ -591,7 +588,7 @@ export function MyEmploymentPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {nextOfKin.map((nok) => (
+                    {nextOfKin.map((nok: EmployeeNextOfKin) => (
                       <div key={nok.id} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
                         <div className="flex items-start justify-between mb-3">
                           <div>

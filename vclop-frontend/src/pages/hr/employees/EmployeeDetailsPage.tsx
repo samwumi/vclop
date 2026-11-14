@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Briefcase, Plus, Edit, Trash2, User, Users as UsersIcon, Shield, CheckCircle, XCircle, AlertCircle, Lock, Unlock } from 'lucide-react';
+import { ArrowLeft, Briefcase, Plus, Edit, User, Users as UsersIcon, Shield, CheckCircle, XCircle, AlertCircle, Lock, Unlock } from 'lucide-react';
 import { 
   employmentService, 
   type CreateEmploymentDto, 

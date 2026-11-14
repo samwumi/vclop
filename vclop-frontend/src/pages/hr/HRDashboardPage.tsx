@@ -9,8 +9,7 @@ import {
   TrendingUp,
   Clock,
   AlertCircle,
-  Briefcase,
-  FileText
+  Briefcase
 } from 'lucide-react';
 import { leavesService } from '@/services/leaves.service';
 import { offboardingService } from '@/services/offboarding.service';
