@@ -385,7 +385,6 @@ export class EmploymentService {
     // Create new employment period (reuse createEmploymentPeriod logic)
     return await this.createEmploymentPeriod(data);
   }
-}
 
   /**
    * Submit employment data for HR review
