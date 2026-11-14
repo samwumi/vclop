@@ -189,6 +189,7 @@ model User {
   // HR Module Relations
   employmentPeriods            EmploymentPeriod[]           @relation("EmploymentPeriods")
   employmentPeriodsCreated     EmploymentPeriod[]           @relation("EmploymentPeriodCreator")
+  employmentPeriodsReviewed    EmploymentPeriod[]           @relation("EmploymentPeriodReviewer")
   leaveEntitlements            LeaveEntitlement[]           @relation("LeaveEntitlements")
   leaveEntitlementsCreated     LeaveEntitlement[]           @relation("EntitlementCreator")
   leaveEntitlementsUpdated     LeaveEntitlement[]           @relation("EntitlementUpdater")
@@ -1822,6 +1823,14 @@ model EmploymentPeriod {
   rehireEligible    Boolean          @default(true)
 
   isCurrent Boolean @default(true)
+  
+  // Submission and approval workflow
+  submissionStatus   EmploymentSubmissionStatus @default(DRAFT)
+  submittedAt        DateTime?
+  reviewedAt         DateTime?
+  reviewedById       String?                    @db.VarChar(36)
+  reviewNotes        String?                    @db.Text
+  isEditable         Boolean                    @default(true)
 
   createdAt   DateTime @default(now())
   createdById String   @db.VarChar(36)
@@ -1831,6 +1840,7 @@ model EmploymentPeriod {
   department  Department       @relation("PeriodDepartment", fields: [departmentId], references: [id])
   branch      Branch           @relation("PeriodBranch", fields: [branchId], references: [id])
   createdBy   User             @relation("EmploymentPeriodCreator", fields: [createdById], references: [id])
+  reviewedBy  User?            @relation("EmploymentPeriodReviewer", fields: [reviewedById], references: [id])
   offboarding OffboardingCase?
 
   @@unique([userId, periodNumber])
@@ -1849,6 +1859,10 @@ model EmployeeGuarantor {
   relationship       String   @db.VarChar(100)
   address            String?  @db.VarChar(500)
   occupation         String?  @db.VarChar(150)
+  
+  submissionStatus   EmploymentSubmissionStatus @default(DRAFT)
+  isEditable         Boolean                    @default(true)
+  
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -1866,6 +1880,10 @@ model EmployeeNextOfKin {
   relationship       String   @db.VarChar(100)
   address            String?  @db.VarChar(500)
   isPrimary          Boolean  @default(false)
+  
+  submissionStatus   EmploymentSubmissionStatus @default(DRAFT)
+  isEditable         Boolean                    @default(true)
+  
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -2511,6 +2529,15 @@ enum TerminationType {
   DEATH
   ABSCONDING
   MUTUAL_SEPARATION
+}
+
+enum EmploymentSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  NEEDS_REVISION
 }
 
 enum DayType {
