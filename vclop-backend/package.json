@@ -24,6 +24,7 @@
     "prisma:migrate:prod": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts",
+    "setup:employment-permissions": "ts-node --transpile-only src/scripts/setup-employment-workflow-permissions.ts",
     "audit:check": "npm audit --audit-level=high",
     "audit:fix": "npm audit fix --legacy-peer-deps"
   },
