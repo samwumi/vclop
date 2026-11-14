@@ -386,3 +386,283 @@ export class EmploymentService {
     return await this.createEmploymentPeriod(data);
   }
 }
+
+  /**
+   * Submit employment data for HR review
+   */
+  async submitEmploymentForReview(userId: string) {
+    const currentEmployment = await this.prisma.employmentPeriod.findFirst({
+      where: {
+        userId,
+        isCurrent: true,
+      },
+    });
+
+    if (!currentEmployment) {
+      throw new NotFoundException('No current employment found');
+    }
+
+    if (currentEmployment.submissionStatus !== 'DRAFT' && currentEmployment.submissionStatus !== 'NEEDS_REVISION') {
+      throw new BadRequestException(`Cannot submit - current status is ${currentEmployment.submissionStatus}`);
+    }
+
+    // Validate: must have at least one guarantor
+    const guarantorCount = await this.prisma.employeeGuarantor.count({
+      where: { employmentPeriodId: currentEmployment.id },
+    });
+
+    if (guarantorCount === 0) {
+      throw new BadRequestException('You must add at least one guarantor before submitting');
+    }
+
+    // Validate: must have at least one next of kin
+    const nokCount = await this.prisma.employeeNextOfKin.count({
+      where: { employmentPeriodId: currentEmployment.id },
+    });
+
+    if (nokCount === 0) {
+      throw new BadRequestException('You must add at least one next of kin before submitting');
+    }
+
+    // Update employment period
+    return await this.prisma.employmentPeriod.update({
+      where: { id: currentEmployment.id },
+      data: {
+        submissionStatus: 'SUBMITTED',
+        submittedAt: new Date(),
+        isEditable: false,
+      },
+    });
+  }
+
+  /**
+   * Get pending submissions for HR review
+   */
+  async getPendingSubmissions() {
+    return await this.prisma.employmentPeriod.findMany({
+      where: {
+        submissionStatus: {
+          in: ['SUBMITTED', 'UNDER_REVIEW'],
+        },
+        isCurrent: true,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        department: true,
+        branch: true,
+      },
+      orderBy: { submittedAt: 'asc' },
+    });
+  }
+
+  /**
+   * Approve employment submission
+   */
+  async approveEmployment(userId: string, reviewerId: string, reviewNotes?: string) {
+    const currentEmployment = await this.prisma.employmentPeriod.findFirst({
+      where: {
+        userId,
+        isCurrent: true,
+      },
+    });
+
+    if (!currentEmployment) {
+      throw new NotFoundException('No current employment found');
+    }
+
+    if (currentEmployment.submissionStatus !== 'SUBMITTED' && currentEmployment.submissionStatus !== 'UNDER_REVIEW') {
+      throw new BadRequestException(`Cannot approve - current status is ${currentEmployment.submissionStatus}`);
+    }
+
+    return await this.prisma.employmentPeriod.update({
+      where: { id: currentEmployment.id },
+      data: {
+        submissionStatus: 'APPROVED',
+        reviewedAt: new Date(),
+        reviewedById: reviewerId,
+        reviewNotes,
+        isEditable: false,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Reject employment submission
+   */
+  async rejectEmployment(userId: string, reviewerId: string, reviewNotes: string) {
+    if (!reviewNotes) {
+      throw new BadRequestException('Review notes are required when rejecting');
+    }
+
+    const currentEmployment = await this.prisma.employmentPeriod.findFirst({
+      where: {
+        userId,
+        isCurrent: true,
+      },
+    });
+
+    if (!currentEmployment) {
+      throw new NotFoundException('No current employment found');
+    }
+
+    if (currentEmployment.submissionStatus !== 'SUBMITTED' && currentEmployment.submissionStatus !== 'UNDER_REVIEW') {
+      throw new BadRequestException(`Cannot reject - current status is ${currentEmployment.submissionStatus}`);
+    }
+
+    return await this.prisma.employmentPeriod.update({
+      where: { id: currentEmployment.id },
+      data: {
+        submissionStatus: 'REJECTED',
+        reviewedAt: new Date(),
+        reviewedById: reviewerId,
+        reviewNotes,
+        isEditable: false,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Request revision on employment submission
+   */
+  async requestRevision(userId: string, reviewerId: string, reviewNotes: string) {
+    if (!reviewNotes) {
+      throw new BadRequestException('Review notes are required when requesting revision');
+    }
+
+    const currentEmployment = await this.prisma.employmentPeriod.findFirst({
+      where: {
+        userId,
+        isCurrent: true,
+      },
+    });
+
+    if (!currentEmployment) {
+      throw new NotFoundException('No current employment found');
+    }
+
+    if (currentEmployment.submissionStatus !== 'SUBMITTED' && currentEmployment.submissionStatus !== 'UNDER_REVIEW') {
+      throw new BadRequestException(`Cannot request revision - current status is ${currentEmployment.submissionStatus}`);
+    }
+
+    return await this.prisma.employmentPeriod.update({
+      where: { id: currentEmployment.id },
+      data: {
+        submissionStatus: 'NEEDS_REVISION',
+        reviewedAt: new Date(),
+        reviewedById: reviewerId,
+        reviewNotes,
+        isEditable: true,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Grant edit rights to approved employment
+   */
+  async grantEditRights(userId: string, grantedById: string) {
+    const currentEmployment = await this.prisma.employmentPeriod.findFirst({
+      where: {
+        userId,
+        isCurrent: true,
+      },
+    });
+
+    if (!currentEmployment) {
+      throw new NotFoundException('No current employment found');
+    }
+
+    if (currentEmployment.submissionStatus !== 'APPROVED') {
+      throw new BadRequestException('Can only grant edit rights to approved records');
+    }
+
+    return await this.prisma.employmentPeriod.update({
+      where: { id: currentEmployment.id },
+      data: {
+        isEditable: true,
+        reviewNotes: `Edit rights granted by HR on ${new Date().toISOString()}`,
+      },
+    });
+  }
+
+  /**
+   * Revoke edit rights from approved employment
+   */
+  async revokeEditRights(userId: string, revokedById: string) {
+    const currentEmployment = await this.prisma.employmentPeriod.findFirst({
+      where: {
+        userId,
+        isCurrent: true,
+      },
+    });
+
+    if (!currentEmployment) {
+      throw new NotFoundException('No current employment found');
+    }
+
+    if (currentEmployment.submissionStatus !== 'APPROVED') {
+      throw new BadRequestException('Can only revoke edit rights from approved records');
+    }
+
+    return await this.prisma.employmentPeriod.update({
+      where: { id: currentEmployment.id },
+      data: {
+        isEditable: false,
+        reviewNotes: `Edit rights revoked by HR on ${new Date().toISOString()}`,
+      },
+    });
+  }
+
+  /**
+   * Check if user can edit employment data
+   */
+  async canEditEmployment(userId: string): Promise<boolean> {
+    const currentEmployment = await this.prisma.employmentPeriod.findFirst({
+      where: {
+        userId,
+        isCurrent: true,
+      },
+    });
+
+    if (!currentEmployment) {
+      return true; // Can create new
+    }
+
+    return currentEmployment.isEditable;
+  }

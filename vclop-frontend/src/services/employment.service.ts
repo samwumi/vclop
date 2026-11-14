@@ -20,6 +20,13 @@ export interface EmploymentPeriod {
   isVoluntary: boolean | null;
   rehireEligible: boolean;
   isCurrent: boolean;
+  // Workflow fields
+  submissionStatus: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'NEEDS_REVISION';
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  reviewedById: string | null;
+  reviewNotes: string | null;
+  isEditable: boolean;
   createdAt: string;
   updatedAt: string;
   // Relations
@@ -30,6 +37,17 @@ export interface EmploymentPeriod {
   branch?: {
     id: string;
     name: string;
+  };
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  reviewedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -219,3 +237,68 @@ class EmploymentService {
 }
 
 export const employmentService = new EmploymentService();
+
+  /**
+   * Submit employment for HR review
+   */
+  async submitForReview(userId: string): Promise<EmploymentPeriod> {
+    const response = await api.post(`/hr/employees/${userId}/submit`);
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Get pending submissions (HR only)
+   */
+  async getPendingSubmissions(): Promise<EmploymentPeriod[]> {
+    const response = await api.get('/hr/employees/pending-submissions');
+    const data = response.data.data || response.data;
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * Approve employment submission (HR only)
+   */
+  async approveEmployment(userId: string, reviewNotes?: string): Promise<EmploymentPeriod> {
+    const response = await api.post(`/hr/employees/${userId}/approve`, { reviewNotes });
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Reject employment submission (HR only)
+   */
+  async rejectEmployment(userId: string, reviewNotes: string): Promise<EmploymentPeriod> {
+    const response = await api.post(`/hr/employees/${userId}/reject`, { reviewNotes });
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Request revision on employment submission (HR only)
+   */
+  async requestRevision(userId: string, reviewNotes: string): Promise<EmploymentPeriod> {
+    const response = await api.post(`/hr/employees/${userId}/request-revision`, { reviewNotes });
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Grant edit rights (HR only)
+   */
+  async grantEditRights(userId: string): Promise<EmploymentPeriod> {
+    const response = await api.post(`/hr/employees/${userId}/grant-edit`);
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Revoke edit rights (HR only)
+   */
+  async revokeEditRights(userId: string): Promise<EmploymentPeriod> {
+    const response = await api.post(`/hr/employees/${userId}/revoke-edit`);
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Check if user can edit employment data
+   */
+  async canEdit(userId: string): Promise<boolean> {
+    const response = await api.get(`/hr/employees/${userId}/can-edit`);
+    return response.data.canEdit || false;
+  }

@@ -226,3 +226,66 @@ export class EmploymentController {
     return this.employmentService.updateNextOfKin(nextOfKinId, body);
   }
 }
+
+
+  // Submission workflow endpoints
+  @Post(':id/submit')
+  @RequirePermissions('employees:submit')
+  async submitForReview(@Param('id') userId: string) {
+    return this.employmentService.submitEmploymentForReview(userId);
+  }
+
+  @Get('pending-submissions')
+  @RequirePermissions('employees:review')
+  async getPendingSubmissions() {
+    return this.employmentService.getPendingSubmissions();
+  }
+
+  @Post(':id/approve')
+  @RequirePermissions('employees:approve')
+  async approveEmployment(
+    @Param('id') userId: string,
+    @Body() body: { reviewNotes?: string },
+    @Request() req: any,
+  ) {
+    return this.employmentService.approveEmployment(userId, req.user.id, body.reviewNotes);
+  }
+
+  @Post(':id/reject')
+  @RequirePermissions('employees:reject')
+  async rejectEmployment(
+    @Param('id') userId: string,
+    @Body() body: { reviewNotes: string },
+    @Request() req: any,
+  ) {
+    return this.employmentService.rejectEmployment(userId, req.user.id, body.reviewNotes);
+  }
+
+  @Post(':id/request-revision')
+  @RequirePermissions('employees:review')
+  async requestRevision(
+    @Param('id') userId: string,
+    @Body() body: { reviewNotes: string },
+    @Request() req: any,
+  ) {
+    return this.employmentService.requestRevision(userId, req.user.id, body.reviewNotes);
+  }
+
+  @Post(':id/grant-edit')
+  @RequirePermissions('employees:grant_edit')
+  async grantEditRights(@Param('id') userId: string, @Request() req: any) {
+    return this.employmentService.grantEditRights(userId, req.user.id);
+  }
+
+  @Post(':id/revoke-edit')
+  @RequirePermissions('employees:grant_edit')
+  async revokeEditRights(@Param('id') userId: string, @Request() req: any) {
+    return this.employmentService.revokeEditRights(userId, req.user.id);
+  }
+
+  @Get(':id/can-edit')
+  @RequirePermissions('dashboard:read')
+  async canEdit(@Param('id') userId: string) {
+    const canEdit = await this.employmentService.canEditEmployment(userId);
+    return { canEdit };
+  }
