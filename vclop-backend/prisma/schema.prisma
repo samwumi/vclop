@@ -1839,6 +1839,40 @@ model EmploymentPeriod {
   @@map("employment_periods")
 }
 
+model EmployeeGuarantor {
+  id                 String   @id @default(uuid()) @db.VarChar(36)
+  employmentPeriodId String   @db.VarChar(36)
+  firstName          String   @db.VarChar(100)
+  lastName           String   @db.VarChar(100)
+  phone              String   @db.VarChar(20)
+  email              String?  @db.VarChar(150)
+  relationship       String   @db.VarChar(100)
+  address            String?  @db.VarChar(500)
+  occupation         String?  @db.VarChar(150)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([employmentPeriodId])
+  @@map("employee_guarantors")
+}
+
+model EmployeeNextOfKin {
+  id                 String   @id @default(uuid()) @db.VarChar(36)
+  employmentPeriodId String   @db.VarChar(36)
+  firstName          String   @db.VarChar(100)
+  lastName           String   @db.VarChar(100)
+  phone              String   @db.VarChar(20)
+  email              String?  @db.VarChar(150)
+  relationship       String   @db.VarChar(100)
+  address            String?  @db.VarChar(500)
+  isPrimary          Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([employmentPeriodId])
+  @@map("employee_next_of_kin")
+}
+
 // ───────────────────────────────────────────────────────────────────────────
 // LEAVE MANAGEMENT
 // ───────────────────────────────────────────────────────────────────────────

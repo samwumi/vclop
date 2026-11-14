@@ -38,6 +38,151 @@ export class EmploymentService {
   }
 
   /**
+   * Get guarantors for employment period
+   */
+  async getGuarantors(employmentPeriodId: string) {
+    return await this.prisma.employeeGuarantor.findMany({
+      where: { employmentPeriodId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Create guarantor
+   */
+  async createGuarantor(data: {
+    employmentPeriodId: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+    relationship: string;
+    address?: string;
+    occupation?: string;
+  }) {
+    return await this.prisma.employeeGuarantor.create({
+      data,
+    });
+  }
+
+  /**
+   * Update guarantor
+   */
+  async updateGuarantor(
+    guarantorId: string,
+    data: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      email?: string;
+      relationship?: string;
+      address?: string;
+      occupation?: string;
+    },
+  ) {
+    return await this.prisma.employeeGuarantor.update({
+      where: { id: guarantorId },
+      data,
+    });
+  }
+
+  /**
+   * Delete guarantor
+   */
+  async deleteGuarantor(guarantorId: string) {
+    return await this.prisma.employeeGuarantor.delete({
+      where: { id: guarantorId },
+    });
+  }
+
+  /**
+   * Get next of kin for employment period
+   */
+  async getNextOfKin(employmentPeriodId: string) {
+    return await this.prisma.employeeNextOfKin.findMany({
+      where: { employmentPeriodId },
+      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  /**
+   * Create next of kin
+   */
+  async createNextOfKin(data: {
+    employmentPeriodId: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+    relationship: string;
+    address?: string;
+    isPrimary?: boolean;
+  }) {
+    // If setting as primary, unset other primary entries
+    if (data.isPrimary) {
+      await this.prisma.employeeNextOfKin.updateMany({
+        where: {
+          employmentPeriodId: data.employmentPeriodId,
+          isPrimary: true,
+        },
+        data: { isPrimary: false },
+      });
+    }
+
+    return await this.prisma.employeeNextOfKin.create({
+      data,
+    });
+  }
+
+  /**
+   * Update next of kin
+   */
+  async updateNextOfKin(
+    nextOfKinId: string,
+    data: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      email?: string;
+      relationship?: string;
+      address?: string;
+      isPrimary?: boolean;
+    },
+  ) {
+    // If setting as primary, get the record first to unset others
+    if (data.isPrimary) {
+      const record = await this.prisma.employeeNextOfKin.findUnique({
+        where: { id: nextOfKinId },
+      });
+
+      if (record) {
+        await this.prisma.employeeNextOfKin.updateMany({
+          where: {
+            employmentPeriodId: record.employmentPeriodId,
+            isPrimary: true,
+            id: { not: nextOfKinId },
+          },
+          data: { isPrimary: false },
+        });
+      }
+    }
+
+    return await this.prisma.employeeNextOfKin.update({
+      where: { id: nextOfKinId },
+      data,
+    });
+  }
+
+  /**
+   * Delete next of kin
+   */
+  async deleteNextOfKin(nextOfKinId: string) {
+    return await this.prisma.employeeNextOfKin.delete({
+      where: { id: nextOfKinId },
+    });
+  }
+
+  /**
    * Get current employment period
    */
   async getCurrentEmployment(userId: string) {

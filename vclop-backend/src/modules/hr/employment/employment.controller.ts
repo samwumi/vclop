@@ -133,4 +133,96 @@ export class EmploymentController {
       createdById: req.user.id,
     });
   }
+
+  // Guarantor endpoints
+  @Get('employment/:employmentPeriodId/guarantors')
+  @RequirePermissions('employees:read')
+  async getGuarantors(@Param('employmentPeriodId') employmentPeriodId: string) {
+    return this.employmentService.getGuarantors(employmentPeriodId);
+  }
+
+  @Post('employment/:employmentPeriodId/guarantors')
+  @RequirePermissions('employees:create')
+  async createGuarantor(
+    @Param('employmentPeriodId') employmentPeriodId: string,
+    @Body()
+    body: {
+      firstName: string;
+      lastName: string;
+      phone: string;
+      email?: string;
+      relationship: string;
+      address?: string;
+      occupation?: string;
+    },
+  ) {
+    return this.employmentService.createGuarantor({
+      employmentPeriodId,
+      ...body,
+    });
+  }
+
+  @Put('guarantors/:guarantorId')
+  @RequirePermissions('employees:update')
+  async updateGuarantor(
+    @Param('guarantorId') guarantorId: string,
+    @Body()
+    body: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      email?: string;
+      relationship?: string;
+      address?: string;
+      occupation?: string;
+    },
+  ) {
+    return this.employmentService.updateGuarantor(guarantorId, body);
+  }
+
+  // Next of Kin endpoints
+  @Get('employment/:employmentPeriodId/next-of-kin')
+  @RequirePermissions('employees:read')
+  async getNextOfKin(@Param('employmentPeriodId') employmentPeriodId: string) {
+    return this.employmentService.getNextOfKin(employmentPeriodId);
+  }
+
+  @Post('employment/:employmentPeriodId/next-of-kin')
+  @RequirePermissions('employees:create')
+  async createNextOfKin(
+    @Param('employmentPeriodId') employmentPeriodId: string,
+    @Body()
+    body: {
+      firstName: string;
+      lastName: string;
+      phone: string;
+      email?: string;
+      relationship: string;
+      address?: string;
+      isPrimary?: boolean;
+    },
+  ) {
+    return this.employmentService.createNextOfKin({
+      employmentPeriodId,
+      ...body,
+    });
+  }
+
+  @Put('next-of-kin/:nextOfKinId')
+  @RequirePermissions('employees:update')
+  async updateNextOfKin(
+    @Param('nextOfKinId') nextOfKinId: string,
+    @Body()
+    body: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      email?: string;
+      relationship?: string;
+      address?: string;
+      isPrimary?: boolean;
+    },
+  ) {
+    return this.employmentService.updateNextOfKin(nextOfKinId, body);
+  }
 }
