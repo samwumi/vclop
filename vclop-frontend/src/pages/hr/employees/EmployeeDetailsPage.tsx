@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Briefcase, Plus, Edit, Trash2, User, Users as UsersIcon, Shield } from 'lucide-react';
+import { ArrowLeft, Briefcase, Plus, Edit, Trash2, User, Users as UsersIcon, Shield, CheckCircle, XCircle, AlertCircle, Lock, Unlock } from 'lucide-react';
 import { 
   employmentService, 
   type CreateEmploymentDto, 
@@ -13,6 +13,7 @@ import {
 } from '@/services/employment.service';
 import { api } from '@/lib/axios';
 import { formatDate } from '@/lib/utils';
+import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
 
 interface Department {
   id: string;
@@ -37,6 +38,9 @@ export function EmployeeDetailsPage() {
   const [showNextOfKinModal, setShowNextOfKinModal] = useState(false);
   const [editingGuarantor, setEditingGuarantor] = useState<EmployeeGuarantor | null>(null);
   const [editingNextOfKin, setEditingNextOfKin] = useState<EmployeeNextOfKin | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState('');
 
   const [formData, setFormData] = useState<CreateEmploymentDto>({
     hireDate: '',
@@ -233,6 +237,84 @@ export function EmployeeDetailsPage() {
     },
   });
 
+  // Workflow mutations
+  const approveMutation = useMutation({
+    mutationFn: () => {
+      if (!userId) throw new Error('No user ID');
+      return employmentService.approveEmployment(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employment-history', userId] });
+      queryClient.invalidateQueries({ queryKey: ['pending-submissions'] });
+      alert('Employment data approved successfully');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to approve employment');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (notes: string) => {
+      if (!userId) throw new Error('No user ID');
+      return employmentService.rejectEmployment(userId, notes);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employment-history', userId] });
+      queryClient.invalidateQueries({ queryKey: ['pending-submissions'] });
+      alert('Employment data rejected');
+      setShowRejectModal(false);
+      setReviewNotes('');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to reject employment');
+    },
+  });
+
+  const requestRevisionMutation = useMutation({
+    mutationFn: (notes: string) => {
+      if (!userId) throw new Error('No user ID');
+      return employmentService.requestRevision(userId, notes);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employment-history', userId] });
+      queryClient.invalidateQueries({ queryKey: ['pending-submissions'] });
+      alert('Revision requested successfully');
+      setShowRevisionModal(false);
+      setReviewNotes('');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to request revision');
+    },
+  });
+
+  const grantEditRightsMutation = useMutation({
+    mutationFn: () => {
+      if (!userId) throw new Error('No user ID');
+      return employmentService.grantEditRights(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employment-history', userId] });
+      alert('Edit rights granted successfully');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to grant edit rights');
+    },
+  });
+
+  const revokeEditRightsMutation = useMutation({
+    mutationFn: () => {
+      if (!userId) throw new Error('No user ID');
+      return employmentService.revokeEditRights(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employment-history', userId] });
+      alert('Edit rights revoked successfully');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to revoke edit rights');
+    },
+  });
+
   const previousEmployment = employmentHistory?.filter(e => !e.isCurrent) || [];
 
   const resetGuarantorForm = () => {
@@ -363,6 +445,9 @@ export function EmployeeDetailsPage() {
               }`}>
                 {user?.status}
               </span>
+              {currentEmployment?.submissionStatus && (
+                <SubmissionStatusBadge status={currentEmployment.submissionStatus} />
+              )}
             </div>
           </div>
           {!currentEmployment && (
@@ -376,6 +461,122 @@ export function EmployeeDetailsPage() {
           )}
         </div>
       </div>
+
+      {/* HR Review Section */}
+      {currentEmployment && (currentEmployment.submissionStatus === 'SUBMITTED' || currentEmployment.submissionStatus === 'UNDER_REVIEW') && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-blue-600" />
+            Review Employment Submission
+          </h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                if (confirm('Approve this employment submission? The data will be locked.')) {
+                  approveMutation.mutate();
+                }
+              }}
+              disabled={approveMutation.isPending}
+              className="btn-primary flex items-center gap-2"
+            >
+              <CheckCircle className="w-4 h-4" />
+              {approveMutation.isPending ? 'Approving...' : 'Approve'}
+            </button>
+            <button
+              onClick={() => setShowRejectModal(true)}
+              disabled={rejectMutation.isPending}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              <XCircle className="w-4 h-4" />
+              Reject
+            </button>
+            <button
+              onClick={() => setShowRevisionModal(true)}
+              disabled={requestRevisionMutation.isPending}
+              className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              <AlertCircle className="w-4 h-4" />
+              Request Revision
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Rights Control */}
+      {currentEmployment && currentEmployment.submissionStatus === 'APPROVED' && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            {currentEmployment.isEditable ? <Unlock className="w-5 h-5 text-green-600" /> : <Lock className="w-5 h-5 text-gray-600" />}
+            Edit Rights Control
+          </h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-700 mb-1">
+                {currentEmployment.isEditable 
+                  ? 'Employee can currently edit their data' 
+                  : 'Employee data is currently locked'}
+              </p>
+              <p className="text-xs text-gray-500">
+                Control whether the employee can make changes to approved data
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                if (currentEmployment.isEditable) {
+                  if (confirm('Lock the data? Employee will not be able to edit.')) {
+                    revokeEditRightsMutation.mutate();
+                  }
+                } else {
+                  if (confirm('Unlock the data for editing? Employee will be able to make changes.')) {
+                    grantEditRightsMutation.mutate();
+                  }
+                }
+              }}
+              disabled={grantEditRightsMutation.isPending || revokeEditRightsMutation.isPending}
+              className={`px-4 py-2 rounded flex items-center gap-2 ${
+                currentEmployment.isEditable 
+                  ? 'bg-gray-600 text-white hover:bg-gray-700' 
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              } disabled:opacity-50`}
+            >
+              {currentEmployment.isEditable ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  Lock Data
+                </>
+              ) : (
+                <>
+                  <Unlock className="w-4 h-4" />
+                  Unlock for Editing
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Review History */}
+      {currentEmployment && currentEmployment.reviewedAt && (
+        <div className="bg-white border rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Review History</h2>
+          <div className="space-y-2 text-sm">
+            <div>
+              <span className="text-gray-600">Reviewed by:</span>
+              <span className="ml-2 font-medium">{currentEmployment.reviewedBy?.firstName} {currentEmployment.reviewedBy?.lastName}</span>
+            </div>
+            <div>
+              <span className="text-gray-600">Reviewed on:</span>
+              <span className="ml-2 font-medium">{formatDate(currentEmployment.reviewedAt)}</span>
+            </div>
+            {currentEmployment.reviewNotes && (
+              <div>
+                <span className="text-gray-600">Notes:</span>
+                <p className="mt-1 p-3 bg-gray-50 rounded border text-gray-700">{currentEmployment.reviewNotes}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       {currentEmployment && (
@@ -1125,6 +1326,112 @@ export function EmployeeDetailsPage() {
                   {editingNextOfKin
                     ? updateNextOfKinMutation.isPending ? 'Updating...' : 'Update Next of Kin'
                     : createNextOfKinMutation.isPending ? 'Adding...' : 'Add Next of Kin'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="border-b p-6">
+              <h3 className="text-xl font-semibold text-red-700">Reject Employment Submission</h3>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!reviewNotes.trim()) {
+                alert('Please provide rejection notes');
+                return;
+              }
+              rejectMutation.mutate(reviewNotes);
+            }} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rejection Notes <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  className="input-field"
+                  rows={4}
+                  placeholder="Explain why this submission is being rejected..."
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setReviewNotes('');
+                  }}
+                  className="btn-ghost"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={rejectMutation.isPending}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  {rejectMutation.isPending ? 'Rejecting...' : 'Reject Submission'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Request Revision Modal */}
+      {showRevisionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="border-b p-6">
+              <h3 className="text-xl font-semibold text-yellow-700">Request Revision</h3>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!reviewNotes.trim()) {
+                alert('Please provide revision notes');
+                return;
+              }
+              requestRevisionMutation.mutate(reviewNotes);
+            }} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Revision Notes <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  className="input-field"
+                  rows={4}
+                  placeholder="Explain what needs to be revised..."
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRevisionModal(false);
+                    setReviewNotes('');
+                  }}
+                  className="btn-ghost"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={requestRevisionMutation.isPending}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+                >
+                  {requestRevisionMutation.isPending ? 'Requesting...' : 'Request Revision'}
                 </button>
               </div>
             </form>
