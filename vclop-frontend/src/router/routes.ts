@@ -38,7 +38,8 @@ export const APP_ROUTES: RouteConfig[] = [
   { path: '/officer-targets',   label: 'Officer Targets',  icon: Target,       permission: 'reports:read',                                group: 'Operations' },
 
   // ── HR & Staff ─────────────────────────────────────────────────────────────
-  { path: '/hr/staff-loans/my-loans', label: 'My Loans', icon: DollarSign, permission: 'dashboard:read', group: 'HR & Staff' },
+  { path: '/hr/my-employment',        label: 'My Employment',  icon: Briefcase,   permission: 'dashboard:read', group: 'HR & Staff' },
+  { path: '/hr/staff-loans/my-loans', label: 'My Loans',       icon: DollarSign,  permission: 'dashboard:read', group: 'HR & Staff' },
   
   // hidden staff loan sub-routes
   { path: '/hr/staff-loans/apply',      label: 'Apply for Loan',      icon: DollarSign, hidden: true },
