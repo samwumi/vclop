@@ -69,6 +69,30 @@ async function main() {
     
     const permissions = [
       {
+        code: 'employees:read',
+        name: 'View Employee Records',
+        description: 'View employee employment records and details',
+        category: 'SYSTEM_ADMINISTRATION' as const,
+        module: 'HR',
+        action: 'READ',
+      },
+      {
+        code: 'employees:create',
+        name: 'Create Employee Records',
+        description: 'Create new employee employment records',
+        category: 'SYSTEM_ADMINISTRATION' as const,
+        module: 'HR',
+        action: 'CREATE',
+      },
+      {
+        code: 'employees:update',
+        name: 'Update Employee Records',
+        description: 'Update employee employment records',
+        category: 'SYSTEM_ADMINISTRATION' as const,
+        module: 'HR',
+        action: 'UPDATE',
+      },
+      {
         code: 'employees:submit',
         name: 'Submit Employment Data',
         description: 'Submit own employment data for HR review',
