@@ -30,10 +30,18 @@ export function EmployeesListPage() {
       const response = await api.get('/users', {
         params: { 
           limit: 500,  // Get all users
+          page: 1,
           ...(statusFilter ? { status: statusFilter } : {})
         },
       });
-      const data = response.data.data || response.data;
+      // Handle both response formats
+      const result = response.data;
+      if (result.success && result.data) {
+        // New format: { success: true, data: [...] }
+        return Array.isArray(result.data) ? result.data : [];
+      }
+      // Old format: { data: [...] }
+      const data = result.data || result;
       return Array.isArray(data) ? data : [];
     },
   });
