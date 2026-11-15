@@ -680,7 +680,7 @@ export class EmploymentService {
    * Helper: Get guarantor by ID with related employment period for permission checks
    */
   async getGuarantorById(guarantorId: string): Promise<any> {
-    return await this.prisma.employeeGuarantor.findUnique({
+    return await (this.prisma.employeeGuarantor.findUnique as any)({
       where: { id: guarantorId },
       include: {
         employmentPeriod: {
@@ -694,7 +694,7 @@ export class EmploymentService {
    * Helper: Get next of kin by ID with related employment period for permission checks
    */
   async getNextOfKinById(nextOfKinId: string): Promise<any> {
-    return await this.prisma.employeeNextOfKin.findUnique({
+    return await (this.prisma.employeeNextOfKin.findUnique as any)({
       where: { id: nextOfKinId },
       include: {
         employmentPeriod: {
