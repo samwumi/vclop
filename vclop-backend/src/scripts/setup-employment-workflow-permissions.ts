@@ -177,7 +177,7 @@ async function main() {
       const rolesManagementPermissions = await prisma.permission.findMany({
         where: {
           code: {
-            in: ['roles:read', 'roles:create', 'roles:update', 'permissions:read'],
+            in: ['roles:read', 'roles:create', 'roles:update', 'roles:manage_permissions', 'permissions:read'],
           },
         },
       });
