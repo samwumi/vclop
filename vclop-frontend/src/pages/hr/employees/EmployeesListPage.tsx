@@ -24,27 +24,21 @@ export function EmployeesListPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
 
-  const { data: users, isLoading } = useQuery({
+  const { data: usersResponse, isLoading } = useQuery({
     queryKey: ['users-list', statusFilter],
     queryFn: async () => {
       const response = await api.get('/users', {
         params: { 
-          limit: 500,  // Get all users
+          limit: 500,
           page: 1,
           ...(statusFilter ? { status: statusFilter } : {})
         },
       });
-      // Handle both response formats
-      const result = response.data;
-      if (result.success && result.data) {
-        // New format: { success: true, data: [...] }
-        return Array.isArray(result.data) ? result.data : [];
-      }
-      // Old format: { data: [...] }
-      const data = result.data || result;
-      return Array.isArray(data) ? data : [];
+      return response.data;
     },
   });
+
+  const users = usersResponse?.data || [];
 
   const filteredUsers = users?.filter((user: User) => {
     const matchesSearch =
