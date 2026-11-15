@@ -315,7 +315,7 @@ export function EmployeeDetailsPage() {
     },
   });
 
-  const previousEmployment = employmentHistory?.filter(e => !e.isCurrent) || [];
+  const previousEmployment = employmentHistory?.filter(e => !e.isCurrent).slice(0, 2) || [];
 
   const resetGuarantorForm = () => {
     setGuarantorData({
@@ -705,32 +705,45 @@ export function EmployeeDetailsPage() {
                   </div>
                 )}
 
-                {/* Employment History */}
+                {/* Work History - Last 2 Previous Positions */}
                 {previousEmployment.length > 0 && (
                   <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-4">Employment History</h3>
+                    <h3 className="text-lg font-semibold mb-4">Previous Employment History</h3>
                     <div className="space-y-4">
                       {previousEmployment.map((emp) => (
                         <div key={emp.id} className="border rounded-lg p-4 bg-gray-50">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div className="flex items-start justify-between mb-3">
                             <div>
-                              <p className="text-xs text-gray-500 mb-1">Job Title</p>
-                              <p className="font-semibold">{emp.jobTitle}</p>
+                              <h4 className="font-semibold text-lg">{emp.jobTitle}</h4>
+                              <p className="text-sm text-gray-600">
+                                {emp.department?.name || '-'} • {emp.branch?.name || '-'}
+                              </p>
+                            </div>
+                            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                              Position #{emp.periodNumber}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-500">Start Date</p>
+                              <p className="font-medium">{formatDate(emp.hireDate)}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 mb-1">Period</p>
-                              <p className="text-sm">
-                                {formatDate(emp.hireDate)} - {emp.terminationDate ? formatDate(emp.terminationDate) : 'Present'}
+                              <p className="text-gray-500">End Date</p>
+                              <p className="font-medium">
+                                {emp.terminationDate ? formatDate(emp.terminationDate) : 'Present'}
                               </p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 mb-1">Department</p>
-                              <p className="text-sm">{emp.department?.name || '-'}</p>
+                              <p className="text-gray-500">Contract Type</p>
+                              <p className="font-medium">{emp.contractType}</p>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">Termination Type</p>
-                              <p className="text-sm">{emp.terminationType || '-'}</p>
-                            </div>
+                            {emp.terminationType && (
+                              <div>
+                                <p className="text-gray-500">Exit Type</p>
+                                <p className="font-medium">{emp.terminationType}</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

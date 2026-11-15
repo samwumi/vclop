@@ -57,6 +57,18 @@ export function MyEmploymentPage() {
     enabled: !!user?.id,
   });
 
+  // Fetch employment history (including previous positions)
+  const { data: employmentHistory = [] } = useQuery({
+    queryKey: ['my-employment-history', user?.id],
+    queryFn: () => employmentService.getEmploymentHistory(user?.id!),
+    enabled: !!user?.id,
+  });
+
+  // Get previous employment (last 2 positions)
+  const previousEmployment = employmentHistory
+    .filter(e => !e.isCurrent)
+    .slice(0, 2);
+
   // Fetch guarantors
   const { data: guarantors = [] } = useQuery({
     queryKey: ['my-guarantors', currentEmployment?.id],
@@ -463,6 +475,52 @@ export function MyEmploymentPage() {
                           months
                         </p>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Work History - Last 2 Previous Positions */}
+                {previousEmployment.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-4">Previous Employment History</h3>
+                    <div className="space-y-4">
+                      {previousEmployment.map((emp) => (
+                        <div key={emp.id} className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h4 className="font-semibold text-lg">{emp.jobTitle}</h4>
+                              <p className="text-sm text-gray-600">
+                                {emp.department?.name || '-'} • {emp.branch?.name || '-'}
+                              </p>
+                            </div>
+                            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                              Position #{emp.periodNumber}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-500">Start Date</p>
+                              <p className="font-medium">{formatDate(emp.hireDate)}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">End Date</p>
+                              <p className="font-medium">
+                                {emp.terminationDate ? formatDate(emp.terminationDate) : 'Present'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Contract Type</p>
+                              <p className="font-medium">{emp.contractType}</p>
+                            </div>
+                            {emp.terminationType && (
+                              <div>
+                                <p className="text-gray-500">Exit Type</p>
+                                <p className="font-medium">{emp.terminationType}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
