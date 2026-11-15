@@ -29,7 +29,7 @@ export function EmployeesListPage() {
     queryFn: async () => {
       const response = await api.get('/users', {
         params: { 
-          limit: 500,
+          limit: 200,  // Backend max limit
           page: 1,
           ...(statusFilter ? { status: statusFilter } : {})
         },
