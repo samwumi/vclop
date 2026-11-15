@@ -28,7 +28,10 @@ export function EmployeesListPage() {
     queryKey: ['users-list', statusFilter],
     queryFn: async () => {
       const response = await api.get('/users', {
-        params: statusFilter ? { status: statusFilter } : undefined,
+        params: { 
+          limit: 500,  // Get all users
+          ...(statusFilter ? { status: statusFilter } : {})
+        },
       });
       const data = response.data.data || response.data;
       return Array.isArray(data) ? data : [];
