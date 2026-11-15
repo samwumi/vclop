@@ -225,6 +225,34 @@ async function main() {
         }
       }
       console.log(`   ✅ Admin has ALL employment workflow permissions\n`);
+
+      // Also grant admin roles management permissions so they can assign permissions to others
+      console.log('🔑 Granting roles management permissions to Admin...');
+      const rolesManagementPermissions = await prisma.permission.findMany({
+        where: {
+          code: {
+            in: ['roles:read', 'roles:create', 'roles:update', 'permissions:read'],
+          },
+        },
+      });
+
+      for (const role of adminRoles) {
+        for (const perm of rolesManagementPermissions) {
+          try {
+            await prisma.rolePermission.create({
+              data: {
+                roleId: role.id,
+                permissionId: perm.id,
+              },
+            });
+          } catch (error: any) {
+            if (error.code !== 'P2002') {
+              console.error(`  Error assigning ${perm.code} to ${role.name}`);
+            }
+          }
+        }
+      }
+      console.log(`   ✅ Admin can now manage roles and assign permissions\n`);
     } else {
       console.log('   ⚠️  No Admin role found. You may need to assign manually.\n');
     }
