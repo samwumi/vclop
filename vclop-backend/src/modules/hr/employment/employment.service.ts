@@ -665,4 +665,42 @@ export class EmploymentService {
 
     return currentEmployment.isEditable;
   }
+
+  /**
+   * Helper: Get employment period by ID with userId for permission checks
+   */
+  async getEmploymentPeriodById(employmentPeriodId: string) {
+    return await this.prisma.employmentPeriod.findUnique({
+      where: { id: employmentPeriodId },
+      select: { id: true, userId: true },
+    });
+  }
+
+  /**
+   * Helper: Get guarantor by ID with related employment period for permission checks
+   */
+  async getGuarantorById(guarantorId: string) {
+    return await this.prisma.employeeGuarantor.findUnique({
+      where: { id: guarantorId },
+      include: {
+        employmentPeriod: {
+          select: { id: true, userId: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Helper: Get next of kin by ID with related employment period for permission checks
+   */
+  async getNextOfKinById(nextOfKinId: string) {
+    return await this.prisma.employeeNextOfKin.findUnique({
+      where: { id: nextOfKinId },
+      include: {
+        employmentPeriod: {
+          select: { id: true, userId: true },
+        },
+      },
+    });
+  }
 }

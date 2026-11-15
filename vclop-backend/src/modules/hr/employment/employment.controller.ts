@@ -7,6 +7,7 @@ import {
   Param,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { EmploymentService } from './employment.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -19,17 +20,34 @@ export class EmploymentController {
   constructor(private readonly employmentService: EmploymentService) {}
 
   @Get(':id/employment-history')
-  @RequirePermissions('employees:read')
   async getEmploymentHistory(
     @Param('id') userId: string,
     @Request() req: any,
   ) {
+    // Allow users to view their own employment history, or require employees:read permission
+    const isOwnData = req.user.id === userId;
+    const hasPermission = req.user.permissions?.includes('employees:read');
+    
+    if (!isOwnData && !hasPermission) {
+      throw new ForbiddenException('Insufficient permissions to view this employment history');
+    }
+    
     return this.employmentService.getEmploymentHistory(userId);
   }
 
   @Get(':id/current-employment')
-  @RequirePermissions('employees:read')
-  async getCurrentEmployment(@Param('id') userId: string) {
+  async getCurrentEmployment(
+    @Param('id') userId: string,
+    @Request() req: any,
+  ) {
+    // Allow users to view their own current employment, or require employees:read permission
+    const isOwnData = req.user.id === userId;
+    const hasPermission = req.user.permissions?.includes('employees:read');
+    
+    if (!isOwnData && !hasPermission) {
+      throw new ForbiddenException('Insufficient permissions to view this employment history');
+    }
+    
     return this.employmentService.getCurrentEmployment(userId);
   }
 
@@ -136,13 +154,23 @@ export class EmploymentController {
 
   // Guarantor endpoints
   @Get('employment/:employmentPeriodId/guarantors')
-  @RequirePermissions('employees:read')
-  async getGuarantors(@Param('employmentPeriodId') employmentPeriodId: string) {
+  async getGuarantors(
+    @Param('employmentPeriodId') employmentPeriodId: string,
+    @Request() req: any,
+  ) {
+    // Users can view their own guarantors, HR can view anyone's
+    const employment = await this.employmentService.getEmploymentPeriodById(employmentPeriodId);
+    const isOwnData = employment && req.user.id === employment.userId;
+    const hasPermission = req.user.permissions?.includes('employees:read');
+    
+    if (!isOwnData && !hasPermission) {
+      throw new ForbiddenException('Insufficient permissions to view this employment history');
+    }
+    
     return this.employmentService.getGuarantors(employmentPeriodId);
   }
 
   @Post('employment/:employmentPeriodId/guarantors')
-  @RequirePermissions('employees:create')
   async createGuarantor(
     @Param('employmentPeriodId') employmentPeriodId: string,
     @Body()
@@ -155,7 +183,17 @@ export class EmploymentController {
       address?: string;
       occupation?: string;
     },
+    @Request() req: any,
   ) {
+    // Users can add guarantors to their own employment, HR can add to anyone's
+    const employment = await this.employmentService.getEmploymentPeriodById(employmentPeriodId);
+    const isOwnData = employment && req.user.id === employment.userId;
+    const hasPermission = req.user.permissions?.includes('employees:create');
+    
+    if (!isOwnData && !hasPermission) {
+      throw new ForbiddenException('Insufficient permissions to view this employment history');
+    }
+    
     return this.employmentService.createGuarantor({
       employmentPeriodId,
       ...body,
@@ -163,7 +201,6 @@ export class EmploymentController {
   }
 
   @Put('guarantors/:guarantorId')
-  @RequirePermissions('employees:update')
   async updateGuarantor(
     @Param('guarantorId') guarantorId: string,
     @Body()
@@ -176,19 +213,41 @@ export class EmploymentController {
       address?: string;
       occupation?: string;
     },
+    @Request() req: any,
   ) {
+    // Users can update their own guarantors, HR can update anyone's
+    const guarantor = await this.employmentService.getGuarantorById(guarantorId);
+    if (guarantor && guarantor.employmentPeriod) {
+      const isOwnData = req.user.id === guarantor.employmentPeriod.userId;
+      const hasPermission = req.user.permissions?.includes('employees:update');
+      
+      if (!isOwnData && !hasPermission) {
+        throw new Error('Insufficient permissions');
+      }
+    }
+    
     return this.employmentService.updateGuarantor(guarantorId, body);
   }
 
   // Next of Kin endpoints
   @Get('employment/:employmentPeriodId/next-of-kin')
-  @RequirePermissions('employees:read')
-  async getNextOfKin(@Param('employmentPeriodId') employmentPeriodId: string) {
+  async getNextOfKin(
+    @Param('employmentPeriodId') employmentPeriodId: string,
+    @Request() req: any,
+  ) {
+    // Users can view their own next of kin, HR can view anyone's
+    const employment = await this.employmentService.getEmploymentPeriodById(employmentPeriodId);
+    const isOwnData = employment && req.user.id === employment.userId;
+    const hasPermission = req.user.permissions?.includes('employees:read');
+    
+    if (!isOwnData && !hasPermission) {
+      throw new ForbiddenException('Insufficient permissions to view this employment history');
+    }
+    
     return this.employmentService.getNextOfKin(employmentPeriodId);
   }
 
   @Post('employment/:employmentPeriodId/next-of-kin')
-  @RequirePermissions('employees:create')
   async createNextOfKin(
     @Param('employmentPeriodId') employmentPeriodId: string,
     @Body()
@@ -201,7 +260,17 @@ export class EmploymentController {
       address?: string;
       isPrimary?: boolean;
     },
+    @Request() req: any,
   ) {
+    // Users can add next of kin to their own employment, HR can add to anyone's
+    const employment = await this.employmentService.getEmploymentPeriodById(employmentPeriodId);
+    const isOwnData = employment && req.user.id === employment.userId;
+    const hasPermission = req.user.permissions?.includes('employees:create');
+    
+    if (!isOwnData && !hasPermission) {
+      throw new ForbiddenException('Insufficient permissions to view this employment history');
+    }
+    
     return this.employmentService.createNextOfKin({
       employmentPeriodId,
       ...body,
@@ -209,7 +278,6 @@ export class EmploymentController {
   }
 
   @Put('next-of-kin/:nextOfKinId')
-  @RequirePermissions('employees:update')
   async updateNextOfKin(
     @Param('nextOfKinId') nextOfKinId: string,
     @Body()
@@ -222,7 +290,19 @@ export class EmploymentController {
       address?: string;
       isPrimary?: boolean;
     },
+    @Request() req: any,
   ) {
+    // Users can update their own next of kin, HR can update anyone's
+    const nextOfKin = await this.employmentService.getNextOfKinById(nextOfKinId);
+    if (nextOfKin && nextOfKin.employmentPeriod) {
+      const isOwnData = req.user.id === nextOfKin.employmentPeriod.userId;
+      const hasPermission = req.user.permissions?.includes('employees:update');
+      
+      if (!isOwnData && !hasPermission) {
+        throw new Error('Insufficient permissions');
+      }
+    }
+    
     return this.employmentService.updateNextOfKin(nextOfKinId, body);
   }
 
