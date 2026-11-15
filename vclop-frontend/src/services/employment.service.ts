@@ -146,10 +146,18 @@ class EmploymentService {
   }
 
   /**
-   * Create employment record for a user
+   * Create employment record for a user (HR/Admin only)
    */
   async createEmployment(userId: string, data: CreateEmploymentDto): Promise<EmploymentPeriod> {
     const response = await api.post(`/hr/employees/${userId}/employment`, data);
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Create my own employment record (self-service)
+   */
+  async createMyEmployment(data: Omit<CreateEmploymentDto, 'salary'>): Promise<EmploymentPeriod> {
+    const response = await api.post(`/hr/employees/my-employment`, data);
     return response.data.data || response.data;
   }
 

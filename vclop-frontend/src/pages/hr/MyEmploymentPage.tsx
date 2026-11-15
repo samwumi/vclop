@@ -6,11 +6,13 @@ import {
   type CreateGuarantorDto,
   type CreateNextOfKinDto,
   type EmployeeGuarantor,
-  type EmployeeNextOfKin
+  type EmployeeNextOfKin,
+  type CreateEmploymentDto
 } from '@/services/employment.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
 import { formatDate } from '@/lib/utils';
+import { branchesService } from '@/services/branches.service';
 
 type TabType = 'details' | 'guarantors' | 'next-of-kin';
 
@@ -20,8 +22,17 @@ export function MyEmploymentPage() {
   const [activeTab, setActiveTab] = useState<TabType>('details');
   const [showGuarantorModal, setShowGuarantorModal] = useState(false);
   const [showNextOfKinModal, setShowNextOfKinModal] = useState(false);
+  const [showCreateEmploymentModal, setShowCreateEmploymentModal] = useState(false);
   const [editingGuarantor, setEditingGuarantor] = useState<EmployeeGuarantor | null>(null);
   const [editingNextOfKin, setEditingNextOfKin] = useState<EmployeeNextOfKin | null>(null);
+
+  const [employmentData, setEmploymentData] = useState<Omit<CreateEmploymentDto, 'salary'>>({
+    hireDate: '',
+    jobTitle: '',
+    departmentId: '',
+    branchId: '',
+    contractType: 'PERMANENT',
+  });
 
   const [guarantorData, setGuarantorData] = useState<CreateGuarantorDto>({
     firstName: '',
@@ -68,6 +79,49 @@ export function MyEmploymentPage() {
   const previousEmployment = employmentHistory
     .filter(e => !e.isCurrent)
     .slice(0, 2);
+
+  // Fetch departments for create form
+  const { data: departmentsResponse } = useQuery({
+    queryKey: ['departments'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/departments`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await response.json();
+      return data.data?.data || data.data || [];
+    },
+  });
+  const departments = departmentsResponse || [];
+
+  // Fetch branches for create form
+  const { data: branchesData } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => branchesService.list(),
+  });
+  const branches = Array.isArray(branchesData) ? branchesData : (branchesData?.data || []);
+
+  // Create my employment record mutation
+  const createMyEmploymentMutation = useMutation({
+    mutationFn: () => employmentService.createMyEmployment(employmentData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-current-employment'] });
+      queryClient.invalidateQueries({ queryKey: ['my-employment-history'] });
+      alert('Employment record created successfully!');
+      setShowCreateEmploymentModal(false);
+      setEmploymentData({
+        hireDate: '',
+        jobTitle: '',
+        departmentId: '',
+        branchId: '',
+        contractType: 'PERMANENT',
+      });
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to create employment record');
+    },
+  });
 
   // Fetch guarantors
   const { data: guarantors = [] } = useQuery({
@@ -345,26 +399,35 @@ export function MyEmploymentPage() {
       )}
 
       {/* No Employment Record */}
-      {!currentEmployment && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg mb-6">
-          <div className="flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
-            <div className="flex-1">
-              <h2 className="text-lg font-semibold text-yellow-900 mb-2">
-                No Employment Record Found
-              </h2>
-              <p className="text-yellow-800 mb-4">
-                You don't have an active employment record in the system. This is required to:
-              </p>
-              <ul className="list-disc list-inside text-yellow-800 mb-4 space-y-1">
-                <li>Apply for staff loans</li>
-                <li>Submit leave applications</li>
-                <li>View salary and benefits information</li>
-              </ul>
-              <p className="text-yellow-800 font-medium">
-                📞 Please contact HR to have your employment record created.
-              </p>
+      {!currentEmployment && !isLoading && (
+        <div className="bg-brand-50 border-l-4 border-brand-500 p-6 rounded-lg mb-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 flex-1">
+              <AlertCircle className="w-6 h-6 text-brand-600 flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-brand-900 mb-2">
+                  Create Your Employment Record
+                </h2>
+                <p className="text-brand-800 mb-4">
+                  You need to create your employment record to access:
+                </p>
+                <ul className="list-disc list-inside text-brand-800 mb-4 space-y-1">
+                  <li>Staff loan applications</li>
+                  <li>Leave management</li>
+                  <li>Salary and benefits information</li>
+                </ul>
+                <p className="text-sm text-brand-700">
+                  Click the button to get started. HR will review and approve your submission.
+                </p>
+              </div>
             </div>
+            <button
+              onClick={() => setShowCreateEmploymentModal(true)}
+              className="btn-primary flex items-center gap-2 whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              Create Employment Record
+            </button>
           </div>
         </div>
       )}
@@ -936,6 +999,144 @@ export function MyEmploymentPage() {
                   {editingNextOfKin
                     ? updateNextOfKinMutation.isPending ? 'Updating...' : 'Update Next of Kin'
                     : createNextOfKinMutation.isPending ? 'Adding...' : 'Add Next of Kin'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Employment Modal */}
+      {showCreateEmploymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <h3 className="text-xl font-semibold">Create Your Employment Record</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Fill in your employment details. HR will review and approve your submission.
+              </p>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!employmentData.hireDate || !employmentData.jobTitle || !employmentData.departmentId || !employmentData.branchId) {
+                  alert('Please fill in all required fields');
+                  return;
+                }
+                createMyEmploymentMutation.mutate();
+              }}
+              className="p-6 space-y-4"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Hire Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={employmentData.hireDate}
+                    onChange={(e) => setEmploymentData({ ...employmentData, hireDate: e.target.value })}
+                    className="input-field"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Job Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={employmentData.jobTitle}
+                    onChange={(e) => setEmploymentData({ ...employmentData, jobTitle: e.target.value })}
+                    className="input-field"
+                    placeholder="e.g. Loan Officer"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Department <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={employmentData.departmentId}
+                    onChange={(e) => setEmploymentData({ ...employmentData, departmentId: e.target.value })}
+                    className="input-field"
+                    required
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map((dept: any) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Branch <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={employmentData.branchId}
+                    onChange={(e) => setEmploymentData({ ...employmentData, branchId: e.target.value })}
+                    className="input-field"
+                    required
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map((branch: any) => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contract Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={employmentData.contractType}
+                    onChange={(e) => setEmploymentData({ ...employmentData, contractType: e.target.value as any })}
+                    className="input-field"
+                    required
+                  >
+                    <option value="PERMANENT">Permanent</option>
+                    <option value="CONTRACT">Contract</option>
+                    <option value="TEMPORARY">Temporary</option>
+                    <option value="INTERNSHIP">Internship</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> After creating your employment record, you'll need to add guarantors and next of kin, 
+                  then submit for HR review. Your salary will be set by HR.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 justify-end pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateEmploymentModal(false);
+                    setEmploymentData({
+                      hireDate: '',
+                      jobTitle: '',
+                      departmentId: '',
+                      branchId: '',
+                      contractType: 'PERMANENT',
+                    });
+                  }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createMyEmploymentMutation.isPending}
+                  className="btn-primary"
+                >
+                  {createMyEmploymentMutation.isPending ? 'Creating...' : 'Create Employment Record'}
                 </button>
               </div>
             </form>

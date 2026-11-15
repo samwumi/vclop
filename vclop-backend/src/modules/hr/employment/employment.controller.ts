@@ -51,6 +51,35 @@ export class EmploymentController {
     return this.employmentService.getCurrentEmployment(userId);
   }
 
+  /**
+   * Self-service: Employee creates their own employment record
+   * No permission check - any logged-in user can create their OWN record
+   */
+  @Post('my-employment')
+  async createMyEmployment(
+    @Body()
+    body: {
+      hireDate: string;
+      jobTitle: string;
+      departmentId: string;
+      branchId: string;
+      contractType: string;
+    },
+    @Request() req: any,
+  ) {
+    // Employee can only create their own record
+    return this.employmentService.createEmploymentPeriod({
+      userId: req.user.id, // Use logged-in user's ID
+      hireDate: new Date(body.hireDate),
+      jobTitle: body.jobTitle,
+      departmentId: body.departmentId,
+      branchId: body.branchId,
+      contractType: body.contractType as any,
+      salary: undefined, // Employees don't set salary, HR does
+      createdById: req.user.id,
+    });
+  }
+
   @Post(':id/employment')
   @RequirePermissions('employees:create')
   async createEmployment(
