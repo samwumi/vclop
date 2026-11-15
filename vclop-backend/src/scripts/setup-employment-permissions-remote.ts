@@ -44,7 +44,7 @@ async function main() {
   console.log('\n⚠️  This will connect to your PRODUCTION database on Hostinger\n');
   
   // Show connection info (masked)
-  const maskedUrl = DATABASE_URL.replace(/:[^:@]+@/, ':****@');
+  const maskedUrl = DATABASE_URL?.replace(/:[^:@]+@/, ':****@') || 'Not set';
   console.log(`📡 Database: ${maskedUrl}\n`);
 
   const answer = await askQuestion('Continue? (yes/no): ');

@@ -218,7 +218,7 @@ export class EmploymentController {
     // Users can update their own guarantors, HR can update anyone's
     const guarantor = await this.employmentService.getGuarantorById(guarantorId);
     if (guarantor && guarantor.employmentPeriod) {
-      const isOwnData = req.user.id === guarantor.employmentPeriod.userId;
+      const isOwnData = req.user.id === (guarantor.employmentPeriod as any).userId;
       const hasPermission = req.user.permissions?.includes('employees:update');
       
       if (!isOwnData && !hasPermission) {
@@ -295,7 +295,7 @@ export class EmploymentController {
     // Users can update their own next of kin, HR can update anyone's
     const nextOfKin = await this.employmentService.getNextOfKinById(nextOfKinId);
     if (nextOfKin && nextOfKin.employmentPeriod) {
-      const isOwnData = req.user.id === nextOfKin.employmentPeriod.userId;
+      const isOwnData = req.user.id === (nextOfKin.employmentPeriod as any).userId;
       const hasPermission = req.user.permissions?.includes('employees:update');
       
       if (!isOwnData && !hasPermission) {
