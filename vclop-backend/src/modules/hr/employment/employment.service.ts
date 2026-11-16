@@ -23,6 +23,13 @@ export class EmploymentService {
             email: true,
           },
         },
+        offboarding: {
+          select: {
+            id: true,
+            caseNumber: true,
+            overallStatus: true,
+          },
+        },
       },
       orderBy: { periodNumber: 'desc' },
     });
