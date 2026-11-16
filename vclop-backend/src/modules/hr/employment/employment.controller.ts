@@ -190,7 +190,7 @@ export class EmploymentController {
     // Users can view their own guarantors, HR can view anyone's
     const employment = await this.employmentService.getEmploymentPeriodById(employmentPeriodId);
     const isOwnData = employment && req.user.id === employment.userId;
-    const hasPermission = req.user.permissions?.includes('employees:read');
+    const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes('employees:read');
     
     if (!isOwnData && !hasPermission) {
       throw new ForbiddenException('Insufficient permissions to view this employment history');
@@ -217,7 +217,7 @@ export class EmploymentController {
     // Users can add guarantors to their own employment, HR can add to anyone's
     const employment = await this.employmentService.getEmploymentPeriodById(employmentPeriodId);
     const isOwnData = employment && req.user.id === employment.userId;
-    const hasPermission = req.user.permissions?.includes('employees:create');
+    const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes('employees:create');
     
     if (!isOwnData && !hasPermission) {
       throw new ForbiddenException('Insufficient permissions to view this employment history');
@@ -248,7 +248,7 @@ export class EmploymentController {
     const guarantor = await this.employmentService.getGuarantorById(guarantorId);
     if (guarantor && guarantor.employmentPeriod) {
       const isOwnData = req.user.id === (guarantor.employmentPeriod as any).userId;
-      const hasPermission = req.user.permissions?.includes('employees:update');
+      const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes('employees:update');
       
       if (!isOwnData && !hasPermission) {
         throw new Error('Insufficient permissions');
@@ -267,7 +267,7 @@ export class EmploymentController {
     // Users can view their own next of kin, HR can view anyone's
     const employment = await this.employmentService.getEmploymentPeriodById(employmentPeriodId);
     const isOwnData = employment && req.user.id === employment.userId;
-    const hasPermission = req.user.permissions?.includes('employees:read');
+    const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes('employees:read');
     
     if (!isOwnData && !hasPermission) {
       throw new ForbiddenException('Insufficient permissions to view this employment history');
@@ -294,7 +294,7 @@ export class EmploymentController {
     // Users can add next of kin to their own employment, HR can add to anyone's
     const employment = await this.employmentService.getEmploymentPeriodById(employmentPeriodId);
     const isOwnData = employment && req.user.id === employment.userId;
-    const hasPermission = req.user.permissions?.includes('employees:create');
+    const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes('employees:create');
     
     if (!isOwnData && !hasPermission) {
       throw new ForbiddenException('Insufficient permissions to view this employment history');
@@ -325,7 +325,7 @@ export class EmploymentController {
     const nextOfKin = await this.employmentService.getNextOfKinById(nextOfKinId);
     if (nextOfKin && nextOfKin.employmentPeriod) {
       const isOwnData = req.user.id === (nextOfKin.employmentPeriod as any).userId;
-      const hasPermission = req.user.permissions?.includes('employees:update');
+      const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes('employees:update');
       
       if (!isOwnData && !hasPermission) {
         throw new Error('Insufficient permissions');
