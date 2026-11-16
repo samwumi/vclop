@@ -42,14 +42,28 @@ export function StaffLoanApplicationPage() {
       return;
     }
 
-    if (formData.requestedAmount > (eligibility?.loanLimits?.maxEligibleAmount || 0)) {
-      toast.error(`Amount exceeds maximum eligible: ${formatCurrency(eligibility?.loanLimits?.maxEligibleAmount || 0)}`);
-      return;
-    }
+    // Only check max amount if salary is set in system
+    if (eligibility?.loanLimits?.monthlySalary > 0) {
+      if (formData.requestedAmount > (eligibility?.loanLimits?.maxEligibleAmount || 0)) {
+        toast.error(`Amount exceeds maximum eligible: ${formatCurrency(eligibility?.loanLimits?.maxEligibleAmount || 0)}`);
+        return;
+      }
 
-    if (percentageOfSalary > 25) {
-      toast.error('Monthly installment exceeds 25% of salary');
-      return;
+      if (percentageOfSalary > 25) {
+        toast.error('Monthly installment exceeds 25% of salary');
+        return;
+      }
+    } else {
+      // No salary in system - show warning but allow application
+      const monthlyInstallment = formData.requestedAmount / formData.proposedTenureMonths;
+      if (!confirm(
+        `You are applying for ${formatCurrency(formData.requestedAmount)} to be repaid over ${formData.proposedTenureMonths} months.\n\n` +
+        `Monthly installment: ${formatCurrency(monthlyInstallment)}\n\n` +
+        `⚠️ Important: This monthly installment MUST NOT exceed 25% of your gross monthly salary.\n\n` +
+        `Do you confirm that ${formatCurrency(monthlyInstallment)}/month is within your repayment capacity?`
+      )) {
+        return;
+      }
     }
 
     applyMutation.mutate(formData);
@@ -102,22 +116,6 @@ export function StaffLoanApplicationPage() {
                     </li>
                     <li>HR will add your hire date, job title, and salary information</li>
                   </ol>
-                </div>
-              </div>
-            )}
-
-            {/* Valid Salary Check */}
-            {reasons?.activeEmployment && !reasons?.hasValidSalary && (
-              <div className="bg-white border-l-4 border-red-500 p-4 rounded">
-                <h3 className="font-semibold text-red-900 mb-2">❌ No Salary Information</h3>
-                <p className="text-sm text-gray-700 mb-3">
-                  Your employment record exists but doesn't have salary information. Salary is required to calculate your loan eligibility.
-                </p>
-                <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                  <p className="text-sm font-semibold text-blue-900 mb-2">What to do:</p>
-                  <p className="text-sm text-blue-800">
-                    Contact HR to update your employment record with your monthly salary (minimum ₦1,000).
-                  </p>
                 </div>
               </div>
             )}
@@ -229,17 +227,45 @@ export function StaffLoanApplicationPage() {
 
       {/* Eligibility Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="font-semibold text-blue-900 mb-2">Your Eligibility</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-blue-700">Monthly Salary</p>
-            <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.monthlySalary || 0)}</p>
+        <h3 className="font-semibold text-blue-900 mb-2">Your Loan Eligibility</h3>
+        {eligibility.loanLimits?.monthlySalary > 0 ? (
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-blue-700">Monthly Salary</p>
+              <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.monthlySalary || 0)}</p>
+            </div>
+            <div>
+              <p className="text-blue-700">Maximum Loan Amount</p>
+              <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.maxEligibleAmount || 0)}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-blue-700">Max Monthly Repayment (25% of salary)</p>
+              <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.maxMonthlyDeduction || 0)}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-blue-700">Maximum Loan Amount</p>
-            <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.maxEligibleAmount || 0)}</p>
+        ) : (
+          <div className="text-sm">
+            <div className="bg-yellow-50 border border-yellow-300 rounded p-3 mb-3">
+              <p className="text-yellow-900 font-semibold mb-2">⚠️ Salary Not Set in System</p>
+              <p className="text-yellow-800">
+                Your employment record doesn't have salary information. You can still apply, but you must ensure:
+              </p>
+              <ul className="list-disc list-inside text-yellow-800 mt-2 space-y-1">
+                <li>Your monthly repayment does NOT exceed 25% of your gross monthly salary</li>
+                <li>You can afford the monthly installment for {eligibility.loanLimits?.maxTenureMonths} months</li>
+              </ul>
+            </div>
+            <div className="bg-white border border-blue-200 rounded p-3">
+              <p className="text-blue-900 font-semibold mb-2">📋 Repayment Rule:</p>
+              <p className="text-blue-800">
+                <strong>Maximum monthly deduction = 25% of your gross salary × {eligibility.loanLimits?.maxTenureMonths} months</strong>
+              </p>
+              <p className="text-sm text-blue-700 mt-2">
+                Example: If your salary is ₦100,000, max monthly deduction = ₦25,000, so max loan = ₦125,000 (for 5 months)
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white border rounded-lg p-6">
@@ -324,12 +350,19 @@ export function StaffLoanApplicationPage() {
                 <p className="text-gray-600">Monthly Installment</p>
                 <p className="text-lg font-bold">{formatCurrency(monthlyInstallment)}</p>
               </div>
-              <div>
-                <p className="text-gray-600">% of Salary</p>
-                <p className={`text-lg font-bold ${percentageOfSalary > 25 ? 'text-red-600' : 'text-green-600'}`}>
-                  {percentageOfSalary.toFixed(1)}%
-                </p>
-              </div>
+              {eligibility?.loanLimits?.monthlySalary > 0 ? (
+                <div>
+                  <p className="text-gray-600">% of Salary</p>
+                  <p className={`text-lg font-bold ${percentageOfSalary > 25 ? 'text-red-600' : 'text-green-600'}`}>
+                    {percentageOfSalary.toFixed(1)}%
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-gray-600">Repayment Period</p>
+                  <p className="text-lg font-bold">{formData.proposedTenureMonths} months</p>
+                </div>
+              )}
               <div>
                 <p className="text-gray-600">Total Repayable</p>
                 <p className="text-lg font-bold">{formatCurrency(formData.requestedAmount)}</p>
@@ -339,9 +372,14 @@ export function StaffLoanApplicationPage() {
                 <p className="text-lg font-bold text-green-600">0%</p>
               </div>
             </div>
-            {percentageOfSalary > 25 && (
+            {eligibility?.loanLimits?.monthlySalary > 0 && percentageOfSalary > 25 && (
               <p className="text-xs text-red-600 mt-3">
                 ⚠️ Installment exceeds 25% salary limit
+              </p>
+            )}
+            {!eligibility?.loanLimits?.monthlySalary && (
+              <p className="text-xs text-yellow-600 mt-3">
+                ⚠️ Ensure monthly installment of {formatCurrency(monthlyInstallment)} does not exceed 25% of your salary
               </p>
             )}
           </div>
@@ -358,7 +396,7 @@ export function StaffLoanApplicationPage() {
           </button>
           <button
             type="submit"
-            disabled={applyMutation.isPending || percentageOfSalary > 25}
+            disabled={applyMutation.isPending || (eligibility?.loanLimits?.monthlySalary > 0 && percentageOfSalary > 25)}
             className="btn btn-primary flex-1"
           >
             {applyMutation.isPending ? 'Submitting...' : 'Submit Application'}

@@ -496,12 +496,12 @@ export class StaffLoansService {
       maxMonthlyDeduction = monthlySalary * (STAFF_LOAN_CONFIG.MAX_SALARY_DEDUCTION_PERCENTAGE / 100);
     }
 
+    // Allow eligibility even without salary - staff will manually ensure repayment doesn't exceed 25% of their salary
     const isEligible =
       user.status === 'ACTIVE' &&
       employment !== null &&
       !hasActiveLoans &&
-      !hasOverdue &&
-      monthlySalary > 0;
+      !hasOverdue;
 
     return {
       eligible: isEligible,
@@ -510,11 +510,11 @@ export class StaffLoansService {
         accountActive: user.status === 'ACTIVE',
         noActiveLoans: !hasActiveLoans,
         noOverduePayments: !hasOverdue,
-        hasValidSalary: monthlySalary > 0,
+        hasValidSalary: monthlySalary > 0, // Info only - not required for eligibility
       },
       loanLimits: {
         monthlySalary,
-        maxEligibleAmount,
+        maxEligibleAmount: maxEligibleAmount || 999999999, // No limit if salary not set
         maxMonthlyDeduction,
         maxTenureMonths: STAFF_LOAN_CONFIG.MAX_TENURE_MONTHS,
         minLoanAmount: STAFF_LOAN_CONFIG.MIN_LOAN_AMOUNT,
@@ -523,7 +523,9 @@ export class StaffLoansService {
         interestRate: `${STAFF_LOAN_CONFIG.INTEREST_RATE}%`,
         maxRepaymentPeriod: `${STAFF_LOAN_CONFIG.MAX_TENURE_MONTHS} months`,
         maxSalaryDeduction: `${STAFF_LOAN_CONFIG.MAX_SALARY_DEDUCTION_PERCENTAGE}%`,
-        description: 'Interest-free staff loans with maximum 5-month repayment period. Monthly deduction cannot exceed 25% of gross salary.',
+        description: monthlySalary > 0 
+          ? 'Interest-free staff loans with maximum 5-month repayment period. Monthly deduction cannot exceed 25% of gross salary.'
+          : 'Interest-free staff loans with maximum 5-month repayment period. You must ensure monthly repayment does not exceed 25% of your gross salary.',
       },
     };
   }
