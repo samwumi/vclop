@@ -77,7 +77,7 @@ export function MyEmploymentPage() {
 
   // Get previous employment (last 2 positions)
   const previousEmployment = employmentHistory
-    .filter(e => !e.isCurrent)
+    .filter((e: any) => !e.isCurrent)
     .slice(0, 2);
 
   // Fetch departments for create form
@@ -547,7 +547,7 @@ export function MyEmploymentPage() {
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold mb-4">Previous Employment History</h3>
                     <div className="space-y-4">
-                      {previousEmployment.map((emp) => (
+                      {previousEmployment.map((emp: any) => (
                         <div key={emp.id} className="border rounded-lg p-4 bg-gray-50">
                           <div className="flex items-start justify-between mb-3">
                             <div>

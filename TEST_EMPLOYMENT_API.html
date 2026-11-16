@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Employment API</title>
+</head>
+<body>
+    <h1>Test Employment API for samwumi91@gmail.com</h1>
+    <button onclick="testAPI()">Test API</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testAPI() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Testing...';
+
+            try {
+                // Get token from localStorage
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    resultEl.textContent = '❌ No token found in localStorage. Please log in first.';
+                    return;
+                }
+
+                // Your userId from the database query
+                const userId = '398e9fb6-b95c-4f6b-ab0c-0848dde17a66';
+
+                // Call the API
+                const response = await fetch(`/api/hr/employees/${userId}/current-employment`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultEl.textContent = '✅ SUCCESS! API returned employment record:\n\n' + 
+                        JSON.stringify(data, null, 2);
+                } else {
+                    resultEl.textContent = '❌ API Error:\n\n' + 
+                        JSON.stringify(data, null, 2);
+                }
+
+            } catch (error) {
+                resultEl.textContent = '❌ Network Error:\n\n' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
