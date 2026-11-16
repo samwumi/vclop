@@ -26,7 +26,7 @@ export class EmploymentController {
   ) {
     // Allow users to view their own employment history, or require employees:read permission
     const isOwnData = req.user.id === userId;
-    const hasPermission = req.user.permissions?.includes('employees:read');
+    const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes('employees:read');
     
     if (!isOwnData && !hasPermission) {
       throw new ForbiddenException('Insufficient permissions to view this employment history');
@@ -42,7 +42,7 @@ export class EmploymentController {
   ) {
     // Allow users to view their own current employment, or require employees:read permission
     const isOwnData = req.user.id === userId;
-    const hasPermission = req.user.permissions?.includes('employees:read');
+    const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes('employees:read');
     
     if (!isOwnData && !hasPermission) {
       throw new ForbiddenException('Insufficient permissions to view this employment history');
