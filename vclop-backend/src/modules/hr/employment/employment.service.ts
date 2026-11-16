@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ContractType, TerminationType } from '@prisma/client';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class EmploymentService {
@@ -703,4 +704,114 @@ export class EmploymentService {
       },
     });
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // WORK HISTORY (Previous Employment from OTHER companies)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async getWorkHistory(employmentPeriodId: string) {
+    return await (this.prisma.employeeWorkHistory.findMany as any)({
+      where: { employmentPeriodId },
+      orderBy: { startDate: 'desc' },
+    });
+  }
+
+  async createWorkHistory(data: {
+    employmentPeriodId: string;
+    companyName: string;
+    position: string;
+    startDate: Date;
+    endDate?: Date;
+    responsibilities?: string;
+    reasonForLeaving?: string;
+  }) {
+    // Check if employee already has 2 work history entries (limit to 2)
+    const existingCount = await (this.prisma.employeeWorkHistory.count as any)({
+      where: { employmentPeriodId: data.employmentPeriodId },
+    });
+
+    if (existingCount >= 2) {
+      throw new BadRequestException(
+        'Maximum of 2 previous work experiences allowed',
+      );
+    }
+
+    return await (this.prisma.employeeWorkHistory.create as any)({
+      data: {
+        id: crypto.randomUUID(),
+        ...data,
+      },
+    });
+  }
+
+  async updateWorkHistory(
+    workHistoryId: string,
+    data: {
+      companyName?: string;
+      position?: string;
+      startDate?: Date;
+      endDate?: Date;
+      responsibilities?: string;
+      reasonForLeaving?: string;
+    },
+  ) {
+    const workHistory = await (this.prisma.employeeWorkHistory.findUnique as any)({
+      where: { id: workHistoryId },
+      include: {
+        employmentPeriod: true,
+      },
+    });
+
+    if (!workHistory) {
+      throw new NotFoundException('Work history not found');
+    }
+
+    // Check if employment period is editable
+    if (!workHistory.employmentPeriod.isEditable) {
+      throw new BadRequestException(
+        'Cannot edit work history - employment record is locked',
+      );
+    }
+
+    return await (this.prisma.employeeWorkHistory.update as any)({
+      where: { id: workHistoryId },
+      data,
+    });
+  }
+
+  async deleteWorkHistory(workHistoryId: string) {
+    const workHistory = await (this.prisma.employeeWorkHistory.findUnique as any)({
+      where: { id: workHistoryId },
+      include: {
+        employmentPeriod: true,
+      },
+    });
+
+    if (!workHistory) {
+      throw new NotFoundException('Work history not found');
+    }
+
+    // Check if employment period is editable
+    if (!workHistory.employmentPeriod.isEditable) {
+      throw new BadRequestException(
+        'Cannot delete work history - employment record is locked',
+      );
+    }
+
+    await (this.prisma.employeeWorkHistory.delete as any)({
+      where: { id: workHistoryId },
+    });
+  }
+
+  async getWorkHistoryById(workHistoryId: string): Promise<any> {
+    return await (this.prisma.employeeWorkHistory.findUnique as any)({
+      where: { id: workHistoryId },
+      include: {
+        employmentPeriod: {
+          select: { id: true, userId: true },
+        },
+      },
+    });
+  }
 }
+

@@ -1842,6 +1842,7 @@ model EmploymentPeriod {
   createdBy   User             @relation("EmploymentPeriodCreator", fields: [createdById], references: [id])
   reviewedBy  User?            @relation("EmploymentPeriodReviewer", fields: [reviewedById], references: [id])
   offboarding OffboardingCase?
+  workHistory EmployeeWorkHistory[] @relation("WorkHistory")
 
   @@unique([userId, periodNumber])
   @@index([userId, isCurrent])
@@ -1889,6 +1890,26 @@ model EmployeeNextOfKin {
 
   @@index([employmentPeriodId])
   @@map("employee_next_of_kin")
+}
+
+model EmployeeWorkHistory {
+  id                 String    @id @default(uuid()) @db.VarChar(36)
+  employmentPeriodId String    @db.VarChar(36)
+  companyName        String    @db.VarChar(200)
+  position           String    @db.VarChar(200)
+  startDate          DateTime  @db.Date
+  endDate            DateTime? @db.Date
+  responsibilities   String?   @db.Text
+  reasonForLeaving   String?   @db.VarChar(500)
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  employmentPeriod   EmploymentPeriod @relation("WorkHistory", fields: [employmentPeriodId], references: [id], onDelete: Cascade)
+
+  @@index([employmentPeriodId])
+  @@index([startDate])
+  @@map("employee_work_history")
 }
 
 // ───────────────────────────────────────────────────────────────────────────

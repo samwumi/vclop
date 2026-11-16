@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Briefcase, Shield, Users as UsersIcon, Plus, Edit, AlertCircle, Send, CheckCircle } from 'lucide-react';
+import { Briefcase, Shield, Users as UsersIcon, Plus, Edit, AlertCircle, Send, CheckCircle, Trash2 } from 'lucide-react';
 import { 
   employmentService, 
   type CreateGuarantorDto,
   type CreateNextOfKinDto,
   type EmployeeGuarantor,
   type EmployeeNextOfKin,
-  type CreateEmploymentDto
+  type CreateEmploymentDto,
+  type EmployeeWorkHistory,
+  type CreateWorkHistoryDto,
 } from '@/services/employment.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
@@ -23,8 +25,10 @@ export function MyEmploymentPage() {
   const [showGuarantorModal, setShowGuarantorModal] = useState(false);
   const [showNextOfKinModal, setShowNextOfKinModal] = useState(false);
   const [showCreateEmploymentModal, setShowCreateEmploymentModal] = useState(false);
+  const [showWorkHistoryModal, setShowWorkHistoryModal] = useState(false);
   const [editingGuarantor, setEditingGuarantor] = useState<EmployeeGuarantor | null>(null);
   const [editingNextOfKin, setEditingNextOfKin] = useState<EmployeeNextOfKin | null>(null);
+  const [editingWorkHistory, setEditingWorkHistory] = useState<EmployeeWorkHistory | null>(null);
 
   const [employmentData, setEmploymentData] = useState<Omit<CreateEmploymentDto, 'salary'>>({
     hireDate: '',
@@ -54,6 +58,15 @@ export function MyEmploymentPage() {
     isPrimary: false,
   });
 
+  const [workHistoryData, setWorkHistoryData] = useState<CreateWorkHistoryDto>({
+    companyName: '',
+    position: '',
+    startDate: '',
+    endDate: '',
+    responsibilities: '',
+    reasonForLeaving: '',
+  });
+
   // Fetch current employment for logged-in user
   const { data: currentEmployment, isLoading } = useQuery({
     queryKey: ['my-current-employment'],
@@ -67,18 +80,6 @@ export function MyEmploymentPage() {
     },
     enabled: !!user?.id,
   });
-
-  // Fetch employment history (including previous positions)
-  const { data: employmentHistory = [] } = useQuery({
-    queryKey: ['my-employment-history', user?.id],
-    queryFn: () => employmentService.getEmploymentHistory(user?.id!),
-    enabled: !!user?.id,
-  });
-
-  // Get previous employment (last 2 positions)
-  const previousEmployment = employmentHistory
-    .filter((e: any) => !e.isCurrent)
-    .slice(0, 2);
 
   // Fetch departments for create form
   const { data: departmentsResponse } = useQuery({
@@ -135,6 +136,13 @@ export function MyEmploymentPage() {
     queryKey: ['my-next-of-kin', currentEmployment?.id],
     queryFn: () => employmentService.getNextOfKin(currentEmployment!.id),
     enabled: !!currentEmployment?.id,
+  });
+
+  // Fetch work history (previous jobs from OTHER companies)
+  const { data: workHistory = [] } = useQuery({
+    queryKey: ['my-work-history', user?.id],
+    queryFn: () => employmentService.getWorkHistory(user?.id!),
+    enabled: !!user?.id,
   });
 
   const createGuarantorMutation = useMutation({
@@ -200,6 +208,48 @@ export function MyEmploymentPage() {
     },
     onError: (error: any) => {
       alert(error.response?.data?.message || 'Failed to update next of kin');
+    },
+  });
+
+  // Work History mutations
+  const createWorkHistoryMutation = useMutation({
+    mutationFn: () => employmentService.createWorkHistory(user?.id!, workHistoryData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-work-history', user?.id] });
+      alert('Work history added successfully');
+      setShowWorkHistoryModal(false);
+      resetWorkHistoryForm();
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to add work history');
+    },
+  });
+
+  const updateWorkHistoryMutation = useMutation({
+    mutationFn: () => {
+      if (!editingWorkHistory) throw new Error('No work history selected');
+      return employmentService.updateWorkHistory(editingWorkHistory.id, workHistoryData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-work-history', user?.id] });
+      alert('Work history updated successfully');
+      setShowWorkHistoryModal(false);
+      setEditingWorkHistory(null);
+      resetWorkHistoryForm();
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to update work history');
+    },
+  });
+
+  const deleteWorkHistoryMutation = useMutation({
+    mutationFn: (workHistoryId: string) => employmentService.deleteWorkHistory(workHistoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-work-history', user?.id] });
+      alert('Work history deleted successfully');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to delete work history');
     },
   });
 
@@ -300,6 +350,49 @@ export function MyEmploymentPage() {
       isPrimary: nok.isPrimary,
     });
     setShowNextOfKinModal(true);
+  };
+
+  const resetWorkHistoryForm = () => {
+    setWorkHistoryData({
+      companyName: '',
+      position: '',
+      startDate: '',
+      endDate: '',
+      responsibilities: '',
+      reasonForLeaving: '',
+    });
+  };
+
+  const handleWorkHistorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workHistoryData.companyName || !workHistoryData.position || !workHistoryData.startDate) {
+      alert('Please fill in all required fields (Company, Position, Start Date)');
+      return;
+    }
+    if (editingWorkHistory) {
+      updateWorkHistoryMutation.mutate();
+    } else {
+      createWorkHistoryMutation.mutate();
+    }
+  };
+
+  const handleEditWorkHistory = (wh: EmployeeWorkHistory) => {
+    setEditingWorkHistory(wh);
+    setWorkHistoryData({
+      companyName: wh.companyName,
+      position: wh.position,
+      startDate: wh.startDate.split('T')[0],
+      endDate: wh.endDate ? wh.endDate.split('T')[0] : '',
+      responsibilities: wh.responsibilities || '',
+      reasonForLeaving: wh.reasonForLeaving || '',
+    });
+    setShowWorkHistoryModal(true);
+  };
+
+  const handleDeleteWorkHistory = (workHistoryId: string) => {
+    if (confirm('Are you sure you want to delete this work history entry?')) {
+      deleteWorkHistoryMutation.mutate(workHistoryId);
+    }
   };
 
   if (isLoading) {
@@ -542,51 +635,101 @@ export function MyEmploymentPage() {
                   </div>
                 )}
 
-                {/* Work History - Last 2 Previous Positions */}
-                {previousEmployment.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-4">Previous Employment History</h3>
+                {/* Work History - Previous Jobs from OTHER Companies */}
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Previous Work Experience</h3>
+                    <button
+                      onClick={() => {
+                        setEditingWorkHistory(null);
+                        resetWorkHistoryForm();
+                        setShowWorkHistoryModal(true);
+                      }}
+                      disabled={!isEditable || workHistory.length >= 2}
+                      className="btn-sm btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={workHistory.length >= 2 ? 'Maximum 2 entries allowed' : 'Add work history'}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Work History {workHistory.length >= 2 && '(Max Reached)'}
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Add your last 2 jobs from previous companies (max 2 entries)
+                  </p>
+                  
+                  {workHistory.length === 0 ? (
+                    <div className="border border-dashed rounded-lg p-6 text-center bg-gray-50">
+                      <Briefcase className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-600">No work history added yet</p>
+                      <p className="text-sm text-gray-500">Add your previous employment from other companies</p>
+                    </div>
+                  ) : (
                     <div className="space-y-4">
-                      {previousEmployment.map((emp: any) => (
-                        <div key={emp.id} className="border rounded-lg p-4 bg-gray-50">
+                      {workHistory.map((wh: EmployeeWorkHistory) => (
+                        <div key={wh.id} className="border rounded-lg p-4 bg-white hover:shadow-sm transition-shadow">
                           <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h4 className="font-semibold text-lg">{emp.jobTitle}</h4>
-                              <p className="text-sm text-gray-600">
-                                {emp.department?.name || '-'} • {emp.branch?.name || '-'}
-                              </p>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-lg">{wh.position}</h4>
+                              <p className="text-brand-600 font-medium">{wh.companyName}</p>
                             </div>
-                            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                              Position #{emp.periodNumber}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditWorkHistory(wh)}
+                                disabled={!isEditable}
+                                className="text-brand-600 hover:text-brand-700 disabled:opacity-40 disabled:cursor-not-allowed p-1"
+                                title={!isEditable ? 'Data is locked' : 'Edit work history'}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteWorkHistory(wh.id)}
+                                disabled={!isEditable}
+                                className="text-red-600 hover:text-red-700 disabled:opacity-40 disabled:cursor-not-allowed p-1"
+                                title={!isEditable ? 'Data is locked' : 'Delete work history'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-3">
                             <div>
                               <p className="text-gray-500">Start Date</p>
-                              <p className="font-medium">{formatDate(emp.hireDate)}</p>
+                              <p className="font-medium">{formatDate(wh.startDate)}</p>
                             </div>
                             <div>
                               <p className="text-gray-500">End Date</p>
                               <p className="font-medium">
-                                {emp.terminationDate ? formatDate(emp.terminationDate) : 'Present'}
+                                {wh.endDate ? formatDate(wh.endDate) : 'Present'}
                               </p>
                             </div>
                             <div>
-                              <p className="text-gray-500">Contract Type</p>
-                              <p className="font-medium">{emp.contractType}</p>
+                              <p className="text-gray-500">Duration</p>
+                              <p className="font-medium">
+                                {Math.round(
+                                  (new Date(wh.endDate || new Date()).getTime() - new Date(wh.startDate).getTime()) /
+                                    (1000 * 60 * 60 * 24 * 30)
+                                )}{' '}
+                                months
+                              </p>
                             </div>
-                            {emp.terminationType && (
-                              <div>
-                                <p className="text-gray-500">Exit Type</p>
-                                <p className="font-medium">{emp.terminationType}</p>
-                              </div>
-                            )}
                           </div>
+                          {wh.responsibilities && (
+                            <div className="text-sm mb-2">
+                              <p className="text-gray-500 mb-1">Key Responsibilities:</p>
+                              <p className="text-gray-700">{wh.responsibilities}</p>
+                            </div>
+                          )}
+                          {wh.reasonForLeaving && (
+                            <div className="text-sm">
+                              <p className="text-gray-500 mb-1">Reason for Leaving:</p>
+                              <p className="text-gray-700">{wh.reasonForLeaving}</p>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
 
@@ -1140,6 +1283,133 @@ export function MyEmploymentPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Work History Modal */}
+      {showWorkHistoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold mb-6">
+                {editingWorkHistory ? 'Edit Work History' : 'Add Work History'}
+              </h2>
+              <form onSubmit={handleWorkHistorySubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Company Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={workHistoryData.companyName}
+                      onChange={(e) => setWorkHistoryData({ ...workHistoryData, companyName: e.target.value })}
+                      className="input-field"
+                      placeholder="Previous company name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Position/Job Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={workHistoryData.position}
+                      onChange={(e) => setWorkHistoryData({ ...workHistoryData, position: e.target.value })}
+                      className="input-field"
+                      placeholder="Your job title"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={workHistoryData.startDate}
+                      onChange={(e) => setWorkHistoryData({ ...workHistoryData, startDate: e.target.value })}
+                      className="input-field"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={workHistoryData.endDate || ''}
+                      onChange={(e) => setWorkHistoryData({ ...workHistoryData, endDate: e.target.value })}
+                      className="input-field"
+                      placeholder="Leave empty if current"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Leave empty if still working there</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Key Responsibilities
+                  </label>
+                  <textarea
+                    value={workHistoryData.responsibilities || ''}
+                    onChange={(e) => setWorkHistoryData({ ...workHistoryData, responsibilities: e.target.value })}
+                    className="input-field"
+                    rows={3}
+                    placeholder="Brief description of your key responsibilities..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Reason for Leaving
+                  </label>
+                  <input
+                    type="text"
+                    value={workHistoryData.reasonForLeaving || ''}
+                    onChange={(e) => setWorkHistoryData({ ...workHistoryData, reasonForLeaving: e.target.value })}
+                    className="input-field"
+                    placeholder="e.g., Career advancement, relocation, etc."
+                  />
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> Add your employment history from OTHER companies (not this organization). 
+                    Maximum 2 entries allowed.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 justify-end pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowWorkHistoryModal(false);
+                      setEditingWorkHistory(null);
+                      resetWorkHistoryForm();
+                    }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createWorkHistoryMutation.isPending || updateWorkHistoryMutation.isPending}
+                    className="btn-primary"
+                  >
+                    {editingWorkHistory 
+                      ? (updateWorkHistoryMutation.isPending ? 'Updating...' : 'Update Work History')
+                      : (createWorkHistoryMutation.isPending ? 'Adding...' : 'Add Work History')}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

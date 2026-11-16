@@ -120,6 +120,28 @@ export interface CreateNextOfKinDto {
   isPrimary?: boolean;
 }
 
+export interface EmployeeWorkHistory {
+  id: string;
+  employmentPeriodId: string;
+  companyName: string;
+  position: string;
+  startDate: string;
+  endDate?: string;
+  responsibilities?: string;
+  reasonForLeaving?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateWorkHistoryDto {
+  companyName: string;
+  position: string;
+  startDate: string;
+  endDate?: string;
+  responsibilities?: string;
+  reasonForLeaving?: string;
+}
+
 class EmploymentService {
   /**
    * Get employment history for a user
@@ -306,6 +328,38 @@ class EmploymentService {
   async canEdit(userId: string): Promise<boolean> {
     const response = await api.get(`/hr/employees/${userId}/can-edit`);
     return response.data.canEdit || false;
+  }
+
+  /**
+   * Get work history for a user
+   */
+  async getWorkHistory(userId: string): Promise<EmployeeWorkHistory[]> {
+    const response = await api.get(`/hr/employees/${userId}/work-history`);
+    const data = response.data.data || response.data;
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * Create work history entry
+   */
+  async createWorkHistory(userId: string, data: CreateWorkHistoryDto): Promise<EmployeeWorkHistory> {
+    const response = await api.post(`/hr/employees/${userId}/work-history`, data);
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Update work history entry
+   */
+  async updateWorkHistory(workHistoryId: string, data: Partial<CreateWorkHistoryDto>): Promise<EmployeeWorkHistory> {
+    const response = await api.put(`/hr/employees/work-history/${workHistoryId}`, data);
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Delete work history entry
+   */
+  async deleteWorkHistory(workHistoryId: string): Promise<void> {
+    await api.delete(`/hr/employees/work-history/${workHistoryId}`);
   }
 }
 

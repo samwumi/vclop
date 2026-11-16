@@ -3,11 +3,14 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   UseGuards,
   Request,
   ForbiddenException,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { EmploymentService } from './employment.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -396,4 +399,120 @@ export class EmploymentController {
     const canEdit = await this.employmentService.canEditEmployment(userId);
     return { canEdit };
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // WORK HISTORY ENDPOINTS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  @Get(':id/work-history')
+  async getWorkHistory(@Param('id') userId: string, @Request() req: any) {
+    // Get user's current employment period
+    const employment = await this.employmentService.getCurrentEmployment(userId);
+    if (!employment) {
+      throw new NotFoundException('Employment record not found');
+    }
+
+    // Employee can see their own work history, or HR with permission
+    const isOwnRecord = req.user.id === userId;
+    const hasPermission = Array.isArray(req.user.permissions) && req.user.permissions.includes('hr.employment_periods.read');
+    
+    if (!isOwnRecord && !hasPermission) {
+      throw new ForbiddenException('Not authorized to view this work history');
+    }
+
+    return this.employmentService.getWorkHistory(employment.id);
+  }
+
+  @Post(':id/work-history')
+  async createWorkHistory(
+    @Param('id') userId: string,
+    @Body() data: {
+      companyName: string;
+      position: string;
+      startDate: string;
+      endDate?: string;
+      responsibilities?: string;
+      reasonForLeaving?: string;
+    },
+    @Request() req: any,
+  ) {
+    // Get user's current employment period
+    const employment = await this.employmentService.getCurrentEmployment(userId);
+    if (!employment) {
+      throw new NotFoundException('Employment record not found');
+    }
+
+    // Only employee can add their own work history (while editable)
+    const isOwnRecord = req.user.id === userId;
+    if (!isOwnRecord) {
+      throw new ForbiddenException('You can only add your own work history');
+    }
+
+    // Check if editable
+    if (!employment.isEditable) {
+      throw new BadRequestException('Employment record is locked - cannot add work history');
+    }
+
+    return this.employmentService.createWorkHistory({
+      employmentPeriodId: employment.id,
+      companyName: data.companyName,
+      position: data.position,
+      startDate: new Date(data.startDate),
+      endDate: data.endDate ? new Date(data.endDate) : undefined,
+      responsibilities: data.responsibilities,
+      reasonForLeaving: data.reasonForLeaving,
+    });
+  }
+
+  @Put('work-history/:workHistoryId')
+  async updateWorkHistory(
+    @Param('workHistoryId') workHistoryId: string,
+    @Body() data: {
+      companyName?: string;
+      position?: string;
+      startDate?: string;
+      endDate?: string;
+      responsibilities?: string;
+      reasonForLeaving?: string;
+    },
+    @Request() req: any,
+  ) {
+    // Check if work history belongs to user
+    const workHistory = await this.employmentService.getWorkHistoryById(workHistoryId);
+    if (!workHistory) {
+      throw new NotFoundException('Work history not found');
+    }
+
+    const isOwnRecord = req.user.id === workHistory.employmentPeriod.userId;
+    if (!isOwnRecord) {
+      throw new ForbiddenException('You can only edit your own work history');
+    }
+
+    return this.employmentService.updateWorkHistory(workHistoryId, {
+      ...data,
+      startDate: data.startDate ? new Date(data.startDate) : undefined,
+      endDate: data.endDate ? new Date(data.endDate) : undefined,
+    });
+  }
+
+  @Delete('work-history/:workHistoryId')
+  async deleteWorkHistory(
+    @Param('workHistoryId') workHistoryId: string,
+    @Request() req: any,
+  ) {
+    // Check if work history belongs to user
+    const workHistory = await this.employmentService.getWorkHistoryById(workHistoryId);
+    if (!workHistory) {
+      throw new NotFoundException('Work history not found');
+    }
+
+    const isOwnRecord = req.user.id === workHistory.employmentPeriod.userId;
+    if (!isOwnRecord) {
+      throw new ForbiddenException('You can only delete your own work history');
+    }
+
+    await this.employmentService.deleteWorkHistory(workHistoryId);
+    return { message: 'Work history deleted successfully' };
+  }
 }
+
