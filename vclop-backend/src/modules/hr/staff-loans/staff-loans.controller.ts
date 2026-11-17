@@ -42,7 +42,7 @@ export class StaffLoansController {
   @ApiResponse({ status: 201, description: 'Application submitted successfully' })
   @ApiResponse({ status: 400, description: 'Ineligible or invalid request' })
   async applyForLoan(@Body() dto: ApplyLoanDto, @Request() req: any) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const loan = await this.staffLoansService.applyForLoan({
       ...dto,
@@ -64,7 +64,7 @@ export class StaffLoansController {
   @ApiOperation({ summary: 'Check loan eligibility' })
   @ApiResponse({ status: 200, description: 'Eligibility retrieved' })
   async checkEligibility(@Request() req: any) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId; // Fix: use id, fallback to userId
 
     const eligibility = await this.staffLoansService.checkEligibility(userId);
 
@@ -82,7 +82,7 @@ export class StaffLoansController {
   @ApiOperation({ summary: 'Get my staff loans' })
   @ApiResponse({ status: 200, description: 'Loans retrieved successfully' })
   async getMyLoans(@Query('status') status: StaffLoanStatus, @Request() req: any) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const loans = await this.staffLoansService.getMyLoans(userId, status);
 
@@ -138,7 +138,7 @@ export class StaffLoansController {
     @Body() dto: ApproveLoanDto,
     @Request() req: any,
   ) {
-    const approverId = req.user.userId;
+    const approverId = req.user.id || req.user.userId;
 
     const loan = await this.staffLoansService.approveLoan(id, approverId, dto);
 
@@ -162,7 +162,7 @@ export class StaffLoansController {
     @Body() dto: RejectLoanDto,
     @Request() req: any,
   ) {
-    const rejectorId = req.user.userId;
+    const rejectorId = req.user.id || req.user.userId;
 
     const loan = await this.staffLoansService.rejectLoan(id, rejectorId, dto.reason);
 
@@ -186,7 +186,7 @@ export class StaffLoansController {
     @Body() dto: DisburseLoanDto,
     @Request() req: any,
   ) {
-    const disburserId = req.user.userId;
+    const disburserId = req.user.id || req.user.userId;
 
     const loan = await this.staffLoansService.disburseLoan(id, disburserId, dto);
 
@@ -211,7 +211,7 @@ export class StaffLoansController {
     @Body() dto: RecordPaymentDto,
     @Request() req: any,
   ) {
-    const recordedById = req.user.userId;
+    const recordedById = req.user.id || req.user.userId;
 
     const result = await this.paymentService.recordPayment({
       loanId,
@@ -240,7 +240,7 @@ export class StaffLoansController {
     @Body() dto: { reason: string },
     @Request() req: any,
   ) {
-    const reversedById = req.user.userId;
+    const reversedById = req.user.id || req.user.userId;
 
     const reversal = await this.paymentService.reversePayment(
       paymentId,
