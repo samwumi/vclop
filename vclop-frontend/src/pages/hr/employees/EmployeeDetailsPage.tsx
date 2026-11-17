@@ -425,22 +425,22 @@ export function EmployeeDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
-      <button onClick={() => navigate('/hr/employees')} className="btn-ghost mb-6">
-        <ArrowLeft className="w-4 h-4 mr-2" />
+    <div className="container mx-auto py-4 sm:py-8 px-4 max-w-6xl">
+      <button onClick={() => navigate('/hr/employees')} className="btn-ghost mb-4 sm:mb-6 text-sm sm:text-base">
+        <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
         Back to Employees
       </button>
 
       {/* Employee Header */}
-      <div className="bg-white border rounded-lg p-6 mb-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">
+      <div className="bg-white border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold mb-2">
               {user?.firstName} {user?.lastName}
             </h1>
-            <p className="text-gray-600">{user?.email}</p>
-            <div className="flex items-center gap-4 mt-4">
-              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+            <p className="text-sm sm:text-base text-gray-600 break-words">{user?.email}</p>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 sm:mt-4">
+              <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold ${
                 user?.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
               }`}>
                 {user?.status}
@@ -453,9 +453,9 @@ export function EmployeeDetailsPage() {
           {!currentEmployment && (
             <button
               onClick={() => setShowEmploymentModal(true)}
-              className="btn-primary flex items-center gap-2"
+              className="btn-primary flex items-center justify-center gap-2 text-sm sm:text-base w-full sm:w-auto"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               Add Employment
             </button>
           )}
@@ -464,12 +464,12 @@ export function EmployeeDetailsPage() {
 
       {/* HR Review Section */}
       {currentEmployment && (currentEmployment.submissionStatus === 'SUBMITTED' || currentEmployment.submissionStatus === 'UNDER_REVIEW') && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-blue-600" />
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
             Review Employment Submission
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <button
               onClick={() => {
                 if (confirm('Approve this employment submission? The data will be locked.')) {
@@ -477,7 +477,7 @@ export function EmployeeDetailsPage() {
                 }
               }}
               disabled={approveMutation.isPending}
-              className="btn-primary flex items-center gap-2"
+              className="btn-primary flex items-center justify-center gap-2 text-sm sm:text-base py-2 sm:py-2"
             >
               <CheckCircle className="w-4 h-4" />
               {approveMutation.isPending ? 'Approving...' : 'Approve'}
@@ -485,7 +485,7 @@ export function EmployeeDetailsPage() {
             <button
               onClick={() => setShowRejectModal(true)}
               disabled={rejectMutation.isPending}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <XCircle className="w-4 h-4" />
               Reject
@@ -493,7 +493,7 @@ export function EmployeeDetailsPage() {
             <button
               onClick={() => setShowRevisionModal(true)}
               disabled={requestRevisionMutation.isPending}
-              className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-3 sm:px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <AlertCircle className="w-4 h-4" />
               Request Revision
@@ -504,14 +504,14 @@ export function EmployeeDetailsPage() {
 
       {/* Edit Rights Control */}
       {currentEmployment && currentEmployment.submissionStatus === 'APPROVED' && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            {currentEmployment.isEditable ? <Unlock className="w-5 h-5 text-green-600" /> : <Lock className="w-5 h-5 text-gray-600" />}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+            {currentEmployment.isEditable ? <Unlock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" /> : <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />}
             Edit Rights Control
           </h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-700 mb-1">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="flex-1">
+              <p className="text-xs sm:text-sm text-gray-700 mb-1">
                 {currentEmployment.isEditable 
                   ? 'Employee can currently edit their data' 
                   : 'Employee data is currently locked'}
@@ -533,7 +533,7 @@ export function EmployeeDetailsPage() {
                 }
               }}
               disabled={grantEditRightsMutation.isPending || revokeEditRightsMutation.isPending}
-              className={`px-4 py-2 rounded flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 rounded flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap ${
                 currentEmployment.isEditable 
                   ? 'bg-gray-600 text-white hover:bg-gray-700' 
                   : 'bg-green-600 text-white hover:bg-green-700'
@@ -557,9 +557,9 @@ export function EmployeeDetailsPage() {
 
       {/* Review History */}
       {currentEmployment && currentEmployment.reviewedAt && (
-        <div className="bg-white border rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Review History</h2>
-          <div className="space-y-2 text-sm">
+        <div className="bg-white border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Review History</h2>
+          <div className="space-y-2 text-xs sm:text-sm">
             <div>
               <span className="text-gray-600">Reviewed by:</span>
               <span className="ml-2 font-medium">{currentEmployment.reviewedBy?.firstName} {currentEmployment.reviewedBy?.lastName}</span>
@@ -571,7 +571,7 @@ export function EmployeeDetailsPage() {
             {currentEmployment.reviewNotes && (
               <div>
                 <span className="text-gray-600">Notes:</span>
-                <p className="mt-1 p-3 bg-gray-50 rounded border text-gray-700">{currentEmployment.reviewNotes}</p>
+                <p className="mt-1 p-3 bg-gray-50 rounded border text-gray-700 break-words">{currentEmployment.reviewNotes}</p>
               </div>
             )}
           </div>
@@ -581,51 +581,51 @@ export function EmployeeDetailsPage() {
       {/* Tabs */}
       {currentEmployment && (
         <div className="bg-white border rounded-lg">
-          <div className="border-b">
-            <div className="flex">
+          <div className="border-b overflow-x-auto">
+            <div className="flex min-w-max sm:min-w-0">
               <button
                 onClick={() => setActiveTab('details')}
-                className={`px-6 py-3 font-medium flex items-center gap-2 ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 font-medium flex items-center gap-2 text-xs sm:text-base whitespace-nowrap ${
                   activeTab === 'details'
                     ? 'border-b-2 border-brand-500 text-brand-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Briefcase className="w-4 h-4" />
+                <Briefcase className="w-3 h-3 sm:w-4 sm:h-4" />
                 Employee Details
               </button>
               <button
                 onClick={() => setActiveTab('guarantors')}
-                className={`px-6 py-3 font-medium flex items-center gap-2 ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 font-medium flex items-center gap-2 text-xs sm:text-base whitespace-nowrap ${
                   activeTab === 'guarantors'
                     ? 'border-b-2 border-brand-500 text-brand-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Shield className="w-4 h-4" />
+                <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
                 Guarantors ({guarantors.length})
               </button>
               <button
                 onClick={() => setActiveTab('next-of-kin')}
-                className={`px-6 py-3 font-medium flex items-center gap-2 ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 font-medium flex items-center gap-2 text-xs sm:text-base whitespace-nowrap ${
                   activeTab === 'next-of-kin'
                     ? 'border-b-2 border-brand-500 text-brand-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <UsersIcon className="w-4 h-4" />
+                <UsersIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                 Next of Kin ({nextOfKin.length})
               </button>
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {/* Employee Details Tab */}
             {activeTab === 'details' && (
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-brand-600" />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                  <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-brand-600" />
                     Current Employment
                   </h2>
                   <button
@@ -636,37 +636,37 @@ export function EmployeeDetailsPage() {
                       });
                       setShowSalaryModal(true);
                     }}
-                    className="btn-secondary flex items-center gap-2"
+                    className="btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <Edit className="w-4 h-4" />
                     Update Salary
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Job Title</p>
-                    <p className="font-semibold">{currentEmployment.jobTitle}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Job Title</p>
+                    <p className="font-semibold text-sm sm:text-base break-words">{currentEmployment.jobTitle}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Department</p>
-                    <p className="font-semibold">{currentEmployment.department?.name || '-'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Department</p>
+                    <p className="font-semibold text-sm sm:text-base break-words">{currentEmployment.department?.name || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Branch</p>
-                    <p className="font-semibold">{currentEmployment.branch?.name || '-'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Branch</p>
+                    <p className="font-semibold text-sm sm:text-base break-words">{currentEmployment.branch?.name || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Contract Type</p>
-                    <p className="font-semibold">{currentEmployment.contractType}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Contract Type</p>
+                    <p className="font-semibold text-sm sm:text-base">{currentEmployment.contractType}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Hire Date</p>
-                    <p className="font-semibold">{formatDate(currentEmployment.hireDate)}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Hire Date</p>
+                    <p className="font-semibold text-sm sm:text-base">{formatDate(currentEmployment.hireDate)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Monthly Salary</p>
-                    <p className="font-semibold text-brand-600 text-lg">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Monthly Salary</p>
+                    <p className="font-semibold text-brand-600 text-base sm:text-lg">
                       {currentEmployment.salary
                         ? `₦${Number(currentEmployment.salary).toLocaleString()}`
                         : 'Not set'}
@@ -676,24 +676,24 @@ export function EmployeeDetailsPage() {
 
                 {/* Staff Loan Eligibility */}
                 {currentEmployment.salary && (
-                  <div className="p-4 bg-brand-50 border border-brand-200 rounded-lg">
-                    <h3 className="font-semibold text-brand-900 mb-3">Staff Loan Eligibility</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="p-3 sm:p-4 bg-brand-50 border border-brand-200 rounded-lg mb-4 sm:mb-0">
+                    <h3 className="font-semibold text-brand-900 mb-3 text-sm sm:text-base">Staff Loan Eligibility</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
                       <div>
                         <p className="text-brand-700">Max Monthly Deduction (25%)</p>
-                        <p className="font-bold text-brand-900">
+                        <p className="font-bold text-brand-900 text-sm sm:text-base">
                           ₦{(Number(currentEmployment.salary) * 0.25).toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-brand-700">Max Loan Amount (25% × 5 months)</p>
-                        <p className="font-bold text-brand-900">
+                        <p className="font-bold text-brand-900 text-sm sm:text-base">
                           ₦{(Number(currentEmployment.salary) * 0.25 * 5).toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-brand-700">Months Employed</p>
-                        <p className="font-bold text-brand-900">
+                        <p className="font-bold text-brand-900 text-sm sm:text-base">
                           {Math.floor(
                             (new Date().getTime() - new Date(currentEmployment.hireDate).getTime()) /
                               (1000 * 60 * 60 * 24 * 30)
@@ -707,41 +707,41 @@ export function EmployeeDetailsPage() {
 
                 {/* Work History - Last 2 Previous Positions */}
                 {previousEmployment.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-4">Previous Employment History</h3>
-                    <div className="space-y-4">
+                  <div className="mt-4 sm:mt-6">
+                    <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Previous Employment History</h3>
+                    <div className="space-y-3 sm:space-y-4">
                       {previousEmployment.map((emp) => (
-                        <div key={emp.id} className="border rounded-lg p-4 bg-gray-50">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h4 className="font-semibold text-lg">{emp.jobTitle}</h4>
-                              <p className="text-sm text-gray-600">
+                        <div key={emp.id} className="border rounded-lg p-3 sm:p-4 bg-gray-50">
+                          <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-base sm:text-lg break-words">{emp.jobTitle}</h4>
+                              <p className="text-xs sm:text-sm text-gray-600 break-words">
                                 {emp.department?.name || '-'} • {emp.branch?.name || '-'}
                               </p>
                             </div>
-                            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded whitespace-nowrap">
                               Position #{emp.periodNumber}
                             </span>
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
                             <div>
                               <p className="text-gray-500">Start Date</p>
-                              <p className="font-medium">{formatDate(emp.hireDate)}</p>
+                              <p className="font-medium break-words">{formatDate(emp.hireDate)}</p>
                             </div>
                             <div>
                               <p className="text-gray-500">End Date</p>
-                              <p className="font-medium">
+                              <p className="font-medium break-words">
                                 {emp.terminationDate ? formatDate(emp.terminationDate) : 'Present'}
                               </p>
                             </div>
                             <div>
                               <p className="text-gray-500">Contract Type</p>
-                              <p className="font-medium">{emp.contractType}</p>
+                              <p className="font-medium break-words">{emp.contractType}</p>
                             </div>
                             {emp.terminationType && (
                               <div>
                                 <p className="text-gray-500">Exit Type</p>
-                                <p className="font-medium">{emp.terminationType}</p>
+                                <p className="font-medium break-words">{emp.terminationType}</p>
                               </div>
                             )}
                           </div>
@@ -756,15 +756,15 @@ export function EmployeeDetailsPage() {
             {/* Guarantors Tab */}
             {activeTab === 'guarantors' && (
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold">Guarantors</h2>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-semibold">Guarantors</h2>
                   <button
                     onClick={() => {
                       setEditingGuarantor(null);
                       resetGuarantorForm();
                       setShowGuarantorModal(true);
                     }}
-                    className="btn-primary flex items-center gap-2"
+                    className="btn-primary flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <Plus className="w-4 h-4" />
                     Add Guarantor
@@ -772,50 +772,50 @@ export function EmployeeDetailsPage() {
                 </div>
 
                 {guarantors.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
-                    <Shield className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600">No guarantors added yet</p>
-                    <p className="text-sm text-gray-500 mt-1">Add guarantors for this employee</p>
+                  <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg border border-dashed">
+                    <Shield className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm sm:text-base text-gray-600">No guarantors added yet</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">Add guarantors for this employee</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                     {guarantors.map((guarantor) => (
-                      <div key={guarantor.id} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-semibold text-lg">
+                      <div key={guarantor.id} className="border rounded-lg p-3 sm:p-4 hover:shadow-sm transition-shadow">
+                        <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base sm:text-lg break-words">
                               {guarantor.firstName} {guarantor.lastName}
                             </h3>
-                            <p className="text-sm text-gray-600">{guarantor.relationship}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 break-words">{guarantor.relationship}</p>
                           </div>
                           <button
                             onClick={() => handleEditGuarantor(guarantor)}
-                            className="text-brand-600 hover:text-brand-700"
+                            className="text-brand-600 hover:text-brand-700 flex-shrink-0"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                         </div>
-                        <div className="space-y-2 text-sm">
+                        <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                           <div>
                             <span className="text-gray-500">Phone:</span>
-                            <span className="ml-2 font-medium">{guarantor.phone}</span>
+                            <span className="ml-2 font-medium break-words">{guarantor.phone}</span>
                           </div>
                           {guarantor.email && (
                             <div>
                               <span className="text-gray-500">Email:</span>
-                              <span className="ml-2">{guarantor.email}</span>
+                              <span className="ml-2 break-words">{guarantor.email}</span>
                             </div>
                           )}
                           {guarantor.occupation && (
                             <div>
                               <span className="text-gray-500">Occupation:</span>
-                              <span className="ml-2">{guarantor.occupation}</span>
+                              <span className="ml-2 break-words">{guarantor.occupation}</span>
                             </div>
                           )}
                           {guarantor.address && (
                             <div>
                               <span className="text-gray-500">Address:</span>
-                              <span className="ml-2">{guarantor.address}</span>
+                              <span className="ml-2 break-words">{guarantor.address}</span>
                             </div>
                           )}
                         </div>
@@ -829,15 +829,15 @@ export function EmployeeDetailsPage() {
             {/* Next of Kin Tab */}
             {activeTab === 'next-of-kin' && (
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold">Next of Kin</h2>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-semibold">Next of Kin</h2>
                   <button
                     onClick={() => {
                       setEditingNextOfKin(null);
                       resetNextOfKinForm();
                       setShowNextOfKinModal(true);
                     }}
-                    className="btn-primary flex items-center gap-2"
+                    className="btn-primary flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <Plus className="w-4 h-4" />
                     Add Next of Kin
@@ -845,51 +845,51 @@ export function EmployeeDetailsPage() {
                 </div>
 
                 {nextOfKin.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
-                    <User className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600">No next of kin added yet</p>
-                    <p className="text-sm text-gray-500 mt-1">Add next of kin for this employee</p>
+                  <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg border border-dashed">
+                    <User className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm sm:text-base text-gray-600">No next of kin added yet</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">Add next of kin for this employee</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                     {nextOfKin.map((nok) => (
-                      <div key={nok.id} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-lg">
+                      <div key={nok.id} className="border rounded-lg p-3 sm:p-4 hover:shadow-sm transition-shadow">
+                        <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="font-semibold text-base sm:text-lg break-words">
                                 {nok.firstName} {nok.lastName}
                               </h3>
                               {nok.isPrimary && (
-                                <span className="px-2 py-0.5 bg-brand-100 text-brand-700 text-xs font-semibold rounded">
+                                <span className="px-2 py-0.5 bg-brand-100 text-brand-700 text-xs font-semibold rounded whitespace-nowrap">
                                   Primary
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-600">{nok.relationship}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 break-words">{nok.relationship}</p>
                           </div>
                           <button
                             onClick={() => handleEditNextOfKin(nok)}
-                            className="text-brand-600 hover:text-brand-700"
+                            className="text-brand-600 hover:text-brand-700 flex-shrink-0"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                         </div>
-                        <div className="space-y-2 text-sm">
+                        <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                           <div>
                             <span className="text-gray-500">Phone:</span>
-                            <span className="ml-2 font-medium">{nok.phone}</span>
+                            <span className="ml-2 font-medium break-words">{nok.phone}</span>
                           </div>
                           {nok.email && (
                             <div>
                               <span className="text-gray-500">Email:</span>
-                              <span className="ml-2">{nok.email}</span>
+                              <span className="ml-2 break-words">{nok.email}</span>
                             </div>
                           )}
                           {nok.address && (
                             <div>
                               <span className="text-gray-500">Address:</span>
-                              <span className="ml-2">{nok.address}</span>
+                              <span className="ml-2 break-words">{nok.address}</span>
                             </div>
                           )}
                         </div>
@@ -905,15 +905,15 @@ export function EmployeeDetailsPage() {
 
       {/* No Employment State */}
       {!currentEmployment && (
-        <div className="bg-white border rounded-lg p-8 text-center">
-          <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Employment Record</h3>
-          <p className="text-gray-600 mb-4">
+        <div className="bg-white border rounded-lg p-6 sm:p-8 text-center">
+          <Briefcase className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Employment Record</h3>
+          <p className="text-sm sm:text-base text-gray-600 mb-4">
             This employee does not have an active employment record.
           </p>
           <button
             onClick={() => setShowEmploymentModal(true)}
-            className="btn-primary inline-flex items-center gap-2"
+            className="btn-primary inline-flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             <Plus className="w-4 h-4" />
             Add Employment Record
@@ -925,44 +925,44 @@ export function EmployeeDetailsPage() {
       {showEmploymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <h3 className="text-xl font-semibold">Add Employment Record</h3>
+            <div className="p-4 sm:p-6 border-b">
+              <h3 className="text-lg sm:text-xl font-semibold">Add Employment Record</h3>
             </div>
-            <form onSubmit={handleCreateEmployment} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleCreateEmployment} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Hire Date <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
                     value={formData.hireDate}
                     onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Job Title <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.jobTitle}
                     onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     placeholder="e.g. Senior Officer"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Department <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.departmentId}
                     onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   >
                     <option value="">Select Department</option>
@@ -974,13 +974,13 @@ export function EmployeeDetailsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Branch <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.branchId}
                     onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   >
                     <option value="">Select Branch</option>
@@ -992,13 +992,13 @@ export function EmployeeDetailsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Contract Type <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.contractType}
                     onChange={(e) => setFormData({ ...formData, contractType: e.target.value as ContractType })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   >
                     <option value="PERMANENT">Permanent</option>
@@ -1009,14 +1009,14 @@ export function EmployeeDetailsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Monthly Salary (₦)
                   </label>
                   <input
                     type="number"
                     value={formData.salary || ''}
                     onChange={(e) => setFormData({ ...formData, salary: e.target.value ? Number(e.target.value) : undefined })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     placeholder="e.g. 150000"
                     min="0"
                     step="0.01"
@@ -1024,18 +1024,18 @@ export function EmployeeDetailsPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => setShowEmploymentModal(false)}
-                  className="btn-ghost"
+                  className="btn-ghost text-sm sm:text-base py-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createEmploymentMutation.isPending}
-                  className="btn-primary"
+                  className="btn-primary text-sm sm:text-base py-2"
                 >
                   {createEmploymentMutation.isPending ? 'Creating...' : 'Create Employment'}
                 </button>
@@ -1049,19 +1049,19 @@ export function EmployeeDetailsPage() {
       {showSalaryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-6 border-b">
-              <h3 className="text-xl font-semibold">Update Salary</h3>
+            <div className="p-4 sm:p-6 border-b">
+              <h3 className="text-lg sm:text-xl font-semibold">Update Salary</h3>
             </div>
-            <form onSubmit={handleUpdateSalary} className="p-6 space-y-4">
+            <form onSubmit={handleUpdateSalary} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   New Monthly Salary (₦) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   value={salaryData.newSalary}
                   onChange={(e) => setSalaryData({ ...salaryData, newSalary: Number(e.target.value) })}
-                  className="input-field"
+                  className="input-field text-sm sm:text-base"
                   placeholder="e.g. 180000"
                   min="1000"
                   step="0.01"
@@ -1069,30 +1069,30 @@ export function EmployeeDetailsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Effective Date <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
                   value={salaryData.effectiveDate}
                   onChange={(e) => setSalaryData({ ...salaryData, effectiveDate: e.target.value })}
-                  className="input-field"
+                  className="input-field text-sm sm:text-base"
                   required
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => setShowSalaryModal(false)}
-                  className="btn-ghost"
+                  className="btn-ghost text-sm sm:text-base py-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updateSalaryMutation.isPending}
-                  className="btn-primary"
+                  className="btn-primary text-sm sm:text-base py-2"
                 >
                   {updateSalaryMutation.isPending ? 'Updating...' : 'Update Salary'}
                 </button>
@@ -1106,98 +1106,98 @@ export function EmployeeDetailsPage() {
       {showGuarantorModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <h3 className="text-xl font-semibold">
+            <div className="p-4 sm:p-6 border-b">
+              <h3 className="text-lg sm:text-xl font-semibold">
                 {editingGuarantor ? 'Edit Guarantor' : 'Add Guarantor'}
               </h3>
             </div>
-            <form onSubmit={handleGuarantorSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleGuarantorSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     First Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={guarantorData.firstName}
                     onChange={(e) => setGuarantorData({ ...guarantorData, firstName: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Last Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={guarantorData.lastName}
                     onChange={(e) => setGuarantorData({ ...guarantorData, lastName: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Phone <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
                     value={guarantorData.phone}
                     onChange={(e) => setGuarantorData({ ...guarantorData, phone: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Email
                   </label>
                   <input
                     type="email"
                     value={guarantorData.email}
                     onChange={(e) => setGuarantorData({ ...guarantorData, email: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Relationship <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={guarantorData.relationship}
                     onChange={(e) => setGuarantorData({ ...guarantorData, relationship: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     placeholder="e.g. Friend, Colleague"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Occupation
                   </label>
                   <input
                     type="text"
                     value={guarantorData.occupation}
                     onChange={(e) => setGuarantorData({ ...guarantorData, occupation: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Address
                   </label>
                   <textarea
                     value={guarantorData.address}
                     onChange={(e) => setGuarantorData({ ...guarantorData, address: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     rows={2}
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => {
@@ -1205,14 +1205,14 @@ export function EmployeeDetailsPage() {
                     setEditingGuarantor(null);
                     resetGuarantorForm();
                   }}
-                  className="btn-ghost"
+                  className="btn-ghost text-sm sm:text-base py-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createGuarantorMutation.isPending || updateGuarantorMutation.isPending}
-                  className="btn-primary"
+                  className="btn-primary text-sm sm:text-base py-2"
                 >
                   {editingGuarantor
                     ? updateGuarantorMutation.isPending ? 'Updating...' : 'Update Guarantor'
@@ -1228,69 +1228,69 @@ export function EmployeeDetailsPage() {
       {showNextOfKinModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <h3 className="text-xl font-semibold">
+            <div className="p-4 sm:p-6 border-b">
+              <h3 className="text-lg sm:text-xl font-semibold">
                 {editingNextOfKin ? 'Edit Next of Kin' : 'Add Next of Kin'}
               </h3>
             </div>
-            <form onSubmit={handleNextOfKinSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleNextOfKinSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     First Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={nextOfKinData.firstName}
                     onChange={(e) => setNextOfKinData({ ...nextOfKinData, firstName: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Last Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={nextOfKinData.lastName}
                     onChange={(e) => setNextOfKinData({ ...nextOfKinData, lastName: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Phone <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
                     value={nextOfKinData.phone}
                     onChange={(e) => setNextOfKinData({ ...nextOfKinData, phone: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Email
                   </label>
                   <input
                     type="email"
                     value={nextOfKinData.email}
                     onChange={(e) => setNextOfKinData({ ...nextOfKinData, email: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Relationship <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={nextOfKinData.relationship}
                     onChange={(e) => setNextOfKinData({ ...nextOfKinData, relationship: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     placeholder="e.g. Spouse, Parent, Sibling"
                     required
                   />
@@ -1303,23 +1303,23 @@ export function EmployeeDetailsPage() {
                       onChange={(e) => setNextOfKinData({ ...nextOfKinData, isPrimary: e.target.checked })}
                       className="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500"
                     />
-                    <span className="text-sm font-medium text-gray-700">Set as Primary Contact</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Set as Primary Contact</span>
                   </label>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Address
                   </label>
                   <textarea
                     value={nextOfKinData.address}
                     onChange={(e) => setNextOfKinData({ ...nextOfKinData, address: e.target.value })}
-                    className="input-field"
+                    className="input-field text-sm sm:text-base"
                     rows={2}
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => {
@@ -1327,14 +1327,14 @@ export function EmployeeDetailsPage() {
                     setEditingNextOfKin(null);
                     resetNextOfKinForm();
                   }}
-                  className="btn-ghost"
+                  className="btn-ghost text-sm sm:text-base py-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createNextOfKinMutation.isPending || updateNextOfKinMutation.isPending}
-                  className="btn-primary"
+                  className="btn-primary text-sm sm:text-base py-2"
                 >
                   {editingNextOfKin
                     ? updateNextOfKinMutation.isPending ? 'Updating...' : 'Update Next of Kin'
@@ -1348,10 +1348,10 @@ export function EmployeeDetailsPage() {
 
       {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="border-b p-6">
-              <h3 className="text-xl font-semibold text-red-700">Reject Employment Submission</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="border-b p-4 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-semibold text-red-700">Reject Employment Submission</h3>
             </div>
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -1360,36 +1360,36 @@ export function EmployeeDetailsPage() {
                 return;
               }
               rejectMutation.mutate(reviewNotes);
-            }} className="p-6 space-y-4">
+            }} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Rejection Notes <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
-                  className="input-field"
+                  className="input-field text-sm sm:text-base"
                   rows={4}
                   placeholder="Explain why this submission is being rejected..."
                   required
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => {
                     setShowRejectModal(false);
                     setReviewNotes('');
                   }}
-                  className="btn-ghost"
+                  className="btn-ghost text-sm sm:text-base py-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={rejectMutation.isPending}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                  className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-sm sm:text-base"
                 >
                   {rejectMutation.isPending ? 'Rejecting...' : 'Reject Submission'}
                 </button>
@@ -1401,10 +1401,10 @@ export function EmployeeDetailsPage() {
 
       {/* Request Revision Modal */}
       {showRevisionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="border-b p-6">
-              <h3 className="text-xl font-semibold text-yellow-700">Request Revision</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="border-b p-4 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-semibold text-yellow-700">Request Revision</h3>
             </div>
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -1413,36 +1413,36 @@ export function EmployeeDetailsPage() {
                 return;
               }
               requestRevisionMutation.mutate(reviewNotes);
-            }} className="p-6 space-y-4">
+            }} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Revision Notes <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
-                  className="input-field"
+                  className="input-field text-sm sm:text-base"
                   rows={4}
                   placeholder="Explain what needs to be revised..."
                   required
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => {
                     setShowRevisionModal(false);
                     setReviewNotes('');
                   }}
-                  className="btn-ghost"
+                  className="btn-ghost text-sm sm:text-base py-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={requestRevisionMutation.isPending}
-                  className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+                  className="px-3 sm:px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50 text-sm sm:text-base"
                 >
                   {requestRevisionMutation.isPending ? 'Requesting...' : 'Request Revision'}
                 </button>

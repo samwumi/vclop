@@ -25,96 +25,150 @@ export function PendingSubmissionsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Pending Employment Submissions</h1>
-        <p className="text-gray-600">Review and approve employee data submissions</p>
+    <div className="container mx-auto py-4 sm:py-8 px-4">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Pending Employment Submissions</h1>
+        <p className="text-sm sm:text-base text-gray-600">Review and approve employee data submissions</p>
       </div>
 
       {submissions && submissions.length === 0 ? (
-        <div className="bg-white border rounded-lg p-12 text-center">
-          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Pending Submissions</h3>
-          <p className="text-gray-600">
+        <div className="bg-white border rounded-lg p-8 sm:p-12 text-center">
+          <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Pending Submissions</h3>
+          <p className="text-sm sm:text-base text-gray-600">
             All employment submissions have been reviewed. New submissions will appear here.
           </p>
         </div>
       ) : (
-        <div className="bg-white border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Employee
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Job Title
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Department
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Submitted
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {submissions?.map((submission) => (
-                <tr key={submission.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center">
-                        <span className="text-brand-700 font-semibold">
-                          {submission.user?.firstName?.[0]}{submission.user?.lastName?.[0]}
-                        </span>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {submission.user?.firstName} {submission.user?.lastName}
-                        </div>
-                        <div className="text-sm text-gray-500">{submission.user?.email}</div>
-                      </div>
+        <>
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {submissions?.map((submission) => (
+              <div key={submission.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center flex-1 min-w-0">
+                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center">
+                      <span className="text-brand-700 font-semibold text-sm">
+                        {submission.user?.firstName?.[0]}{submission.user?.lastName?.[0]}
+                      </span>
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{submission.jobTitle}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{submission.department?.name || '-'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
+                    <div className="ml-3 min-w-0 flex-1">
+                      <div className="text-sm font-medium text-gray-900 truncate">
+                        {submission.user?.firstName} {submission.user?.lastName}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">{submission.user?.email}</div>
+                    </div>
+                  </div>
+                  <SubmissionStatusBadge status={submission.submissionStatus} />
+                </div>
+                
+                <div className="space-y-2 text-sm mb-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Job Title:</span>
+                    <span className="font-medium text-gray-900">{submission.jobTitle}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Department:</span>
+                    <span className="font-medium text-gray-900">{submission.department?.name || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Submitted:</span>
+                    <span className="font-medium text-gray-900">
                       {submission.submittedAt ? formatDate(submission.submittedAt) : '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <SubmissionStatusBadge status={submission.submissionStatus} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => navigate(`/hr/employees/${submission.userId}`)}
-                      className="text-brand-600 hover:text-brand-900 inline-flex items-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Review
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate(`/hr/employees/${submission.userId}`)}
+                  className="w-full btn-primary text-sm py-2 flex items-center justify-center gap-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  Review Submission
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Employee
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Job Title
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Department
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Submitted
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {submissions?.map((submission) => (
+                    <tr key={submission.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center">
+                            <span className="text-brand-700 font-semibold">
+                              {submission.user?.firstName?.[0]}{submission.user?.lastName?.[0]}
+                            </span>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {submission.user?.firstName} {submission.user?.lastName}
+                            </div>
+                            <div className="text-sm text-gray-500">{submission.user?.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{submission.jobTitle}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{submission.department?.name || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          {submission.submittedAt ? formatDate(submission.submittedAt) : '-'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <SubmissionStatusBadge status={submission.submissionStatus} />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => navigate(`/hr/employees/${submission.userId}`)}
+                          className="text-brand-600 hover:text-brand-900 inline-flex items-center gap-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Review
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {submissions && submissions.length > 0 && (
-        <div className="mt-6 text-sm text-gray-600">
+        <div className="mt-4 sm:mt-6 text-xs sm:text-sm text-gray-600">
           Showing {submissions.length} pending submission{submissions.length !== 1 ? 's' : ''}
         </div>
       )}

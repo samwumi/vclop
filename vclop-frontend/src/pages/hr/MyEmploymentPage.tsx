@@ -407,9 +407,9 @@ export function MyEmploymentPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">My Employment Profile</h1>
+    <div className="container mx-auto py-4 sm:py-8 px-4 max-w-6xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">My Employment Profile</h1>
         {currentEmployment && (
           <SubmissionStatusBadge status={currentEmployment.submissionStatus} />
         )}
@@ -417,17 +417,17 @@ export function MyEmploymentPage() {
 
       {/* Submit Button */}
       {canSubmit && (
-        <div className="bg-brand-50 border-l-4 border-brand-500 p-6 rounded-lg mb-6">
-          <div className="flex items-start justify-between">
+        <div className="bg-brand-50 border-l-4 border-brand-500 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-brand-900 mb-2 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
+              <h3 className="text-base sm:text-lg font-semibold text-brand-900 mb-2 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                 Ready to Submit
               </h3>
-              <p className="text-brand-800 mb-3">
+              <p className="text-sm sm:text-base text-brand-800 mb-3">
                 Your employment data is complete. Submit it for HR review to activate your account features.
               </p>
-              <ul className="text-sm text-brand-700 space-y-1 mb-4">
+              <ul className="text-xs sm:text-sm text-brand-700 space-y-1 mb-4 lg:mb-0">
                 <li>✓ Employment details filled</li>
                 <li>✓ {guarantors.length} guarantor(s) added</li>
                 <li>✓ {nextOfKin.length} next of kin added</li>
@@ -440,7 +440,7 @@ export function MyEmploymentPage() {
                 }
               }}
               disabled={submitMutation.isPending}
-              className="btn-primary flex items-center gap-2 ml-4"
+              className="btn-primary flex items-center justify-center gap-2 text-sm sm:text-base w-full lg:w-auto"
             >
               <Send className="w-4 h-4" />
               {submitMutation.isPending ? 'Submitting...' : 'Submit for Review'}
@@ -451,18 +451,18 @@ export function MyEmploymentPage() {
 
       {/* Pending Review Message */}
       {isPending && (
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
-          <div className="flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0 mt-1" />
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2">
                 Submission Under Review
               </h3>
-              <p className="text-blue-800">
+              <p className="text-sm sm:text-base text-blue-800 break-words">
                 Your employment data has been submitted and is awaiting HR review. You will be notified once the review is complete.
               </p>
               {currentEmployment.submittedAt && (
-                <p className="text-sm text-blue-700 mt-2">
+                <p className="text-xs sm:text-sm text-blue-700 mt-2">
                   Submitted on {formatDate(currentEmployment.submittedAt)}
                 </p>
               )}
@@ -473,16 +473,16 @@ export function MyEmploymentPage() {
 
       {/* HR Feedback */}
       {currentEmployment?.reviewNotes && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg mb-6">
-          <div className="flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-yellow-900 mb-2">
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 flex-shrink-0 mt-1" />
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold text-yellow-900 mb-2">
                 HR Feedback
               </h3>
-              <p className="text-yellow-800 whitespace-pre-wrap">{currentEmployment.reviewNotes}</p>
+              <p className="text-sm sm:text-base text-yellow-800 whitespace-pre-wrap break-words">{currentEmployment.reviewNotes}</p>
               {currentEmployment.reviewedAt && (
-                <p className="text-sm text-yellow-700 mt-2">
+                <p className="text-xs sm:text-sm text-yellow-700 mt-2">
                   Reviewed on {formatDate(currentEmployment.reviewedAt)}
                 </p>
               )}
@@ -528,75 +528,75 @@ export function MyEmploymentPage() {
       {/* Tabs */}
       {currentEmployment && (
         <div className="bg-white border rounded-lg">
-          <div className="border-b">
-            <div className="flex">
+          <div className="border-b overflow-x-auto">
+            <div className="flex min-w-max sm:min-w-0">
               <button
                 onClick={() => setActiveTab('details')}
-                className={`px-6 py-3 font-medium flex items-center gap-2 ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 font-medium flex items-center gap-2 text-xs sm:text-base whitespace-nowrap ${
                   activeTab === 'details'
                     ? 'border-b-2 border-brand-500 text-brand-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Briefcase className="w-4 h-4" />
+                <Briefcase className="w-3 h-3 sm:w-4 sm:h-4" />
                 Employment Details
               </button>
               <button
                 onClick={() => setActiveTab('guarantors')}
-                className={`px-6 py-3 font-medium flex items-center gap-2 ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 font-medium flex items-center gap-2 text-xs sm:text-base whitespace-nowrap ${
                   activeTab === 'guarantors'
                     ? 'border-b-2 border-brand-500 text-brand-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Shield className="w-4 h-4" />
+                <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
                 My Guarantors ({guarantors.length})
               </button>
               <button
                 onClick={() => setActiveTab('next-of-kin')}
-                className={`px-6 py-3 font-medium flex items-center gap-2 ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 font-medium flex items-center gap-2 text-xs sm:text-base whitespace-nowrap ${
                   activeTab === 'next-of-kin'
                     ? 'border-b-2 border-brand-500 text-brand-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <UsersIcon className="w-4 h-4" />
+                <UsersIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                 Next of Kin ({nextOfKin.length})
               </button>
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {/* Employment Details Tab */}
             {activeTab === 'details' && (
               <div>
-                <h2 className="text-xl font-semibold mb-4">Employment Information</h2>
-                <p className="text-sm text-gray-500 mb-6">This information is managed by HR. Contact HR to update.</p>
+                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Employment Information</h2>
+                <p className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6">This information is managed by HR. Contact HR to update.</p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Job Title</p>
-                    <p className="font-semibold">{currentEmployment.jobTitle}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Job Title</p>
+                    <p className="font-semibold text-sm sm:text-base break-words">{currentEmployment.jobTitle}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Department</p>
-                    <p className="font-semibold">{currentEmployment.department?.name || '-'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Department</p>
+                    <p className="font-semibold text-sm sm:text-base break-words">{currentEmployment.department?.name || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Branch</p>
-                    <p className="font-semibold">{currentEmployment.branch?.name || '-'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Branch</p>
+                    <p className="font-semibold text-sm sm:text-base break-words">{currentEmployment.branch?.name || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Contract Type</p>
-                    <p className="font-semibold">{currentEmployment.contractType}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Contract Type</p>
+                    <p className="font-semibold text-sm sm:text-base">{currentEmployment.contractType}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Hire Date</p>
-                    <p className="font-semibold">{formatDate(currentEmployment.hireDate)}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Hire Date</p>
+                    <p className="font-semibold text-sm sm:text-base">{formatDate(currentEmployment.hireDate)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Monthly Salary</p>
-                    <p className="font-semibold text-brand-600 text-lg">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Monthly Salary</p>
+                    <p className="font-semibold text-brand-600 text-base sm:text-lg">
                       {currentEmployment.salary
                         ? `₦${Number(currentEmployment.salary).toLocaleString()}`
                         : 'Not set'}
@@ -606,24 +606,24 @@ export function MyEmploymentPage() {
 
                 {/* Staff Loan Eligibility */}
                 {currentEmployment.salary && (
-                  <div className="p-4 bg-brand-50 border border-brand-200 rounded-lg">
-                    <h3 className="font-semibold text-brand-900 mb-3">Your Staff Loan Eligibility</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="p-3 sm:p-4 bg-brand-50 border border-brand-200 rounded-lg mb-4 sm:mb-0">
+                    <h3 className="font-semibold text-brand-900 mb-3 text-sm sm:text-base">Your Staff Loan Eligibility</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
                       <div>
                         <p className="text-brand-700">Max Monthly Deduction (25%)</p>
-                        <p className="font-bold text-brand-900">
+                        <p className="font-bold text-brand-900 text-sm sm:text-base">
                           ₦{(Number(currentEmployment.salary) * 0.25).toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-brand-700">Max Loan Amount (25% × 5 months)</p>
-                        <p className="font-bold text-brand-900">
+                        <p className="font-bold text-brand-900 text-sm sm:text-base">
                           ₦{(Number(currentEmployment.salary) * 0.25 * 5).toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-brand-700">Months Employed</p>
-                        <p className="font-bold text-brand-900">
+                        <p className="font-bold text-brand-900 text-sm sm:text-base">
                           {Math.floor(
                             (new Date().getTime() - new Date(currentEmployment.hireDate).getTime()) /
                               (1000 * 60 * 60 * 24 * 30)
@@ -636,9 +636,9 @@ export function MyEmploymentPage() {
                 )}
 
                 {/* Work History - Previous Jobs from OTHER Companies */}
-                <div className="mt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Previous Work Experience</h3>
+                <div className="mt-4 sm:mt-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-3 sm:mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold">Previous Work Experience</h3>
                     <button
                       onClick={() => {
                         setEditingWorkHistory(null);
@@ -646,33 +646,33 @@ export function MyEmploymentPage() {
                         setShowWorkHistoryModal(true);
                       }}
                       disabled={!isEditable || workHistory.length >= 2}
-                      className="btn-sm btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn-sm btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
                       title={workHistory.length >= 2 ? 'Maximum 2 entries allowed' : 'Add work history'}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                       Add Work History {workHistory.length >= 2 && '(Max Reached)'}
                     </button>
                   </div>
-                  <p className="text-sm text-gray-500 mb-4">
+                  <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
                     Add your last 2 jobs from previous companies (max 2 entries)
                   </p>
                   
                   {workHistory.length === 0 ? (
-                    <div className="border border-dashed rounded-lg p-6 text-center bg-gray-50">
-                      <Briefcase className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-600">No work history added yet</p>
-                      <p className="text-sm text-gray-500">Add your previous employment from other companies</p>
+                    <div className="border border-dashed rounded-lg p-4 sm:p-6 text-center bg-gray-50">
+                      <Briefcase className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm sm:text-base text-gray-600">No work history added yet</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Add your previous employment from other companies</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {workHistory.map((wh: EmployeeWorkHistory) => (
-                        <div key={wh.id} className="border rounded-lg p-4 bg-white hover:shadow-sm transition-shadow">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-lg">{wh.position}</h4>
-                              <p className="text-brand-600 font-medium">{wh.companyName}</p>
+                        <div key={wh.id} className="border rounded-lg p-3 sm:p-4 bg-white hover:shadow-sm transition-shadow">
+                          <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-base sm:text-lg break-words">{wh.position}</h4>
+                              <p className="text-brand-600 font-medium text-sm sm:text-base break-words">{wh.companyName}</p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                               <button
                                 onClick={() => handleEditWorkHistory(wh)}
                                 disabled={!isEditable}
@@ -691,14 +691,14 @@ export function MyEmploymentPage() {
                               </button>
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm mb-2 sm:mb-3">
                             <div>
                               <p className="text-gray-500">Start Date</p>
-                              <p className="font-medium">{formatDate(wh.startDate)}</p>
+                              <p className="font-medium break-words">{formatDate(wh.startDate)}</p>
                             </div>
                             <div>
                               <p className="text-gray-500">End Date</p>
-                              <p className="font-medium">
+                              <p className="font-medium break-words">
                                 {wh.endDate ? formatDate(wh.endDate) : 'Present'}
                               </p>
                             </div>
@@ -714,9 +714,9 @@ export function MyEmploymentPage() {
                             </div>
                           </div>
                           {wh.responsibilities && (
-                            <div className="text-sm mb-2">
+                            <div className="text-xs sm:text-sm mb-2">
                               <p className="text-gray-500 mb-1">Key Responsibilities:</p>
-                              <p className="text-gray-700">{wh.responsibilities}</p>
+                              <p className="text-gray-700 break-words">{wh.responsibilities}</p>
                             </div>
                           )}
                           {wh.reasonForLeaving && (
