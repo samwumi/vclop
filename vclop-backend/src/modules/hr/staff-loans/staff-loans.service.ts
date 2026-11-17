@@ -117,7 +117,10 @@ export class StaffLoansService {
     );
 
     // Validate that monthly installment is within salary deduction limits (if salary is set)
-    let deductionValidation = { valid: true, percentageOfSalary: 0, message: '' };
+    let deductionValidation: { valid: boolean; percentageOfSalary: number; message?: string } = { 
+      valid: true, 
+      percentageOfSalary: 0 
+    };
     if (monthlySalary > 0) {
       deductionValidation = validateSalaryDeduction(
         loanDetails.monthlyInstallment,
@@ -169,7 +172,7 @@ export class StaffLoansService {
       eligibilityInfo: {
         monthlySalary,
         maxEligibleAmount: maxLoanAmount,
-        monthlyDeductionPercentage: deductionValidation.percentageOfSalary.toFixed(2),
+        monthlyDeductionPercentage: deductionValidation.percentageOfSalary?.toFixed(2) || '0.00',
         businessRules: {
           maxTenureMonths: STAFF_LOAN_CONFIG.MAX_TENURE_MONTHS,
           interestRate: STAFF_LOAN_CONFIG.INTEREST_RATE,
