@@ -84,15 +84,15 @@ export function StaffLoanApplicationPage() {
     const reasons = eligibility?.reasons;
     
     return (
-      <div className="container mx-auto py-8 max-w-3xl">
-        <button onClick={() => navigate('/hr/staff-loans/my-loans')} className="btn-ghost mb-6">
+      <div className="container mx-auto py-4 sm:py-8 px-4 max-w-3xl">
+        <button onClick={() => navigate('/hr/staff-loans/my-loans')} className="btn-ghost mb-4 sm:mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to My Loans
         </button>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-          <h2 className="text-2xl font-semibold text-red-900 mb-4">❌ Not Eligible for Staff Loan</h2>
-          <p className="text-red-700 mb-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-semibold text-red-900 mb-3 sm:mb-4">❌ Not Eligible for Staff Loan</h2>
+          <p className="text-sm sm:text-base text-red-700 mb-3 sm:mb-4">
             You don't currently meet the eligibility requirements for a staff loan. Please review the issues below:
           </p>
 
@@ -215,52 +215,52 @@ export function StaffLoanApplicationPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 max-w-3xl">
-      <div className="mb-6">
-        <button onClick={() => navigate('/hr/staff-loans/my-loans')} className="btn-ghost mb-4">
+    <div className="container mx-auto py-4 sm:py-8 px-4 max-w-3xl">
+      <div className="mb-4 sm:mb-6">
+        <button onClick={() => navigate('/hr/staff-loans/my-loans')} className="btn-ghost mb-3 sm:mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </button>
-        <h1 className="text-3xl font-bold">Apply for Staff Loan</h1>
-        <p className="text-gray-600 mt-2">Fill out the form below to apply for a staff loan</p>
+        <h1 className="text-2xl sm:text-3xl font-bold">Apply for Staff Loan</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-2">Fill out the form below to apply for a staff loan</p>
       </div>
 
       {/* Eligibility Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="font-semibold text-blue-900 mb-2">Your Loan Eligibility</h3>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+        <h3 className="text-sm sm:text-base font-semibold text-blue-900 mb-2">Your Loan Eligibility</h3>
         {eligibility.loanLimits?.monthlySalary > 0 ? (
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
             <div>
-              <p className="text-blue-700">Monthly Salary</p>
-              <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.monthlySalary || 0)}</p>
+              <p className="text-blue-700 text-xs sm:text-sm">Monthly Salary</p>
+              <p className="font-semibold text-blue-900 text-sm sm:text-base">{formatCurrency(eligibility.loanLimits?.monthlySalary || 0)}</p>
             </div>
             <div>
-              <p className="text-blue-700">Maximum Loan Amount</p>
-              <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.maxEligibleAmount || 0)}</p>
+              <p className="text-blue-700 text-xs sm:text-sm">Maximum Loan Amount</p>
+              <p className="font-semibold text-blue-900 text-sm sm:text-base">{formatCurrency(eligibility.loanLimits?.maxEligibleAmount || 0)}</p>
             </div>
-            <div className="col-span-2">
-              <p className="text-blue-700">Max Monthly Repayment (25% of salary)</p>
-              <p className="font-semibold text-blue-900">{formatCurrency(eligibility.loanLimits?.maxMonthlyDeduction || 0)}</p>
+            <div className="sm:col-span-2">
+              <p className="text-blue-700 text-xs sm:text-sm">Max Monthly Repayment (25% of salary)</p>
+              <p className="font-semibold text-blue-900 text-sm sm:text-base">{formatCurrency(eligibility.loanLimits?.maxMonthlyDeduction || 0)}</p>
             </div>
           </div>
         ) : (
-          <div className="text-sm">
-            <div className="bg-yellow-50 border border-yellow-300 rounded p-3 mb-3">
-              <p className="text-yellow-900 font-semibold mb-2">⚠️ Salary Not Set in System</p>
-              <p className="text-yellow-800">
+          <div className="text-xs sm:text-sm">
+            <div className="bg-yellow-50 border border-yellow-300 rounded p-2 sm:p-3 mb-2 sm:mb-3">
+              <p className="text-yellow-900 font-semibold mb-1 sm:mb-2 text-xs sm:text-sm">⚠️ Salary Not Set in System</p>
+              <p className="text-yellow-800 text-xs sm:text-sm">
                 Your employment record doesn't have salary information. You can still apply, but you must ensure:
               </p>
-              <ul className="list-disc list-inside text-yellow-800 mt-2 space-y-1">
+              <ul className="list-disc list-inside text-yellow-800 mt-1 sm:mt-2 space-y-1 text-xs sm:text-sm">
                 <li>Your monthly repayment does NOT exceed 25% of your gross monthly salary</li>
                 <li>You can afford the monthly installment for {eligibility.loanLimits?.maxTenureMonths} months</li>
               </ul>
             </div>
-            <div className="bg-white border border-blue-200 rounded p-3">
-              <p className="text-blue-900 font-semibold mb-2">📋 Repayment Rule:</p>
-              <p className="text-blue-800">
+            <div className="bg-white border border-blue-200 rounded p-2 sm:p-3">
+              <p className="text-blue-900 font-semibold mb-1 sm:mb-2 text-xs sm:text-sm">📋 Repayment Rule:</p>
+              <p className="text-blue-800 text-xs sm:text-sm">
                 <strong>Maximum monthly deduction = 25% of your gross salary × {eligibility.loanLimits?.maxTenureMonths} months</strong>
               </p>
-              <p className="text-sm text-blue-700 mt-2">
+              <p className="text-xs text-blue-700 mt-1 sm:mt-2">
                 Example: If your salary is ₦100,000, max monthly deduction = ₦25,000, so max loan = ₦125,000 (for 5 months)
               </p>
             </div>
@@ -268,10 +268,10 @@ export function StaffLoanApplicationPage() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white border rounded-lg p-6">
+      <form onSubmit={handleSubmit} className="bg-white border rounded-lg p-4 sm:p-6">
         {/* Amount */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             Loan Amount <span className="text-red-500">*</span>
           </label>
           <input
@@ -281,7 +281,7 @@ export function StaffLoanApplicationPage() {
             max={eligibility.loanLimits?.maxEligibleAmount}
             value={formData.requestedAmount || ''}
             onChange={(e) => setFormData({ ...formData, requestedAmount: Number(e.target.value) })}
-            className="input w-full"
+            className="input w-full text-sm sm:text-base"
             placeholder="Enter amount"
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -290,8 +290,8 @@ export function StaffLoanApplicationPage() {
         </div>
 
         {/* Purpose */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             Purpose <span className="text-red-500">*</span>
           </label>
           <input
@@ -300,20 +300,20 @@ export function StaffLoanApplicationPage() {
             maxLength={200}
             value={formData.loanPurpose}
             onChange={(e) => setFormData({ ...formData, loanPurpose: e.target.value })}
-            className="input w-full"
+            className="input w-full text-sm sm:text-base"
             placeholder="e.g., Medical expenses, Education, etc."
           />
         </div>
 
         {/* Tenure */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             Repayment Period (Months) <span className="text-red-500">*</span>
           </label>
           <select
             value={formData.proposedTenureMonths}
             onChange={(e) => setFormData({ ...formData, proposedTenureMonths: Number(e.target.value) })}
-            className="input w-full"
+            className="input w-full text-sm sm:text-base"
           >
             {[1, 2, 3, 4, 5].map(m => (
               <option key={m} value={m}>{m} {m === 1 ? 'Month' : 'Months'}</option>
@@ -323,8 +323,8 @@ export function StaffLoanApplicationPage() {
         </div>
 
         {/* Justification */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             Justification <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -333,52 +333,52 @@ export function StaffLoanApplicationPage() {
             maxLength={500}
             value={formData.justification}
             onChange={(e) => setFormData({ ...formData, justification: e.target.value })}
-            className="input w-full"
+            className="input w-full text-sm sm:text-base"
             placeholder="Provide detailed justification for this loan..."
           />
         </div>
 
         {/* Calculator */}
         {formData.requestedAmount > 0 && (
-          <div className="bg-gray-50 border rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Calculator className="w-5 h-5 text-gray-600" />
-              <h4 className="font-semibold">Loan Calculation</h4>
+          <div className="bg-gray-50 border rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+              <h4 className="text-sm sm:text-base font-semibold">Loan Calculation</h4>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
               <div>
-                <p className="text-gray-600">Monthly Installment</p>
-                <p className="text-lg font-bold">{formatCurrency(monthlyInstallment)}</p>
+                <p className="text-gray-600 mb-1">Monthly Installment</p>
+                <p className="text-base sm:text-lg font-bold">{formatCurrency(monthlyInstallment)}</p>
               </div>
               {eligibility?.loanLimits?.monthlySalary > 0 ? (
                 <div>
-                  <p className="text-gray-600">% of Salary</p>
-                  <p className={`text-lg font-bold ${percentageOfSalary > 25 ? 'text-red-600' : 'text-green-600'}`}>
+                  <p className="text-gray-600 mb-1">% of Salary</p>
+                  <p className={`text-base sm:text-lg font-bold ${percentageOfSalary > 25 ? 'text-red-600' : 'text-green-600'}`}>
                     {percentageOfSalary.toFixed(1)}%
                   </p>
                 </div>
               ) : (
                 <div>
-                  <p className="text-gray-600">Repayment Period</p>
-                  <p className="text-lg font-bold">{formData.proposedTenureMonths} months</p>
+                  <p className="text-gray-600 mb-1">Repayment Period</p>
+                  <p className="text-base sm:text-lg font-bold">{formData.proposedTenureMonths} months</p>
                 </div>
               )}
               <div>
-                <p className="text-gray-600">Total Repayable</p>
-                <p className="text-lg font-bold">{formatCurrency(formData.requestedAmount)}</p>
+                <p className="text-gray-600 mb-1">Total Repayable</p>
+                <p className="text-base sm:text-lg font-bold">{formatCurrency(formData.requestedAmount)}</p>
               </div>
               <div>
-                <p className="text-gray-600">Interest Rate</p>
-                <p className="text-lg font-bold text-green-600">0%</p>
+                <p className="text-gray-600 mb-1">Interest Rate</p>
+                <p className="text-base sm:text-lg font-bold text-green-600">0%</p>
               </div>
             </div>
             {eligibility?.loanLimits?.monthlySalary > 0 && percentageOfSalary > 25 && (
-              <p className="text-xs text-red-600 mt-3">
+              <p className="text-xs text-red-600 mt-2 sm:mt-3">
                 ⚠️ Installment exceeds 25% salary limit
               </p>
             )}
             {!eligibility?.loanLimits?.monthlySalary && (
-              <p className="text-xs text-yellow-600 mt-3">
+              <p className="text-xs text-yellow-600 mt-2 sm:mt-3">
                 ⚠️ Ensure monthly installment of {formatCurrency(monthlyInstallment)} does not exceed 25% of your salary
               </p>
             )}
@@ -386,18 +386,18 @@ export function StaffLoanApplicationPage() {
         )}
 
         {/* Submit */}
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
             onClick={() => navigate('/hr/staff-loans/my-loans')}
-            className="btn btn-secondary flex-1"
+            className="btn btn-secondary flex-1 text-sm sm:text-base py-2 sm:py-3"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={applyMutation.isPending || (eligibility?.loanLimits?.monthlySalary > 0 && percentageOfSalary > 25)}
-            className="btn btn-primary flex-1"
+            className="btn btn-primary flex-1 text-sm sm:text-base py-2 sm:py-3"
           >
             {applyMutation.isPending ? 'Submitting...' : 'Submit Application'}
           </button>
