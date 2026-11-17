@@ -469,6 +469,18 @@ export class StaffLoansService {
       },
     });
 
+    // Debug logging
+    console.log('🔍 Staff Loan Eligibility Check:', {
+      userId,
+      userEmail: user.email,
+      userStatus: user.status,
+      employmentFound: employment !== null,
+      employmentId: employment?.id,
+      isCurrent: employment?.isCurrent,
+      terminationDate: employment?.terminationDate,
+      salary: employment?.salary,
+    });
+
     // Check for active loans
     const activeLoans = await this.prisma.staffLoan.findMany({
       where: {
@@ -483,6 +495,12 @@ export class StaffLoansService {
         staffLoanId: { in: activeLoans.map(l => l.id) },
         status: 'OVERDUE' as any,
       },
+    });
+
+    console.log('🔍 Staff Loan Check - Active Loans:', {
+      activeLoansCount: activeLoans.length,
+      hasActiveLoans,
+      hasOverdue: hasOverdue !== null,
     });
 
     // Calculate max eligible amount if employment exists
@@ -502,6 +520,14 @@ export class StaffLoansService {
       employment !== null &&
       !hasActiveLoans &&
       !hasOverdue;
+
+    console.log('🔍 Final Eligibility Result:', {
+      userActive: user.status === 'ACTIVE',
+      hasEmployment: employment !== null,
+      noActiveLoans: !hasActiveLoans,
+      noOverdue: !hasOverdue,
+      FINAL_ELIGIBLE: isEligible,
+    });
 
     return {
       eligible: isEligible,
