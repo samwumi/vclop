@@ -159,7 +159,9 @@ class StaffLoansService {
    */
   async applyForLoan(data: ApplyLoanDto): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/apply`, data);
-    return response.data.data || response.data;
+    // Handle potential double nesting
+    const result = response.data.data || response.data;
+    return result.data || result;
   }
 
   /**
@@ -169,7 +171,9 @@ class StaffLoansService {
     const params = status ? { status } : {};
     const response = await api.get(`${this.baseUrl}/my-loans`, { params });
     // Backend returns { success: true, data: [...] }
-    const result = response.data.data || response.data || [];
+    let result = response.data.data || response.data || [];
+    // Handle potential double nesting
+    result = result.data || result;
     // Ensure we always return an array
     return Array.isArray(result) ? result : [];
   }
