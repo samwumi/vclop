@@ -147,7 +147,11 @@ class StaffLoansService {
    */
   async checkEligibility(): Promise<StaffLoanEligibility> {
     const response = await api.get(`${this.baseUrl}/eligibility`);
-    return response.data.data || response.data;
+    // Backend returns nested: { success, data: { success, data: eligibility } }
+    // Extract the actual eligibility object
+    const result = response.data.data || response.data;
+    // If result still has a nested data property, extract it
+    return result.data || result;
   }
 
   /**
