@@ -183,7 +183,9 @@ class StaffLoansService {
    */
   async getLoanById(loanId: string): Promise<StaffLoan> {
     const response = await api.get(`${this.baseUrl}/${loanId}`);
-    return response.data.data || response.data;
+    // Handle potential double nesting
+    const result = response.data.data || response.data;
+    return result.data || result;
   }
 
   /**
@@ -191,7 +193,9 @@ class StaffLoansService {
    */
   async submitLoan(loanId: string): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/${loanId}/submit`);
-    return response.data.data || response.data;
+    // Handle potential double nesting
+    const result = response.data.data || response.data;
+    return result.data || result;
   }
 
   /**
@@ -217,7 +221,8 @@ class StaffLoansService {
    */
   async approveLoan(loanId: string, data: ApproveLoanDto): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/${loanId}/approve`, data);
-    return response.data.data || response.data;
+    const result = response.data.data || response.data;
+    return result.data || result;
   }
 
   /**
@@ -225,7 +230,8 @@ class StaffLoansService {
    */
   async rejectLoan(loanId: string, reason: string): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/${loanId}/reject`, { reason });
-    return response.data.data || response.data;
+    const result = response.data.data || response.data;
+    return result.data || result;
   }
 
   /**
@@ -242,7 +248,8 @@ class StaffLoansService {
     }
   ): Promise<StaffLoan> {
     const response = await api.post(`${this.baseUrl}/${loanId}/disburse`, data);
-    return response.data.data || response.data;
+    const result = response.data.data || response.data;
+    return result.data || result;
   }
 
   /**
@@ -250,7 +257,8 @@ class StaffLoansService {
    */
   async recordPayment(data: RecordPaymentDto): Promise<StaffLoanPayment> {
     const response = await api.post(`${this.baseUrl}/payments/record`, data);
-    return response.data.data || response.data;
+    const result = response.data.data || response.data;
+    return result.data || result;
   }
 
   /**
@@ -290,7 +298,8 @@ class StaffLoansService {
       amount,
       tenureMonths,
     });
-    return response.data.data || response.data;
+    const result = response.data.data || response.data;
+    return result.data || result;
   }
 }
 
