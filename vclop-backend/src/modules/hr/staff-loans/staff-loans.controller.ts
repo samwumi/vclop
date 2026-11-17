@@ -68,7 +68,11 @@ export class StaffLoansController {
 
     const eligibility = await this.staffLoansService.checkEligibility(userId);
 
-    return eligibility; // Return directly, let global interceptor wrap it
+    // Return in data wrapper - frontend service handles both data.data and data
+    return {
+      success: true,
+      data: eligibility,
+    };
   }
 
   /**
