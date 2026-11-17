@@ -62,11 +62,8 @@ export class StaffLoansService {
       throw new BadRequestException('No active employment found');
     }
 
-    // Get current salary
+    // Get current salary (optional - can be null)
     const monthlySalary = currentEmployment.salary ? Number(currentEmployment.salary) : 0;
-    if (!monthlySalary || monthlySalary <= 0) {
-      throw new BadRequestException('Valid salary information is required to apply for a loan');
-    }
 
     // Check if user already has active loans
     const activeLoans = await this.prisma.staffLoan.findMany({
@@ -94,13 +91,16 @@ export class StaffLoansService {
       );
     }
 
-    // Calculate maximum eligible loan amount based on salary
-    const maxLoanAmount = calculateMaxLoanAmount(monthlySalary);
-    if (data.requestedAmount > maxLoanAmount) {
-      throw new BadRequestException(
-        `Requested amount (${data.requestedAmount}) exceeds maximum eligible loan amount (${maxLoanAmount.toFixed(2)}). ` +
-        `Maximum is calculated as 25% of your monthly salary (${monthlySalary}) × ${STAFF_LOAN_CONFIG.MAX_TENURE_MONTHS} months.`
-      );
+    // Calculate maximum eligible loan amount based on salary (if salary is set)
+    let maxLoanAmount = 999999999; // Default: no limit if salary not set
+    if (monthlySalary > 0) {
+      maxLoanAmount = calculateMaxLoanAmount(monthlySalary);
+      if (data.requestedAmount > maxLoanAmount) {
+        throw new BadRequestException(
+          `Requested amount (${data.requestedAmount}) exceeds maximum eligible loan amount (${maxLoanAmount.toFixed(2)}). ` +
+          `Maximum is calculated as 25% of your monthly salary (${monthlySalary}) × ${STAFF_LOAN_CONFIG.MAX_TENURE_MONTHS} months.`
+        );
+      }
     }
 
     // Validate minimum loan amount
@@ -116,14 +116,17 @@ export class StaffLoansService {
       data.proposedTenureMonths,
     );
 
-    // Validate that monthly installment is within salary deduction limits
-    const deductionValidation = validateSalaryDeduction(
-      loanDetails.monthlyInstallment,
-      monthlySalary,
-    );
+    // Validate that monthly installment is within salary deduction limits (if salary is set)
+    let deductionValidation = { valid: true, percentageOfSalary: 0, message: '' };
+    if (monthlySalary > 0) {
+      deductionValidation = validateSalaryDeduction(
+        loanDetails.monthlyInstallment,
+        monthlySalary,
+      );
 
-    if (!deductionValidation.valid) {
-      throw new BadRequestException(deductionValidation.message);
+      if (!deductionValidation.valid) {
+        throw new BadRequestException(deductionValidation.message);
+      }
     }
 
     // Generate loan number
