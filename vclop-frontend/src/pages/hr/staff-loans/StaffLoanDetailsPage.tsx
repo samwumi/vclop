@@ -93,7 +93,14 @@ export function StaffLoanDetailsPage() {
 
   const status = STATUS_CONFIG[loan.status] || { label: loan.status, variant: 'gray' as const };
   const isOwnLoan = loan.userId === currentUser?.id;
-  const canApprove = loan.status === 'PENDING_APPROVAL' && !isOwnLoan;
+  
+  // Check if user has approval permission
+  const hasApprovalPermission = currentUser?.permissions?.some(
+    p => p === 'staff_loans:approve' || p === 'staff_loans:*' || p === '*:*'
+  ) || false;
+  
+  // Show approve buttons if: has permission AND loan is pending
+  const canApprove = loan.status === 'PENDING_APPROVAL' && hasApprovalPermission;
   
   // Calculate paid/outstanding amounts from repayment schedule if available
   const totalPaid = loan.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
@@ -117,23 +124,57 @@ export function StaffLoanDetailsPage() {
           <div className="flex items-center gap-3">
             <Badge variant={status.variant}>{status.label}</Badge>
             
-            {/* Submit button for draft loans (own loan only) */}
-            {loan.status === 'DRAFT' && isOwnLoan && (
-              <button
-                onClick={() => {
-                  if (confirm('Submit this loan application for approval?')) {
-                    submitMutation.mutate();
-                  }
-                }}
-                disabled={submitMutation.isPending}
-                className="btn btn-primary flex items-center gap-2"
-              >
-                <Send className="w-4 h-4" />
-                {submitMutation.isPending ? 'Submitting...' : 'Submit for Approval'}
-              </button>
+            {/* Submit button for draft loans */}
+            {loan.status === 'DRAFT' && (isOwnLoan || hasApprovalPermission) && (
+              <>
+                <button
+                  onClick={() => {
+                    if (confirm('Submit this loan application for approval?')) {
+                      submitMutation.mutate();
+                    }
+                  }}
+                  disabled={submitMutation.isPending}
+                  className="btn btn-primary flex items-center gap-2"
+                >
+                  <Send className="w-4 h-4" />
+                  {submitMutation.isPending ? 'Submitting...' : 'Submit for Approval'}
+                </button>
+                
+                {/* Quick approve for HR - submit and approve in one step */}
+                {hasApprovalPermission && !isOwnLoan && (
+                  <button
+                    onClick={async () => {
+                      const approvalNotes = prompt('Approval notes (optional):');
+                      if (approvalNotes !== null) {
+                        try {
+                          // First submit
+                          await submitMutation.mutateAsync();
+                          // Then approve
+                          const approvedAmount = loan.requestedAmount;
+                          const approvedTenureMonths = loan.tenureMonths;
+                          const interestRate = 0;
+                          await approveMutation.mutateAsync({ 
+                            approvedAmount, 
+                            approvedTenureMonths, 
+                            interestRate,
+                            approvalNotes: approvalNotes || undefined 
+                          });
+                        } catch (error) {
+                          // Errors already handled by mutations
+                        }
+                      }
+                    }}
+                    disabled={submitMutation.isPending || approveMutation.isPending}
+                    className="btn btn-success flex items-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    Submit & Approve
+                  </button>
+                )}
+              </>
             )}
 
-            {/* Approve/Reject buttons for pending loans (not own loan) */}
+            {/* Approve/Reject buttons for pending loans with approval permission */}
             {canApprove && (
               <>
                 <button
