@@ -11,6 +11,31 @@ export class LeavesService {
   ) {}
 
   /**
+   * Get all active leave types
+   */
+  async getLeaveTypes() {
+    return this.prisma.leaveType.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        description: true,
+        defaultDaysPerYear: true,
+        carryForwardAllowed: true,
+        maxCarryForwardDays: true,
+        requiresApproval: true,
+        minNoticeDays: true,
+        maxConsecutiveDays: true,
+        allowHalfDay: true,
+        countWeekendsAsLeave: true,
+        countHolidaysAsLeave: true,
+      },
+    });
+  }
+
+  /**
    * Create leave application (draft)
    */
   async createLeaveApplication(data: {

@@ -31,6 +31,22 @@ export class LeavesController {
   ) {}
 
   /**
+   * Get all active leave types
+   */
+  @Get('types')
+  @RequirePermissions('leaves:read')
+  @ApiOperation({ summary: 'Get all active leave types' })
+  @ApiResponse({ status: 200, description: 'Leave types retrieved successfully' })
+  async getLeaveTypes() {
+    const leaveTypes = await this.leavesService.getLeaveTypes();
+
+    return {
+      success: true,
+      data: leaveTypes,
+    };
+  }
+
+  /**
    * Create a new leave application (draft)
    */
   @Post('apply')
