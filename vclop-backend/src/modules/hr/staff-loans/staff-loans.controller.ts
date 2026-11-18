@@ -111,6 +111,29 @@ export class StaffLoansController {
   }
 
   /**
+   * Submit loan for approval (change from DRAFT to PENDING_APPROVAL)
+   */
+  @Post(':id/submit')
+  @RequirePermissions('staff_loans:create')
+  @ApiOperation({ summary: 'Submit draft loan for approval' })
+  @ApiResponse({ status: 200, description: 'Loan submitted successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid request or not in draft status' })
+  async submitLoan(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user.id || req.user.userId;
+
+    const loan = await this.staffLoansService.submitLoan(id, userId);
+
+    return {
+      success: true,
+      message: 'Loan submitted for approval',
+      data: loan,
+    };
+  }
+
+  /**
    * Get pending loan approvals
    */
   @Get('pending/approvals')

@@ -419,6 +419,48 @@ export class StaffLoansService {
   }
 
   /**
+   * Submit loan for approval (change from DRAFT to PENDING_APPROVAL)
+   */
+  async submitLoan(loanId: string, userId: string) {
+    const loan = await this.prisma.staffLoan.findUnique({
+      where: { id: loanId },
+    });
+
+    if (!loan) {
+      throw new NotFoundException('Loan not found');
+    }
+
+    if (loan.userId !== userId) {
+      throw new BadRequestException('You can only submit your own loan applications');
+    }
+
+    if (loan.status !== 'DRAFT') {
+      throw new BadRequestException('Only draft loans can be submitted');
+    }
+
+    // Update to PENDING_APPROVAL
+    return await this.prisma.staffLoan.update({
+      where: { id: loanId },
+      data: {
+        status: 'PENDING_APPROVAL',
+        submittedAt: new Date(),
+        submittedById: userId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            employeeId: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * Get pending loan approvals
    */
   async getPendingApprovals() {
