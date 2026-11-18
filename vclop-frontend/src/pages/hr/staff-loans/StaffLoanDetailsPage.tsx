@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, DollarSign, FileText } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, DollarSign, FileText, Send } from 'lucide-react';
 import { staffLoansService } from '@/services/staff-loans.service';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', variant: 'gray' as const },
@@ -19,11 +20,24 @@ const STATUS_CONFIG = {
 export function StaffLoanDetailsPage() {
   const { loanId } = useParams<{ loanId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: loan, isLoading } = useQuery({
     queryKey: ['staff-loan', loanId],
     queryFn: () => staffLoansService.getLoanById(loanId!),
     enabled: !!loanId,
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: () => staffLoansService.submitLoan(loanId!),
+    onSuccess: () => {
+      toast.success('Loan submitted for approval successfully');
+      queryClient.invalidateQueries({ queryKey: ['staff-loan', loanId] });
+      queryClient.invalidateQueries({ queryKey: ['my-staff-loans'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to submit loan');
+    },
   });
 
   if (isLoading) {
@@ -71,7 +85,23 @@ export function StaffLoanDetailsPage() {
             <h1 className="text-2xl font-bold mb-2">Staff Loan Details</h1>
             <p className="text-sm text-gray-500 font-mono">{loan.id}</p>
           </div>
-          <Badge variant={status.variant}>{status.label}</Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant={status.variant}>{status.label}</Badge>
+            {loan.status === 'DRAFT' && (
+              <button
+                onClick={() => {
+                  if (confirm('Submit this loan application for approval?')) {
+                    submitMutation.mutate();
+                  }
+                }}
+                disabled={submitMutation.isPending}
+                className="btn btn-primary flex items-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                {submitMutation.isPending ? 'Submitting...' : 'Submit for Approval'}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
