@@ -34,6 +34,25 @@ export class StaffLoansController {
   ) {}
 
   /**
+   * Get all staff loans (Admin/HR view with filters)
+   */
+  @Get()
+  @RequirePermissions('staff_loans:approve')
+  @ApiOperation({ summary: 'Get all staff loans for management' })
+  @ApiResponse({ status: 200, description: 'Loans retrieved successfully' })
+  async getAllLoans(
+    @Query('status') status?: StaffLoanStatus,
+    @Query('userId') userId?: string,
+  ) {
+    const loans = await this.staffLoansService.getAllLoans({ status, userId });
+
+    return {
+      success: true,
+      data: loans,
+    };
+  }
+
+  /**
    * Apply for staff loan
    */
   @Post('apply')

@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, DollarSign, FileText, Send } from 'lucide-react';
+import { ArrowLeft, DollarSign, FileText, Send, Check, X } from 'lucide-react';
 import { staffLoansService } from '@/services/staff-loans.service';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/stores/auth.store';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', variant: 'gray' as const },
@@ -21,6 +22,7 @@ export function StaffLoanDetailsPage() {
   const { loanId } = useParams<{ loanId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const currentUser = useAuthStore((state) => state.user);
 
   const { data: loan, isLoading } = useQuery({
     queryKey: ['staff-loan', loanId],
@@ -37,6 +39,31 @@ export function StaffLoanDetailsPage() {
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to submit loan');
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (data: { approvedAmount: number; notes?: string }) => 
+      staffLoansService.approveLoan(loanId!, data),
+    onSuccess: () => {
+      toast.success('Loan approved successfully');
+      queryClient.invalidateQueries({ queryKey: ['staff-loan', loanId] });
+      queryClient.invalidateQueries({ queryKey: ['all-staff-loans'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to approve loan');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (reason: string) => staffLoansService.rejectLoan(loanId!, reason),
+    onSuccess: () => {
+      toast.success('Loan rejected');
+      queryClient.invalidateQueries({ queryKey: ['staff-loan', loanId] });
+      queryClient.invalidateQueries({ queryKey: ['all-staff-loans'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to reject loan');
     },
   });
 
@@ -65,6 +92,8 @@ export function StaffLoanDetailsPage() {
   }
 
   const status = STATUS_CONFIG[loan.status] || { label: loan.status, variant: 'gray' as const };
+  const isOwnLoan = loan.userId === currentUser?.id;
+  const canApprove = loan.status === 'PENDING_APPROVAL' && !isOwnLoan;
   
   // Calculate paid/outstanding amounts from repayment schedule if available
   const totalPaid = loan.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
@@ -87,7 +116,9 @@ export function StaffLoanDetailsPage() {
           </div>
           <div className="flex items-center gap-3">
             <Badge variant={status.variant}>{status.label}</Badge>
-            {loan.status === 'DRAFT' && (
+            
+            {/* Submit button for draft loans (own loan only) */}
+            {loan.status === 'DRAFT' && isOwnLoan && (
               <button
                 onClick={() => {
                   if (confirm('Submit this loan application for approval?')) {
@@ -100,6 +131,41 @@ export function StaffLoanDetailsPage() {
                 <Send className="w-4 h-4" />
                 {submitMutation.isPending ? 'Submitting...' : 'Submit for Approval'}
               </button>
+            )}
+
+            {/* Approve/Reject buttons for pending loans (not own loan) */}
+            {canApprove && (
+              <>
+                <button
+                  onClick={() => {
+                    const approvedAmount = loan.requestedAmount;
+                    const notes = prompt('Approval notes (optional):');
+                    if (notes !== null) { // User didn't cancel
+                      approveMutation.mutate({ approvedAmount, notes: notes || undefined });
+                    }
+                  }}
+                  disabled={approveMutation.isPending}
+                  className="btn btn-primary flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  {approveMutation.isPending ? 'Approving...' : 'Approve'}
+                </button>
+                <button
+                  onClick={() => {
+                    const reason = prompt('Rejection reason (required):');
+                    if (reason && reason.trim()) {
+                      rejectMutation.mutate(reason);
+                    } else if (reason !== null) {
+                      toast.error('Rejection reason is required');
+                    }
+                  }}
+                  disabled={rejectMutation.isPending}
+                  className="btn btn-secondary flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  {rejectMutation.isPending ? 'Rejecting...' : 'Reject'}
+                </button>
+              </>
             )}
           </div>
         </div>

@@ -355,6 +355,38 @@ export class StaffLoansService {
   }
 
   /**
+   * Get all staff loans (Admin/HR view)
+   */
+  async getAllLoans(params?: { status?: StaffLoanStatus; userId?: string }) {
+    const where: any = {};
+    if (params?.status) where.status = params.status;
+    if (params?.userId) where.userId = params.userId;
+
+    return await this.prisma.staffLoan.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            employeeId: true,
+          },
+        },
+        repaymentSchedule: {
+          orderBy: { installmentNumber: 'asc' },
+        },
+        payments: true,
+      },
+      orderBy: [
+        { submittedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    });
+  }
+
+  /**
    * Get loan details with full breakdown
    */
   async getLoanDetails(loanId: string) {
