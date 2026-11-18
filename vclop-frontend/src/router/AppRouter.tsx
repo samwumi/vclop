@@ -165,10 +165,10 @@ export function AppRouter() {
         <Route path="/hr/employees/:userId" element={<ProtectedRoute permission="employees:read"><EmployeeDetailsPage /></ProtectedRoute>} />
         
         {/* HR - Staff Loans */}
+        <Route path="/hr/staff-loans" element={<ProtectedRoute permission="staff_loans:approve"><StaffLoansManagementPage /></ProtectedRoute>} />
         <Route path="/hr/staff-loans/my-loans" element={<ProtectedRoute permission="staff_loans:read"><MyStaffLoansPage /></ProtectedRoute>} />
         <Route path="/hr/staff-loans/apply" element={<ProtectedRoute permission="staff_loans:create"><StaffLoanApplicationPage /></ProtectedRoute>} />
         <Route path="/hr/staff-loans/:loanId" element={<ProtectedRoute permission="staff_loans:read"><StaffLoanDetailsPage /></ProtectedRoute>} />
-        <Route path="/hr/staff-loans/management" element={<ProtectedRoute permission="users:read"><StaffLoansManagementPage /></ProtectedRoute>} />
 
         {/* HR - Leaves */}
         <Route path="/hr/leaves/my-applications" element={<ProtectedRoute permission="leaves:read"><MyLeavesPage /></ProtectedRoute>} />
