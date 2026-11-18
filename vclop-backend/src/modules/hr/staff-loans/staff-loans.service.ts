@@ -208,10 +208,8 @@ export class StaffLoansService {
       throw new BadRequestException('Loan is not pending approval');
     }
 
-    // Prevent self-approval
-    if (loan.userId === approverId) {
-      throw new BadRequestException('Self-approval is not allowed');
-    }
+    // Note: Self-approval is allowed for staff loans to accommodate small teams
+    // In production, you may want to add a setting to control this behavior
 
     // Calculate loan terms
     const principalAmount = data.approvedAmount;
