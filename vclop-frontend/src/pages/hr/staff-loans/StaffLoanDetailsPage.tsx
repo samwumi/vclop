@@ -43,7 +43,7 @@ export function StaffLoanDetailsPage() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (data: { approvedAmount: number; notes?: string }) => 
+    mutationFn: (data: { approvedAmount: number; approvedTenureMonths: number; interestRate: number; approvalNotes?: string }) => 
       staffLoansService.approveLoan(loanId!, data),
     onSuccess: () => {
       toast.success('Loan approved successfully');
@@ -138,10 +138,18 @@ export function StaffLoanDetailsPage() {
               <>
                 <button
                   onClick={() => {
+                    // Use the requested amount and tenure, with 0% interest rate
                     const approvedAmount = loan.requestedAmount;
-                    const notes = prompt('Approval notes (optional):');
-                    if (notes !== null) { // User didn't cancel
-                      approveMutation.mutate({ approvedAmount, notes: notes || undefined });
+                    const approvedTenureMonths = loan.tenureMonths;
+                    const interestRate = 0; // Staff loans are interest-free
+                    const approvalNotes = prompt('Approval notes (optional):');
+                    if (approvalNotes !== null) { // User didn't cancel
+                      approveMutation.mutate({ 
+                        approvedAmount, 
+                        approvedTenureMonths, 
+                        interestRate,
+                        approvalNotes: approvalNotes || undefined 
+                      });
                     }
                   }}
                   disabled={approveMutation.isPending}
