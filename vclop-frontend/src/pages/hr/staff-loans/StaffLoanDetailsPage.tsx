@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, DollarSign, FileText, Send, Check, X } from 'lucide-react';
-import { staffLoansService } from '@/services/staff-loans.service';
+import { staffLoansService, ApproveLoanDto } from '@/services/staff-loans.service';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -43,7 +43,7 @@ export function StaffLoanDetailsPage() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (data: { approvedAmount: number; approvedTenureMonths: number; interestRate: number; approvalNotes?: string }) => 
+    mutationFn: (data: ApproveLoanDto) => 
       staffLoansService.approveLoan(loanId!, data),
     onSuccess: () => {
       toast.success('Loan approved successfully');
