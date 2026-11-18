@@ -18,6 +18,17 @@ export function LeaveApplicationPage() {
     reason: '',
   });
 
+  // Calculate resumption date (endDate + 1 day)
+  const getResumptionDate = () => {
+    if (!formData.endDate) return null;
+    const end = new Date(formData.endDate);
+    const resumption = new Date(end);
+    resumption.setDate(resumption.getDate() + 1);
+    return resumption;
+  };
+
+  const resumptionDate = getResumptionDate();
+
   const { data: leaveTypes, isLoading: loadingTypes } = useQuery({
     queryKey: ['leave-types'],
     queryFn: () => leavesService.getLeaveTypes(),
@@ -80,6 +91,14 @@ export function LeaveApplicationPage() {
             <h1 className="text-2xl font-bold">Apply for Leave</h1>
             <p className="text-gray-600">Submit a new leave application</p>
           </div>
+        </div>
+
+        {/* Info Notice */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p className="text-sm text-blue-800">
+            <strong>Note:</strong> You can apply for past dates if you're already on leave or forgot to submit. 
+            The system will show your resumption date (return to work date) as one day after your end date.
+          </p>
         </div>
 
         <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
@@ -172,6 +191,27 @@ export function LeaveApplicationPage() {
               </select>
             </div>
           </div>
+
+          {/* Resumption Date Display */}
+          {resumptionDate && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm font-semibold text-green-900">Expected Resumption Date</p>
+                  <p className="text-lg font-bold text-green-700">
+                    {resumptionDate.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">You will return to work on this date</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Reason */}
           <div>

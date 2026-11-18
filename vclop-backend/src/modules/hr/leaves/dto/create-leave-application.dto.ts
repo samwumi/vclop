@@ -13,7 +13,8 @@ export class CreateLeaveApplicationDto {
   @IsNotEmpty()
   @IsDate()
   @Type(() => Date)
-  @MinDate(new Date())
+  // Allow backdated leaves for staff already on leave
+  // @MinDate(new Date())
   startDate!: Date;
 
   @ApiProperty({ description: 'Leave end date', example: '2026-11-05' })
