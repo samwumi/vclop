@@ -10,8 +10,14 @@ export class TransactionsService {
     const { startDate, endDate, type, status, search } = query;
 
     // Default to today if no date range provided
-    const start = startDate ? new Date(startDate) : new Date(new Date().setHours(0, 0, 0, 0));
-    const end = endDate ? new Date(endDate) : new Date(new Date().setHours(23, 59, 59, 999));
+    // IMPORTANT: Ensure start is beginning of day and end is end of day
+    const start = startDate 
+      ? new Date(new Date(startDate).setHours(0, 0, 0, 0))
+      : new Date(new Date().setHours(0, 0, 0, 0));
+    
+    const end = endDate 
+      ? new Date(new Date(endDate).setHours(23, 59, 59, 999))
+      : new Date(new Date().setHours(23, 59, 59, 999));
 
     // Fetch Virtual Account Transactions
     const vaTransactions = (type === TransactionType.ALL || type === TransactionType.VIRTUAL_ACCOUNT
