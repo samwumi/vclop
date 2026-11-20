@@ -55,10 +55,28 @@ export class TransactionsService {
       : []) as Array<any>;
 
     // Fetch Manual Repayment Transactions
+    // IMPORTANT: Exclude repayments that came from VA transactions to avoid duplicates
     const manualTransactions = (type === TransactionType.ALL || type === TransactionType.MANUAL
       ? await this.prisma.repaymentTransaction.findMany({
           where: {
             createdAt: { gte: start, lte: end },
+            // Exclude repayments that are linked to VA transactions
+            // (VA transactions have repaymentTransactionId pointing to these)
+            NOT: {
+              id: {
+                in: await this.prisma.virtualAccountTransaction.findMany({
+                  where: {
+                    repaymentTransactionId: { not: null },
+                    receivedAt: { gte: start, lte: end },
+                  },
+                  select: { repaymentTransactionId: true },
+                }).then(results => 
+                  results
+                    .map(r => r.repaymentTransactionId)
+                    .filter((id): id is string => id !== null)
+                ),
+              },
+            },
             ...(search && {
               OR: [
                 { receiptNumber: { contains: search } },
