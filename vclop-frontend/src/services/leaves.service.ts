@@ -184,7 +184,7 @@ class LeavesService {
    * Get all leave types
    */
   async getLeaveTypes(): Promise<LeaveType[]> {
-    const response = await api.get('/api/v1/hr/leaves/types');
+    const response = await api.get(`${this.baseUrl}/types`);
     const result = response.data.data || response.data || [];
     return Array.isArray(result) ? result : [];
   }
