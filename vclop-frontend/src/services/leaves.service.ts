@@ -185,7 +185,8 @@ class LeavesService {
    */
   async getLeaveTypes(): Promise<LeaveType[]> {
     const response = await api.get(`${this.baseUrl}/types`);
-    const result = response.data.data || response.data || [];
+    // Handle triple nesting: response.data.data.data
+    const result = response.data.data?.data || response.data.data || response.data || [];
     return Array.isArray(result) ? result : [];
   }
 
