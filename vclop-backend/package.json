@@ -24,6 +24,7 @@
     "prisma:migrate:prod": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts",
+    "seed:leave-types": "ts-node --transpile-only src/scripts/seed-leave-types.ts",
     "setup:employment-permissions": "ts-node --transpile-only src/scripts/setup-employment-workflow-permissions.ts",
     "setup:employment-permissions-remote": "ts-node --transpile-only src/scripts/setup-employment-permissions-remote.ts",
     "audit:check": "npm audit --audit-level=high",
