@@ -30,7 +30,6 @@ async function setupLeaveEntitlements() {
     const leaveTypes = await prisma.leaveType.findMany({
       where: {
         isActive: true,
-        deletedAt: null,
       },
       select: {
         id: true,
@@ -59,7 +58,6 @@ async function setupLeaveEntitlements() {
             userId: user.id,
             leaveTypeId: leaveType.id,
             year,
-            deletedAt: null,
           },
         });
 
@@ -75,8 +73,6 @@ async function setupLeaveEntitlements() {
             leaveTypeId: leaveType.id,
             year,
             allocatedDays: leaveType.defaultDaysPerYear,
-            usedDays: 0,
-            pendingDays: 0,
             carryForwardDays: 0,
             effectiveFrom: new Date(`${year}-01-01`),
             effectiveTo: new Date(`${year}-12-31`),
@@ -103,7 +99,6 @@ async function setupLeaveEntitlements() {
         where: {
           userId: user.id,
           year,
-          deletedAt: null,
         },
         include: {
           leaveType: {
