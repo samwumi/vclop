@@ -31,6 +31,57 @@ async function bootstrap(): Promise<void> {
     }
   }
 
+  // ── Auto-setup leave entitlements on first startup ────────────────────────
+  if (process.env.AUTO_SETUP_LEAVE_ENTITLEMENTS === 'true') {
+    try {
+      console.log('[bootstrap] Setting up leave entitlements...');
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const year = new Date().getFullYear();
+      
+      // Get all active users without entitlements for current year
+      const users = await prisma.user.findMany({
+        where: { status: 'ACTIVE', deletedAt: null },
+        select: { id: true, username: true },
+      });
+
+      const leaveTypes = await prisma.leaveType.findMany({
+        where: { isActive: true },
+        select: { id: true, code: true, defaultDaysPerYear: true },
+      });
+
+      let created = 0;
+      for (const user of users) {
+        for (const leaveType of leaveTypes) {
+          const existing = await prisma.leaveEntitlement.findFirst({
+            where: { userId: user.id, leaveTypeId: leaveType.id, year },
+          });
+          
+          if (!existing) {
+            await prisma.leaveEntitlement.create({
+              data: {
+                user: { connect: { id: user.id } },
+                leaveType: { connect: { id: leaveType.id } },
+                createdBy: { connect: { id: user.id } },
+                year,
+                allocatedDays: leaveType.defaultDaysPerYear,
+                carryForwardDays: 0,
+                adjustmentDays: 0,
+              },
+            });
+            created++;
+          }
+        }
+      }
+      
+      await prisma.$disconnect();
+      console.log(`[bootstrap] Leave entitlements setup complete: ${created} created for ${users.length} users`);
+    } catch (err) {
+      console.error('[bootstrap] Leave entitlement setup warning:', err instanceof Error ? err.message : err);
+    }
+  }
+
   // ── Process-level safety nets ─────────────────────────────────────────────
   // These catch errors that escape NestJS's own exception handling
   // (e.g. from a background timer, event emitter, or third-party callback).
