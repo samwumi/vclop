@@ -69,13 +69,13 @@ async function setupLeaveEntitlements() {
         // Create entitlement
         await prisma.leaveEntitlement.create({
           data: {
-            userId: user.id,
-            leaveTypeId: leaveType.id,
+            user: { connect: { id: user.id } },
+            leaveType: { connect: { id: leaveType.id } },
+            createdBy: { connect: { id: user.id } },
             year,
             allocatedDays: leaveType.defaultDaysPerYear,
             carryForwardDays: 0,
-            effectiveFrom: new Date(`${year}-01-01`),
-            effectiveTo: new Date(`${year}-12-31`),
+            adjustmentDays: 0,
           },
         });
 
