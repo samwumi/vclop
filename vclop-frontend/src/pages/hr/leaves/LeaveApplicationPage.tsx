@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, FileText, Send, Info, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Send, Info, CheckCircle2, Clock, AlertCircle, X } from 'lucide-react';
 import { leavesService, type DayType } from '@/services/leaves.service';
 
 export function LeaveApplicationPage() {
@@ -17,6 +17,8 @@ export function LeaveApplicationPage() {
     endDayType: 'FULL_DAY' as DayType,
     reason: '',
   });
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Calculate resumption date and duration
   const getResumptionDate = () => {
@@ -62,11 +64,16 @@ export function LeaveApplicationPage() {
       queryClient.invalidateQueries({ queryKey: ['my-leave-applications'] });
       queryClient.invalidateQueries({ queryKey: ['my-leave-balances'] });
       
+      setErrorMessage(null);
       alert(draft ? 'Leave application saved as draft' : 'Leave application submitted successfully');
       navigate('/hr/leaves/my-applications');
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || 'Failed to create application');
+      const message = error.response?.data?.message || 'Failed to create application';
+      setErrorMessage(message);
+      
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
   });
 
@@ -77,8 +84,11 @@ export function LeaveApplicationPage() {
   const handleSubmit = (e: React.FormEvent, draft: boolean = false) => {
     e.preventDefault();
     
+    // Clear previous error
+    setErrorMessage(null);
+    
     if (!formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason) {
-      alert('Please fill in all required fields');
+      setErrorMessage('Please fill in all required fields');
       return;
     }
 
@@ -111,6 +121,33 @@ export function LeaveApplicationPage() {
               </div>
             </div>
           </div>
+
+          {/* Error Banner */}
+          {errorMessage && (
+            <div className="mx-8 mt-6">
+              <div className="bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4 shadow-sm animate-shake">
+                <div className="flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-red-900">Unable to Submit Leave Application</h3>
+                    <p className="text-sm text-red-700 mt-1">{errorMessage}</p>
+                    {errorMessage.includes('balance') && (
+                      <p className="text-xs text-red-600 mt-2 italic">
+                        💡 Tip: Check your available balance above or contact HR if you believe this is an error.
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setErrorMessage(null)}
+                    className="text-red-400 hover:text-red-600 transition-colors"
+                    aria-label="Dismiss error"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Info Banner */}
           <div className="mx-8 -mb-3 translate-y-[-1rem]">
