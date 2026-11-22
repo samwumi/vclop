@@ -41,7 +41,7 @@ export class OffboardingController {
     @Body() dto: InitiateOffboardingDto,
     @Request() req: any,
   ) {
-    const initiatedById = req.user.userId;
+    const initiatedById = req.user.id || req.user.userId;
 
     const offboarding = await this.offboardingService.initiateOffboarding({
       ...dto,
@@ -68,7 +68,7 @@ export class OffboardingController {
     @Body() dto: RevokeITAccessDto,
     @Request() req: any,
   ) {
-    const revokedById = req.user.userId;
+    const revokedById = req.user.id || req.user.userId;
 
     const offboarding = await this.offboardingService.revokeITAccess(
       id,
@@ -96,7 +96,7 @@ export class OffboardingController {
     @Body() dto: ProcessFinanceClearanceDto,
     @Request() req: any,
   ) {
-    const clearedById = req.user.userId;
+    const clearedById = req.user.id || req.user.userId;
 
     const offboarding = await this.offboardingService.processFinanceClearance(
       id,
@@ -124,7 +124,7 @@ export class OffboardingController {
     @Body() dto: ProcessAssetClearanceDto,
     @Request() req: any,
   ) {
-    const clearedById = req.user.userId;
+    const clearedById = req.user.id || req.user.userId;
 
     const offboarding = await this.offboardingService.processAssetClearance(
       id,
@@ -152,7 +152,7 @@ export class OffboardingController {
     @Body() dto: ProcessHRClearanceDto,
     @Request() req: any,
   ) {
-    const clearedById = req.user.userId;
+    const clearedById = req.user.id || req.user.userId;
 
     const offboarding = await this.offboardingService.processHRClearance(
       id,

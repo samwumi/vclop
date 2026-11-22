@@ -58,7 +58,7 @@ export class LeavesController {
     @Body() dto: CreateLeaveApplicationDto,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const application = await this.leavesService.createLeaveApplication({
       ...dto,
@@ -82,7 +82,7 @@ export class LeavesController {
   @ApiResponse({ status: 400, description: 'Insufficient balance or invalid status' })
   @ApiResponse({ status: 404, description: 'Application not found' })
   async submitApplication(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     // Submit application (with balance check)
     const application = await this.leavesService.submitLeaveApplication(id, userId);
@@ -116,7 +116,7 @@ export class LeavesController {
     @Body() dto: CancelLeaveApplicationDto,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const application = await this.leavesService.cancelLeaveApplication(
       id,
@@ -142,7 +142,7 @@ export class LeavesController {
     @Query('status') status: LeaveStatus,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const applications = await this.leavesService.getMyApplications(userId, status);
 
@@ -164,7 +164,7 @@ export class LeavesController {
     @Param('leaveTypeId') leaveTypeId: string,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     const yearNum = parseInt(year, 10);
 
     const balance = await this.leavesService.getMyBalance(userId, yearNum);
@@ -183,7 +183,7 @@ export class LeavesController {
   @ApiOperation({ summary: 'Get all my leave balances for a year' })
   @ApiResponse({ status: 200, description: 'Balances retrieved successfully' })
   async getAllMyBalances(@Param('year') year: string, @Request() req: any) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     const yearNum = parseInt(year, 10);
 
     const balances = await this.leavesService.getMyBalance(userId, yearNum);
@@ -202,7 +202,7 @@ export class LeavesController {
   @ApiOperation({ summary: 'Get pending leave approvals assigned to me' })
   @ApiResponse({ status: 200, description: 'Pending approvals retrieved successfully' })
   async getPendingApprovals(@Request() req: any) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const approvals = await this.leaveApprovalService.getPendingApprovals(userId);
 
@@ -226,7 +226,7 @@ export class LeavesController {
     @Body() dto: ApproveLeaveDto,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const result = await this.leaveApprovalService.processApprovalDecision(
       id,

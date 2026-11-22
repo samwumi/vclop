@@ -54,7 +54,7 @@ export class ResourcesController {
   @ApiOperation({ summary: 'Assign or reassign permanent resource ownership' })
   @ApiResponse({ status: 201, description: 'Ownership assigned' })
   async assignOwnership(@Body() dto: AssignOwnershipDto, @Request() req: any) {
-    const assignedById = req.user.userId;
+    const assignedById = req.user.id || req.user.userId;
 
     const ownership = await this.resourcesService.assignOwnership({
       ...dto,
@@ -77,7 +77,7 @@ export class ResourcesController {
   @ApiResponse({ status: 201, description: 'Delegation created' })
   @ApiResponse({ status: 400, description: 'Not owner or conflicting delegation' })
   async createDelegation(@Body() dto: CreateDelegationDto, @Request() req: any) {
-    const delegatedFrom = req.user.userId;
+    const delegatedFrom = req.user.id || req.user.userId;
 
     const delegation = await this.resourcesService.createDelegation({
       ...dto,
@@ -111,7 +111,7 @@ export class ResourcesController {
     @Body() body: { notes?: string },
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const delegation = await this.resourcesService.respondToDelegation(
       id,
@@ -140,7 +140,7 @@ export class ResourcesController {
     @Body() body: { notes?: string },
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const delegation = await this.resourcesService.respondToDelegation(
       id,
@@ -169,7 +169,7 @@ export class ResourcesController {
     @Body() body: { reason: string },
     @Request() req: any,
   ) {
-    const revokedById = req.user.userId;
+    const revokedById = req.user.id || req.user.userId;
 
     const delegation = await this.resourcesService.revokeDelegation(
       id,
@@ -195,7 +195,7 @@ export class ResourcesController {
     @Query('includeHistory') includeHistory: string,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     const history = includeHistory === 'true';
 
     const resources = await this.resourcesService.getMyResources(userId, history);
@@ -217,7 +217,7 @@ export class ResourcesController {
     @Query('status') status: DelegationStatus,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const delegations = await this.resourcesService.getDelegations(
       userId,
@@ -242,7 +242,7 @@ export class ResourcesController {
     @Query('status') status: DelegationStatus,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
 
     const delegations = await this.resourcesService.getDelegations(
       userId,
