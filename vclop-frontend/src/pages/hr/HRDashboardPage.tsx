@@ -65,18 +65,18 @@ export function HRDashboardPage() {
 
   // Calculate stats
   const balanceArray = Array.isArray(myLeaveBalances) ? myLeaveBalances : [];
-  const totalLeaveBalance = balanceArray.reduce((sum, b) => sum + b.remaining, 0);
-  const pendingLeaveCount = pendingLeaveApprovals?.length || 0;
+  const totalLeaveBalance = balanceArray.length > 0 ? balanceArray.reduce((sum, b) => sum + (b.remaining || 0), 0) : 0;
+  const pendingLeaveCount = Array.isArray(pendingLeaveApprovals) ? pendingLeaveApprovals.length : 0;
   
-  const myActiveLoans = myLoans?.filter(l => ['ACTIVE', 'DISBURSED'].includes(l.status)).length || 0;
-  const allPendingLoans = allLoans?.data?.filter(l => l.status === 'PENDING_APPROVAL').length || 0;
+  const myActiveLoans = Array.isArray(myLoans) ? myLoans.filter(l => ['ACTIVE', 'DISBURSED'].includes(l.status)).length : 0;
+  const allPendingLoans = allLoans?.data && Array.isArray(allLoans.data) ? allLoans.data.filter(l => l.status === 'PENDING_APPROVAL').length : 0;
   
-  const activeOffboarding = offboardingCases?.filter(c => !['COMPLETED', 'ON_HOLD'].includes(c.status)).length || 0;
-  const completedOffboarding = offboardingCases?.filter(c => c.status === 'COMPLETED').length || 0;
+  const activeOffboarding = Array.isArray(offboardingCases) ? offboardingCases.filter(c => !['COMPLETED', 'ON_HOLD'].includes(c.status)).length : 0;
+  const completedOffboarding = Array.isArray(offboardingCases) ? offboardingCases.filter(c => c.status === 'COMPLETED').length : 0;
 
-  const pendingDelegations = receivedDelegations?.length || 0;
-  const myResourceCount = myResources?.length || 0;
-  const pendingEmploymentSubmissions = pendingSubmissions?.length || 0;
+  const pendingDelegations = Array.isArray(receivedDelegations) ? receivedDelegations.length : 0;
+  const myResourceCount = Array.isArray(myResources) ? myResources.length : 0;
+  const pendingEmploymentSubmissions = Array.isArray(pendingSubmissions) ? pendingSubmissions.length : 0;
 
   return (
     <div className="container mx-auto py-8 max-w-7xl">
@@ -199,12 +199,16 @@ export function HRDashboardPage() {
             <h3 className="font-semibold">Leaves</h3>
           </div>
           <div className="space-y-2 mb-4">
-            {balanceArray.slice(0, 2).map(balance => (
-              <div key={balance.leaveType.id} className="text-sm">
-                <p className="text-gray-600">{balance.leaveType.name}</p>
-                <p className="font-semibold text-blue-600">{balance.remaining} days left</p>
-              </div>
-            ))}
+            {balanceArray.length > 0 ? (
+              balanceArray.slice(0, 2).map(balance => (
+                <div key={balance.leaveType.id} className="text-sm">
+                  <p className="text-gray-600">{balance.leaveType.name}</p>
+                  <p className="font-semibold text-blue-600">{balance.remaining || 0} days left</p>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-gray-500">No leave balance data</div>
+            )}
           </div>
           <div className="flex gap-2">
             <button
