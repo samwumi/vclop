@@ -265,8 +265,6 @@ export class LeavesService {
     });
     return `LA${year}${String(count + 1).padStart(6, '0')}`;
   }
-}
-
 
   /* ═══════════════════════════════════════════════════════════════════════
    * HR MANAGEMENT METHODS
@@ -429,3 +427,4 @@ export class LeavesService {
       orderBy: { createdAt: 'desc' },
     });
   }
+}

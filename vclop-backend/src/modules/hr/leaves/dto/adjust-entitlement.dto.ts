@@ -4,11 +4,11 @@ import { ApiProperty } from '@nestjs/swagger';
 export class AdjustEntitlementDto {
   @ApiProperty({ description: 'Adjustment amount in days (can be negative)', example: 5 })
   @IsNumber()
-  adjustmentDays: number;
+  adjustmentDays!: number;
 
   @ApiProperty({ description: 'Reason for adjustment', example: 'Carry-forward from previous year' })
   @IsString()
-  reason: string;
+  reason!: string;
 }
 
 export class UpdateEntitlementDto {
