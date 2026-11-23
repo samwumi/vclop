@@ -38,6 +38,7 @@ export const APP_ROUTES: RouteConfig[] = [
   { path: '/officer-targets',   label: 'Officer Targets',  icon: Target,       permission: 'reports:read',                                group: 'Operations' },
 
   // ── HR & Staff ─────────────────────────────────────────────────────────────
+  { path: '/hr',                      label: 'HR Dashboard',   icon: Briefcase,   permission: 'dashboard:read', group: 'HR & Staff' },
   { path: '/hr/my-employment',        label: 'My Employment',  icon: Briefcase,   permission: 'dashboard:read', group: 'HR & Staff' },
   { path: '/hr/staff-loans/my-loans', label: 'My Loans',       icon: DollarSign,  permission: 'dashboard:read', group: 'HR & Staff' },
   

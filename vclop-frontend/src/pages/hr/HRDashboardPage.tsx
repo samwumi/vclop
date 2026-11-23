@@ -206,12 +206,21 @@ export function HRDashboardPage() {
               </div>
             ))}
           </div>
-          <button
-            onClick={() => navigate('/hr/leaves/apply')}
-            className="btn-primary btn-sm w-full"
-          >
-            Apply for Leave
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('/hr/leaves/apply')}
+              className="btn-primary btn-sm flex-1"
+            >
+              Apply for Leave
+            </button>
+            <button
+              onClick={() => navigate('/hr/leaves/entitlements')}
+              className="btn-secondary btn-sm flex-1"
+              title="Manage leave entitlements (HR only)"
+            >
+              Manage
+            </button>
+          </div>
         </div>
 
         {/* Staff Loans Module */}
