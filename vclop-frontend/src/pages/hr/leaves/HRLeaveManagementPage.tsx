@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Calendar, Edit, Plus, History, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, Calendar, Edit, History, TrendingUp, AlertCircle } from 'lucide-react';
 import { leavesService } from '@/services/leaves.service';
 
 interface Entitlement {
