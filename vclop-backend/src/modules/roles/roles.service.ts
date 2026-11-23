@@ -25,6 +25,7 @@ export class RolesService {
   async findAll(query: PaginationDto): Promise<PaginatedResult<unknown>> {
     const where = {
       deletedAt: null,
+      // Show all roles by default (including inactive ones)
       ...(query.search && {
         OR: [
           { name: { contains: query.search } },

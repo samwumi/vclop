@@ -78,6 +78,7 @@ export function RolesPage() {
     { key: 'desc',    label: 'Description' },
     { key: 'perms',   label: 'Permissions', width: '120px' },
     { key: 'users',   label: 'Users',       width: '80px' },
+    { key: 'status',  label: 'Status',      width: '100px' },
     { key: 'system',  label: 'Type',        width: '100px' },
     { key: 'actions', label: '',            width: '60px' },
   ];
@@ -100,7 +101,7 @@ export function RolesPage() {
       rows={
         <>
           {data?.data?.map((role) => (
-            <tr key={role.id}>
+            <tr key={role.id} className={!role.isActive ? 'opacity-60' : ''}>
               <td>
                 <div>
                   <p className="font-medium text-gray-800">{role.name}</p>
@@ -112,6 +113,11 @@ export function RolesPage() {
                 <span className="badge-blue">{role._count?.rolePermissions ?? '—'}</span>
               </td>
               <td className="text-sm text-gray-600">{role._count?.userRoles ?? '—'}</td>
+              <td>
+                {role.isActive
+                  ? <Badge variant="green">Active</Badge>
+                  : <Badge variant="gray">Inactive</Badge>}
+              </td>
               <td>
                 {role.isSystem
                   ? <Badge variant="purple">System</Badge>
