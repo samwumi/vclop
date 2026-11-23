@@ -237,10 +237,6 @@ class LeavesService {
     }
     return result;
   }
-}
-
-export const leavesService = new LeavesService();
-
 
   /* ═══════════════════════════════════════════════════════════════════════
    * HR MANAGEMENT METHODS
