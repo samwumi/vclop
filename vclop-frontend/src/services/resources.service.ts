@@ -3,8 +3,8 @@ import { api } from '@/lib/axios';
 export type ResourceType = 'CUSTOMER' | 'BRANCH' | 'LOAN_PRODUCT' | 'OTHER';
 
 export type DelegationStatus =
-  | 'PENDING'
-  | 'ACCEPTED'
+  | 'PENDING_ACCEPTANCE'
+  | 'ACTIVE'
   | 'REJECTED'
   | 'REVOKED'
   | 'EXPIRED';

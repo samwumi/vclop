@@ -54,7 +54,9 @@ export function HRDashboardPage() {
 
   const { data: receivedDelegations } = useQuery({
     queryKey: ['received-delegations-pending'],
-    queryFn: () => resourcesService.getReceivedDelegations('PENDING'),
+    queryFn: () => resourcesService.getReceivedDelegations('PENDING_ACCEPTANCE'),
+    retry: 1,
+    enabled: true,
   });
 
   // Fetch pending employment submissions
