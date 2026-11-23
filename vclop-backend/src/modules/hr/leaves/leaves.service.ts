@@ -266,3 +266,166 @@ export class LeavesService {
     return `LA${year}${String(count + 1).padStart(6, '0')}`;
   }
 }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+   * HR MANAGEMENT METHODS
+   * ═══════════════════════════════════════════════════════════════════════ */
+
+  /**
+   * Get all users' leave entitlements for a year (HR only)
+   */
+  async getAllEntitlements(year: number) {
+    return await this.prisma.leaveEntitlement.findMany({
+      where: { year },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            branch: { select: { name: true } },
+          },
+        },
+        leaveType: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [
+        { user: { username: 'asc' } },
+        { leaveType: { name: 'asc' } },
+      ],
+    });
+  }
+
+  /**
+   * Update leave entitlement (HR only)
+   */
+  async updateEntitlement(
+    entitlementId: string,
+    data: { allocatedDays?: number; carryForwardDays?: number; adjustmentDays?: number; reason?: string },
+    updatedById: string,
+  ) {
+    const entitlement = await this.prisma.leaveEntitlement.findUnique({
+      where: { id: entitlementId },
+    });
+
+    if (!entitlement) {
+      throw new NotFoundException('Leave entitlement not found');
+    }
+
+    const updated = await this.prisma.leaveEntitlement.update({
+      where: { id: entitlementId },
+      data: {
+        ...(data.allocatedDays !== undefined && { allocatedDays: data.allocatedDays }),
+        ...(data.carryForwardDays !== undefined && { carryForwardDays: data.carryForwardDays }),
+        ...(data.adjustmentDays !== undefined && { adjustmentDays: data.adjustmentDays }),
+        updatedById,
+      },
+      include: {
+        user: {
+          select: {
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        leaveType: true,
+      },
+    });
+
+    // Log adjustment if reason provided
+    if (data.reason) {
+      await this.prisma.leaveEntitlementAdjustment.create({
+        data: {
+          entitlementId,
+          adjustmentDays: data.adjustmentDays || 0,
+          reason: data.reason,
+          approvedById: updatedById,
+        },
+      });
+    }
+
+    return updated;
+  }
+
+  /**
+   * Add adjustment to leave entitlement (HR only)
+   */
+  async addAdjustment(
+    entitlementId: string,
+    data: { adjustmentDays: number; reason: string },
+    approvedById: string,
+  ) {
+    const entitlement = await this.prisma.leaveEntitlement.findUnique({
+      where: { id: entitlementId },
+      include: { user: true, leaveType: true },
+    });
+
+    if (!entitlement) {
+      throw new NotFoundException('Leave entitlement not found');
+    }
+
+    // Create adjustment record
+    const adjustment = await this.prisma.leaveEntitlementAdjustment.create({
+      data: {
+        entitlementId,
+        adjustmentDays: data.adjustmentDays,
+        reason: data.reason,
+        approvedById,
+      },
+      include: {
+        approvedBy: {
+          select: {
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    // Update entitlement's total adjustment
+    const newAdjustment = Number(entitlement.adjustmentDays) + data.adjustmentDays;
+    await this.prisma.leaveEntitlement.update({
+      where: { id: entitlementId },
+      data: {
+        adjustmentDays: newAdjustment,
+        updatedById: approvedById,
+      },
+    });
+
+    return {
+      adjustment,
+      newTotal: newAdjustment,
+      entitlement: {
+        user: entitlement.user,
+        leaveType: entitlement.leaveType,
+      },
+    };
+  }
+
+  /**
+   * Get adjustment history for an entitlement (HR only)
+   */
+  async getAdjustmentHistory(entitlementId: string) {
+    return await this.prisma.leaveEntitlementAdjustment.findMany({
+      where: { entitlementId },
+      include: {
+        approvedBy: {
+          select: {
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }

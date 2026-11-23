@@ -18,6 +18,7 @@ import { LeaveApprovalService } from './leave-approval.service';
 import { CreateLeaveApplicationDto } from './dto/create-leave-application.dto';
 import { CancelLeaveApplicationDto } from './dto/cancel-leave-application.dto';
 import { ApproveLeaveDto } from './dto/approve-leave.dto';
+import { AdjustEntitlementDto, UpdateEntitlementDto } from './dto/adjust-entitlement.dto';
 import { LeaveStatus } from '@prisma/client';
 
 @ApiTags('HR - Leaves')
@@ -274,4 +275,86 @@ export class LeavesController {
       data: application,
     };
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+   * HR MANAGEMENT ENDPOINTS
+   * ═══════════════════════════════════════════════════════════════════════ */
+
+  /**
+   * Get all users' leave entitlements
+   */
+  @Get('hr/entitlements/:year')
+  @RequirePermissions('leaves:manage')
+  @ApiOperation({ summary: 'Get all users leave entitlements for a year' })
+  @ApiResponse({ status: 200, description: 'Entitlements retrieved successfully' })
+  async getAllEntitlements(@Param('year') year: string) {
+    const yearNum = parseInt(year, 10);
+    const entitlements = await this.leavesService.getAllEntitlements(yearNum);
+
+    return {
+      success: true,
+      data: entitlements,
+    };
+  }
+
+  /**
+   * Update user's leave entitlement
+   */
+  @Put('hr/entitlements/:id')
+  @RequirePermissions('leaves:manage')
+  @ApiOperation({ summary: 'Update leave entitlement' })
+  @ApiResponse({ status: 200, description: 'Entitlement updated successfully' })
+  async updateEntitlement(
+    @Param('id') id: string,
+    @Body() dto: UpdateEntitlementDto,
+    @Request() req: any,
+  ) {
+    const updatedById = req.user.id || req.user.userId;
+    const entitlement = await this.leavesService.updateEntitlement(id, dto, updatedById);
+
+    return {
+      success: true,
+      message: 'Leave entitlement updated successfully',
+      data: entitlement,
+    };
+  }
+
+  /**
+   * Add adjustment to leave entitlement
+   */
+  @Post('hr/entitlements/:id/adjust')
+  @RequirePermissions('leaves:manage')
+  @ApiOperation({ summary: 'Add adjustment to leave entitlement' })
+  @ApiResponse({ status: 200, description: 'Adjustment added successfully' })
+  async addAdjustment(
+    @Param('id') id: string,
+    @Body() dto: AdjustEntitlementDto,
+    @Request() req: any,
+  ) {
+    const approvedById = req.user.id || req.user.userId;
+    const result = await this.leavesService.addAdjustment(id, dto, approvedById);
+
+    return {
+      success: true,
+      message: 'Adjustment added successfully',
+      data: result,
+    };
+  }
+
+  /**
+   * Get adjustment history for an entitlement
+   */
+  @Get('hr/entitlements/:id/adjustments')
+  @RequirePermissions('leaves:manage')
+  @ApiOperation({ summary: 'Get adjustment history for leave entitlement' })
+  @ApiResponse({ status: 200, description: 'History retrieved successfully' })
+  async getAdjustmentHistory(@Param('id') id: string) {
+    const history = await this.leavesService.getAdjustmentHistory(id);
+
+    return {
+      success: true,
+      data: history,
+    };
+  }
 }
+

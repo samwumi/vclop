@@ -78,6 +78,7 @@ import {
   LeaveApplicationPage,
   LeaveDetailsPage,
   LeavesManagementPage,
+  HRLeaveManagementPage,
 } from '@/pages/hr/leaves';
 import {
   MyOffboardingPage,
@@ -175,6 +176,7 @@ export function AppRouter() {
         <Route path="/hr/leaves/apply" element={<ProtectedRoute permission="leaves:create"><LeaveApplicationPage /></ProtectedRoute>} />
         <Route path="/hr/leaves/:leaveId" element={<ProtectedRoute permission="leaves:read"><LeaveDetailsPage /></ProtectedRoute>} />
         <Route path="/hr/leaves/management" element={<ProtectedRoute permission="users:read"><LeavesManagementPage /></ProtectedRoute>} />
+        <Route path="/hr/leaves/entitlements" element={<ProtectedRoute permission="leaves:manage"><HRLeaveManagementPage /></ProtectedRoute>} />
 
         {/* HR - Offboarding */}
         <Route path="/hr/offboarding/my-status" element={<ProtectedRoute permission="dashboard:read"><MyOffboardingPage /></ProtectedRoute>} />

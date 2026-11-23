@@ -240,3 +240,58 @@ class LeavesService {
 }
 
 export const leavesService = new LeavesService();
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+   * HR MANAGEMENT METHODS
+   * ═══════════════════════════════════════════════════════════════════════ */
+
+  /**
+   * Get all users' leave entitlements for a year (HR only)
+   */
+  async getAllEntitlements(year: number): Promise<any[]> {
+    const response = await api.get(`${this.baseUrl}/hr/entitlements/${year}`);
+    return response.data.data || response.data || [];
+  }
+
+  /**
+   * Update leave entitlement (HR only)
+   */
+  async updateEntitlement(
+    entitlementId: string,
+    data: {
+      allocatedDays?: number;
+      carryForwardDays?: number;
+      adjustmentDays?: number;
+      reason?: string;
+    }
+  ): Promise<any> {
+    const response = await api.put(`${this.baseUrl}/hr/entitlements/${entitlementId}`, data);
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Add adjustment to leave entitlement (HR only)
+   */
+  async addAdjustment(
+    entitlementId: string,
+    adjustmentDays: number,
+    reason: string
+  ): Promise<any> {
+    const response = await api.post(`${this.baseUrl}/hr/entitlements/${entitlementId}/adjust`, {
+      adjustmentDays,
+      reason,
+    });
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Get adjustment history for an entitlement (HR only)
+   */
+  async getAdjustmentHistory(entitlementId: string): Promise<any[]> {
+    const response = await api.get(`${this.baseUrl}/hr/entitlements/${entitlementId}/adjustments`);
+    return response.data.data || response.data || [];
+  }
+}
+
+export const leavesService = new LeavesService();
