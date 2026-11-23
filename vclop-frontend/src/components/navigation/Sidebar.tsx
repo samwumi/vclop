@@ -12,8 +12,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const { hasPermission, user } = useAuthStore();
 
   console.log('[Sidebar] Rendering with user permissions:', user?.permissions);
+  console.log('[Sidebar] APP_ROUTES type:', typeof APP_ROUTES, 'isArray:', Array.isArray(APP_ROUTES));
 
-  const accessible = APP_ROUTES.filter((r) => {
+  // Ensure APP_ROUTES is an array
+  const routes = Array.isArray(APP_ROUTES) ? APP_ROUTES : [];
+  
+  const accessible = routes.filter((r) => {
     if (r.hidden) return false;
     if (!r.permission && !r.anyPermission) return true;
     if (r.anyPermission) {
