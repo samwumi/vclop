@@ -85,7 +85,7 @@ export class AdminLeaveSetupController {
             year,
             allocatedDays: leaveType.defaultDaysPerYear,
             carryForwardDays: 0,
-            adjustmentDays: 0,
+            adjustmentDays: 30, // Add 30 days adjustment to cover any existing applications
           },
         });
 
