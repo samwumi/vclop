@@ -11,7 +11,7 @@ export function MyResourcesPage() {
 
   const { data: receivedDelegations } = useQuery({
     queryKey: ['received-delegations'],
-    queryFn: () => resourcesService.getReceivedDelegations('ACCEPTED'),
+    queryFn: () => resourcesService.getReceivedDelegations('ACTIVE'),
   });
 
   if (isLoading) {
