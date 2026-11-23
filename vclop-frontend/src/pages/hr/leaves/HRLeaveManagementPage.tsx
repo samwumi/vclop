@@ -102,17 +102,19 @@ export function HRLeaveManagementPage() {
   };
 
   // Group by user
-  const groupedEntitlements = entitlements?.reduce((acc: any, item: Entitlement) => {
-    const key = item.user.username;
-    if (!acc[key]) {
-      acc[key] = {
-        user: item.user,
-        entitlements: [],
-      };
-    }
-    acc[key].entitlements.push(item);
-    return acc;
-  }, {});
+  const groupedEntitlements = Array.isArray(entitlements) 
+    ? entitlements.reduce((acc: any, item: Entitlement) => {
+        const key = item.user.username;
+        if (!acc[key]) {
+          acc[key] = {
+            user: item.user,
+            entitlements: [],
+          };
+        }
+        acc[key].entitlements.push(item);
+        return acc;
+      }, {})
+    : {};
 
   return (
     <div className="p-6">
@@ -185,7 +187,7 @@ export function HRLeaveManagementPage() {
             <div>
               <p className="text-sm text-gray-600">Requires Attention</p>
               <p className="text-2xl font-bold">
-                {entitlements?.filter(e => calculateTotal(e) < 0).length || 0}
+                {Array.isArray(entitlements) ? entitlements.filter(e => calculateTotal(e) < 0).length : 0}
               </p>
             </div>
           </div>
