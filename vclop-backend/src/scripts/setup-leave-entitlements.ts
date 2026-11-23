@@ -1,6 +1,7 @@
 /**
  * One-time script to set up leave entitlements for all active users
- * Run with: npm run setup-leave-entitlements
+ * Run with: npm run setup:leave-entitlements
+ * OR: npx ts-node --transpile-only src/scripts/setup-leave-entitlements.ts
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -45,12 +46,16 @@ async function setupLeaveEntitlements() {
     });
     console.log('');
 
-    const year = 2026;
+    const year = new Date().getFullYear();
     let created = 0;
     let skipped = 0;
 
+    console.log(`📅 Creating entitlements for year: ${year}\n`);
+
     // Create entitlements for each user and leave type
     for (const user of users) {
+      const userCreated: string[] = [];
+      
       for (const leaveType of leaveTypes) {
         // Check if entitlement already exists
         const existing = await prisma.leaveEntitlement.findFirst({
@@ -66,7 +71,7 @@ async function setupLeaveEntitlements() {
           continue;
         }
 
-        // Create entitlement
+        // Create entitlement with 30 day adjustment to cover any existing applications
         await prisma.leaveEntitlement.create({
           data: {
             user: { connect: { id: user.id } },
@@ -75,50 +80,70 @@ async function setupLeaveEntitlements() {
             year,
             allocatedDays: leaveType.defaultDaysPerYear,
             carryForwardDays: 0,
-            adjustmentDays: 0,
+            adjustmentDays: 30, // Add 30 extra days to cover existing applications
           },
         });
 
         created++;
+        userCreated.push(`${leaveType.code}: ${Number(leaveType.defaultDaysPerYear) + 30} days`);
       }
 
-      console.log(`✅ ${user.username} (${user.email}) - ${leaveTypes.length} entitlements created`);
+      if (userCreated.length > 0) {
+        console.log(`✅ ${user.username} (${user.email})`);
+        userCreated.forEach(item => console.log(`      ${item}`));
+      }
     }
 
     console.log('\n🎉 Setup completed!');
-    console.log(`   Created: ${created} entitlements`);
-    console.log(`   Skipped: ${skipped} (already existed)`);
-    console.log(`   Users: ${users.length}`);
-    console.log(`   Leave Types: ${leaveTypes.length}\n`);
+    console.log(`   ✅ Created: ${created} entitlements`);
+    console.log(`   ⏭️  Skipped: ${skipped} (already existed)`);
+    console.log(`   👥 Users: ${users.length}`);
+    console.log(`   📋 Leave Types: ${leaveTypes.length}\n`);
 
-    // Show summary per user
-    console.log('📊 Summary by user:');
-    for (const user of users.slice(0, 5)) {
-      // Show first 5 users
-      const entitlements = await prisma.leaveEntitlement.findMany({
-        where: {
-          userId: user.id,
-          year,
-        },
-        include: {
-          leaveType: {
-            select: {
-              code: true,
-              name: true,
-            },
-          },
-        },
-      });
+    // Show summary
+    console.log('📊 Final Summary:');
+    const entitlements = await prisma.leaveEntitlement.findMany({
+      where: { year },
+      include: {
+        user: { select: { username: true, email: true } },
+        leaveType: { select: { code: true, name: true } },
+      },
+      take: 10,
+    });
 
-      console.log(`\n   ${user.username}:`);
-      entitlements.forEach((e) => {
-        console.log(`      - ${e.leaveType.name}: ${e.allocatedDays} days`);
-      });
+    entitlements.forEach((e) => {
+      const total = Number(e.allocatedDays) + Number(e.carryForwardDays) + Number(e.adjustmentDays);
+      console.log(`   ${e.user.username} - ${e.leaveType.code}: ${total} days available`);
+    });
+
+    if (created > 10) {
+      console.log(`   ... and ${created - 10} more entitlements\n`);
     }
 
-    if (users.length > 5) {
-      console.log(`\n   ... and ${users.length - 5} more users`);
+    // Check for any issues
+    const negativeBalances = await prisma.leaveEntitlement.findMany({
+      where: {
+        year,
+        OR: [
+          { allocatedDays: { lt: 0 } },
+        ],
+      },
+      include: {
+        user: { select: { username: true } },
+        leaveType: { select: { name: true } },
+      },
+    });
+
+    if (negativeBalances.length > 0) {
+      console.log('⚠️  Warning: Found users with potential balance issues:');
+      negativeBalances.forEach((e) => {
+        console.log(`   ${e.user.username} - ${e.leaveType.name}`);
+      });
+      console.log('   HR can adjust these via the UI at /hr/leaves/entitlements\n');
+    } else {
+      console.log('✅ All users have positive leave balances!\n');
     }
+
   } catch (error) {
     console.error('❌ Error setting up leave entitlements:', error);
     throw error;
@@ -130,7 +155,7 @@ async function setupLeaveEntitlements() {
 // Run the script
 setupLeaveEntitlements()
   .then(() => {
-    console.log('\n✅ Script completed successfully');
+    console.log('✅ Script completed successfully');
     process.exit(0);
   })
   .catch((error) => {
