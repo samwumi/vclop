@@ -196,6 +196,7 @@ model User {
   leaveAdjustmentsApproved     LeaveEntitlementAdjustment[] @relation("AdjustmentApprover")
   leaveApplications            LeaveApplication[]           @relation("LeaveApplications")
   leaveApplicationsSubmitted   LeaveApplication[]           @relation("LeaveSubmitter")
+  leaveApplicationsAsReliever  LeaveApplication[]           @relation("LeaveReliever")
   leaveApplicationsApproved    LeaveApplication[]           @relation("LeaveApprover")
   leaveApplicationsRejected    LeaveApplication[]           @relation("LeaveRejecter")
   leaveApplicationsCancelled   LeaveApplication[]           @relation("LeaveCanceller")
@@ -2008,6 +2009,8 @@ model LeaveApplication {
   emergencyContact String? @db.VarChar(100)
   emergencyPhone   String? @db.VarChar(20)
 
+  relieverId String? @db.VarChar(36)
+
   status LeaveStatus @default(DRAFT)
 
   submittedAt   DateTime?
@@ -2030,6 +2033,7 @@ model LeaveApplication {
 
   user        User                 @relation("LeaveApplications", fields: [userId], references: [id])
   leaveType   LeaveType            @relation(fields: [leaveTypeId], references: [id])
+  reliever    User?                @relation("LeaveReliever", fields: [relieverId], references: [id])
   submittedBy User?                @relation("LeaveSubmitter", fields: [submittedById], references: [id])
   approvedBy  User?                @relation("LeaveApprover", fields: [approvedById], references: [id])
   rejectedBy  User?                @relation("LeaveRejecter", fields: [rejectedById], references: [id])

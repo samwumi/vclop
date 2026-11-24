@@ -275,6 +275,15 @@ export class LeaveApprovalService {
       });
 
       if (decision === 'REJECT') {
+        // Get the full application to return pending days
+        const application = await tx.leaveApplication.findUnique({
+          where: { id: approval.leaveApplicationId },
+        });
+
+        if (!application) {
+          throw new NotFoundException('Leave application not found');
+        }
+
         // Reject entire application
         await tx.leaveApplication.update({
           where: { id: approval.leaveApplicationId },
@@ -285,6 +294,9 @@ export class LeaveApprovalService {
             rejectionReason: comments,
           },
         });
+
+        // Note: No need to adjust usedDays since they're only deducted on approval
+        // Pending days are calculated dynamically in the balance calculation
 
         return { status: 'REJECTED', message: 'Leave application rejected' };
       }
@@ -311,6 +323,18 @@ export class LeaveApprovalService {
         const allApproved = allApprovals.every((a) => a.status === 'APPROVED');
 
         if (allApproved) {
+          // Get the full application with leave type details
+          const application = await tx.leaveApplication.findUnique({
+            where: { id: approval.leaveApplicationId },
+            include: {
+              leaveType: true,
+            },
+          });
+
+          if (!application) {
+            throw new NotFoundException('Leave application not found');
+          }
+
           // Final approval - approve application
           await tx.leaveApplication.update({
             where: { id: approval.leaveApplicationId },
@@ -322,10 +346,56 @@ export class LeaveApprovalService {
             },
           });
 
+          // ✅ AUTO-DEDUCT FROM ENTITLEMENT
+          // Update the used days in leave_entitlements
+          const primaryEntitlement = await tx.leaveEntitlement.findFirst({
+            where: {
+              userId: application.userId,
+              leaveTypeId: application.leaveTypeId,
+              year: application.primaryEntitlementYear,
+            },
+          });
+
+          if (primaryEntitlement) {
+            const primaryDaysToDeduct = application.daysFromPrimaryYear || application.businessDaysRequested;
+            await tx.leaveEntitlement.update({
+              where: { id: primaryEntitlement.id },
+              data: {
+                usedDays: {
+                  increment: Number(primaryDaysToDeduct),
+                },
+                updatedAt: new Date(),
+              },
+            });
+          }
+
+          // Handle secondary year if applicable (for leave spanning two years)
+          if (application.secondaryEntitlementYear && application.daysFromSecondaryYear) {
+            const secondaryEntitlement = await tx.leaveEntitlement.findFirst({
+              where: {
+                userId: application.userId,
+                leaveTypeId: application.leaveTypeId,
+                year: application.secondaryEntitlementYear,
+              },
+            });
+
+            if (secondaryEntitlement) {
+              await tx.leaveEntitlement.update({
+                where: { id: secondaryEntitlement.id },
+                data: {
+                  usedDays: {
+                    increment: Number(application.daysFromSecondaryYear),
+                  },
+                  updatedAt: new Date(),
+                },
+              });
+            }
+          }
+
           // TODO: Create resource delegations if needed
           // This would integrate with the resources module
 
-          return { status: 'APPROVED', message: 'Leave application approved' };
+          return { status: 'APPROVED', message: 'Leave application approved and balance updated' };
         }
 
         return { status: 'PARTIALLY_APPROVED', message: 'Waiting for other approvers' };

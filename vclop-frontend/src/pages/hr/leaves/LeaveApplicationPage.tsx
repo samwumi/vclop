@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, FileText, Send, Info, CheckCircle2, Clock, AlertCircle, X } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Send, Info, CheckCircle2, Clock, AlertCircle, X, Users } from 'lucide-react';
 import { leavesService, type DayType } from '@/services/leaves.service';
+import { usersService } from '@/services/users.service';
+import { useAuthStore } from '@/stores/auth.store';
 
 export function LeaveApplicationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
+  const { user } = useAuthStore();
 
   const [formData, setFormData] = useState({
     leaveTypeId: '',
@@ -16,6 +19,7 @@ export function LeaveApplicationPage() {
     startDayType: 'FULL_DAY' as DayType,
     endDayType: 'FULL_DAY' as DayType,
     reason: '',
+    relieverId: '',
   });
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,6 +54,13 @@ export function LeaveApplicationPage() {
     queryKey: ['my-leave-balances', currentYear],
     queryFn: () => leavesService.getMyBalance(currentYear),
     enabled: !!formData.leaveTypeId,
+  });
+
+  // Fetch users in the same department for reliever selection
+  const { data: departmentUsers } = useQuery({
+    queryKey: ['department-users', user?.departmentId],
+    queryFn: () => usersService.getUsersByDepartment(user!.departmentId!),
+    enabled: !!user?.departmentId,
   });
 
   const createMutation = useMutation({
@@ -87,8 +98,8 @@ export function LeaveApplicationPage() {
     // Clear previous error
     setErrorMessage(null);
     
-    if (!formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason) {
-      setErrorMessage('Please fill in all required fields');
+    if (!formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason || !formData.relieverId) {
+      setErrorMessage('Please fill in all required fields including reliever selection');
       return;
     }
 
@@ -314,6 +325,33 @@ export function LeaveApplicationPage() {
                 )}
               </div>
             )}
+
+            {/* Reliever Selection */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Select Reliever (Person covering your duties) <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.relieverId}
+                onChange={(e) => setFormData({ ...formData, relieverId: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                required
+              >
+                <option value="">Select a colleague from your department</option>
+                {departmentUsers?.filter(u => u.id !== user?.id).map((colleague) => (
+                  <option key={colleague.id} value={colleague.id}>
+                    {colleague.firstName} {colleague.lastName} - {colleague.jobTitle || 'Staff'}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <Users className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-blue-700">
+                  Select a colleague from your department who will cover your responsibilities while you're away. 
+                  They will be notified once your leave is approved.
+                </p>
+              </div>
+            </div>
 
             {/* Reason */}
             <div className="space-y-2">

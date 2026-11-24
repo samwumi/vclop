@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  Activity, AlertTriangle, Banknote, BarChart2, Building2,
+  Activity, AlertTriangle, Banknote, BarChart2, Building2, Calendar, Clock,
   Car, CheckCircle2, ClipboardList, FileCheck2, FileText,
   GitBranch, Landmark, ShieldAlert, Target, TrendingDown, TrendingUp, Users, Wallet,
 } from 'lucide-react';
@@ -16,6 +16,83 @@ import { RecentAuditTable } from './widgets/RecentAuditTable';
 import { SystemHealthWidget } from './widgets/SystemHealthWidget';
 
 // ── Reusable small components ─────────────────────────────────────────────────
+
+function LeaveBalanceWidget({ currentYear }: { currentYear: number }) {
+  const navigate = useNavigate();
+
+  const { data: leaveBalances } = useQuery({
+    queryKey: ['dashboard-leave-balances', currentYear],
+    queryFn: async () => {
+      const { leavesService } = await import('@/services/leaves.service');
+      return leavesService.getMyBalance(currentYear);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const balanceArray = Array.isArray(leaveBalances) ? leaveBalances : [];
+
+  if (balanceArray.length === 0) return null;
+
+  return (
+    <div className="card-mobile">
+      <div className="card-header flex-mobile-col items-start md:items-center justify-between gap-2 md:gap-0">
+        <div>
+          <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>My Leave Balance</p>
+          <p className="text-responsive-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Year {currentYear}</p>
+        </div>
+        <button
+          onClick={() => navigate('/hr/leaves/apply')}
+          className="btn-sm bg-brand-50 text-brand-600 hover:bg-brand-100 transition-colors touch-target"
+        >
+          Apply for Leave
+        </button>
+      </div>
+      <div className="card-body">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {balanceArray.slice(0, 4).map((balance: any) => (
+            <div
+              key={balance.leaveType.id}
+              className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate('/hr/leaves/my-applications')}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide">
+                  {balance.leaveType.name}
+                </p>
+                <Calendar className="w-4 h-4 text-blue-600" />
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline gap-1">
+                  <p className="text-3xl font-bold text-blue-900">{balance.remaining}</p>
+                  <p className="text-sm text-blue-600">days left</p>
+                </div>
+                <div className="mt-2 flex gap-3 text-xs text-blue-700">
+                  <span>Total: {balance.totalAvailable}</span>
+                  <span>•</span>
+                  <span>Used: {balance.used}</span>
+                </div>
+                {balance.pending > 0 && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-amber-600">
+                    <Clock className="w-3 h-3" />
+                    <span>{balance.pending} pending approval</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {balanceArray.length > 4 && (
+          <button
+            onClick={() => navigate('/hr/leaves/my-applications')}
+            className="mt-3 text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
+          >
+            View all leave types →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function OpCard({
   title, value, icon: Icon, color, onClick,
@@ -75,6 +152,7 @@ function LoanOfficerPanel({ summary, performance }: {
 }) {
   const navigate = useNavigate();
   const weekNo = Math.ceil(new Date().getDate() / 7);
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
@@ -127,6 +205,9 @@ function LoanOfficerPanel({ summary, performance }: {
         </div>
       )}
 
+      {/* Leave Balance Widget */}
+      <LeaveBalanceWidget currentYear={currentYear} />
+
       {/* Quick actions - Mobile Responsive */}
       <div className="card-mobile">
         <div className="card-header">
@@ -147,6 +228,8 @@ function LoanOfficerPanel({ summary, performance }: {
 
 function CompliancePanel({ summary }: { summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>> }) {
   const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
+  
   return (
     <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
@@ -155,6 +238,7 @@ function CompliancePanel({ summary }: { summary: Awaited<ReturnType<typeof dashb
         <OpCard title="Transport Requests" value={summary.transportRequests} icon={Car} color="bg-amber-50 text-amber-600" onClick={() => navigate('/transport')} />
         <OpCard title="All Applications" value={summary.applications} icon={FileText} color="bg-gray-50 text-gray-600" onClick={() => navigate('/loans')} />
       </div>
+      <LeaveBalanceWidget currentYear={currentYear} />
       <div className="card-mobile">
         <div className="card-header">
           <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
@@ -174,6 +258,8 @@ function CompliancePanel({ summary }: { summary: Awaited<ReturnType<typeof dashb
 
 function AccountingPanel({ summary }: { summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>> }) {
   const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
+  
   return (
     <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
@@ -182,6 +268,7 @@ function AccountingPanel({ summary }: { summary: Awaited<ReturnType<typeof dashb
         <OpCard title="All Applications" value={summary.applications} icon={FileText} color="bg-violet-50 text-violet-600" onClick={() => navigate('/loans')} />
         <OpCard title="Reports" value="View" icon={BarChart2} color="bg-gray-50 text-gray-600" onClick={() => navigate('/reports')} />
       </div>
+      <LeaveBalanceWidget currentYear={currentYear} />
       <div className="card-mobile">
         <div className="card-header">
           <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
@@ -201,6 +288,8 @@ function AccountingPanel({ summary }: { summary: Awaited<ReturnType<typeof dashb
 
 function InternalControlPanel({ summary }: { summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>> }) {
   const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
+  
   return (
     <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
@@ -209,6 +298,7 @@ function InternalControlPanel({ summary }: { summary: Awaited<ReturnType<typeof 
         <OpCard title="All Applications" value={summary.applications} icon={FileText} color="bg-gray-50 text-gray-600" onClick={() => navigate('/loans')} />
         <OpCard title="Reports" value="View" icon={BarChart2} color="bg-emerald-50 text-emerald-600" onClick={() => navigate('/reports')} />
       </div>
+      <LeaveBalanceWidget currentYear={currentYear} />
       <div className="card-mobile">
         <div className="card-header">
           <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>
@@ -226,7 +316,10 @@ function InternalControlPanel({ summary }: { summary: Awaited<ReturnType<typeof 
   );
 }
 
-function CollectionsPanel({ summary }: { summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>> }) {  const navigate = useNavigate();
+function CollectionsPanel({ summary }: { summary: Awaited<ReturnType<typeof dashboardService.operationalSummary>> }) {
+  const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
+  
   return (
     <div className="space-y-4 md:space-y-6 p-mobile md:p-0">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
@@ -235,6 +328,7 @@ function CollectionsPanel({ summary }: { summary: Awaited<ReturnType<typeof dash
         <OpCard title="Pending Tasks" value={summary.myTasks} icon={ClipboardList} color="bg-blue-50 text-blue-600" />
         <OpCard title="All Loans" value={summary.applications} icon={FileText} color="bg-gray-50 text-gray-600" onClick={() => navigate('/loans')} />
       </div>
+      <LeaveBalanceWidget currentYear={currentYear} />
       <div className="card-mobile">
         <div className="card-header">
           <p className="text-responsive-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Quick Actions</p>

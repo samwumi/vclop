@@ -15,6 +15,21 @@ export const usersService = {
     return data.data!;
   },
 
+  async getUsersByDepartment(departmentId: string) {
+    const { data } = await api.get<ApiResponse<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      jobTitle: string;
+      department: {
+        id: string;
+        name: string;
+      };
+    }[]>>(`/users/by-department/${departmentId}`);
+    return data.data!;
+  },
+
   async create(payload: unknown) {
     const { data } = await api.post<ApiResponse<User>>('/users', payload);
     return data.data!;

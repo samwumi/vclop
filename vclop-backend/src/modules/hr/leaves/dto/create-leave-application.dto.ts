@@ -52,4 +52,9 @@ export class CreateLeaveApplicationDto {
   @IsOptional()
   @IsString()
   emergencyPhone?: string;
+
+  @ApiPropertyOptional({ description: 'Reliever (staff covering duties during leave)' })
+  @IsOptional()
+  @IsString()
+  relieverId?: string;
 }

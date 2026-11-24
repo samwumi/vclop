@@ -50,6 +50,15 @@ export class UsersController {
     return this.service.findOne(id);
   }
 
+  // ── Get users by department ─────────────────────────────────────────────────
+  @Get('by-department/:departmentId')
+  @RequirePermissions('users:read')
+  @ApiOperation({ summary: 'Get active users in a specific department' })
+  async getUsersByDepartment(@Param('departmentId', ParseUUIDPipe) departmentId: string) {
+    const users = await this.service.getUsersByDepartment(departmentId);
+    return ok(users, 'Users retrieved successfully');
+  }
+
   // ── Create ──────────────────────────────────────────────────────────────────
   @Post()
   @RequirePermissions('users:create')

@@ -49,6 +49,7 @@ export class LeavesService {
     handoverNotes?: string;
     emergencyContact?: string;
     emergencyPhone?: string;
+    relieverId?: string;
   }) {
     // Calculate business days
     const businessDays = await this.leaveBalanceService.calculateBusinessDays(
@@ -90,6 +91,7 @@ export class LeavesService {
         handoverNotes: data.handoverNotes,
         emergencyContact: data.emergencyContact,
         emergencyPhone: data.emergencyPhone,
+        relieverId: data.relieverId,
         status: 'DRAFT',
       },
       include: {
@@ -177,45 +179,95 @@ export class LeavesService {
     userId: string,
     reason: string,
   ) {
-    const application = await this.prisma.leaveApplication.findUnique({
-      where: { id: applicationId },
-    });
-
-    if (!application) {
-      throw new NotFoundException('Leave application not found');
-    }
-
-    if (application.userId !== userId) {
-      throw new BadRequestException('Unauthorized');
-    }
-
-    // Can only cancel DRAFT, PENDING_APPROVAL, or APPROVED (not started)
-    if (!['DRAFT', 'PENDING_APPROVAL', 'APPROVED'].includes(application.status)) {
-      throw new BadRequestException('Cannot cancel leave in current status');
-    }
-
-    const updated = await this.prisma.leaveApplication.update({
-      where: { id: applicationId },
-      data: {
-        status: 'CANCELLED',
-        cancelledById: userId,
-        cancelledAt: new Date(),
-        cancellationReason: reason,
-      },
-    });
-
-    // Revoke any delegations if leave was approved
-    if (application.status === 'APPROVED') {
-      await this.prisma.resourceDelegation.updateMany({
-        where: {
-          relatedLeaveId: applicationId,
-          status: 'ACTIVE',
-        },
-        data: { status: 'REVOKED' },
+    return await this.prisma.$transaction(async (tx) => {
+      const application = await tx.leaveApplication.findUnique({
+        where: { id: applicationId },
       });
-    }
 
-    return updated;
+      if (!application) {
+        throw new NotFoundException('Leave application not found');
+      }
+
+      if (application.userId !== userId) {
+        throw new BadRequestException('Unauthorized');
+      }
+
+      // Can only cancel DRAFT, PENDING_APPROVAL, or APPROVED (not started)
+      if (!['DRAFT', 'PENDING_APPROVAL', 'APPROVED'].includes(application.status)) {
+        throw new BadRequestException('Cannot cancel leave in current status');
+      }
+
+      const wasApproved = application.status === 'APPROVED';
+
+      const updated = await tx.leaveApplication.update({
+        where: { id: applicationId },
+        data: {
+          status: 'CANCELLED',
+          cancelledById: userId,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+        },
+      });
+
+      // ✅ RETURN DAYS TO ENTITLEMENT if leave was approved
+      if (wasApproved) {
+        // Return primary year days
+        const primaryEntitlement = await tx.leaveEntitlement.findFirst({
+          where: {
+            userId: application.userId,
+            leaveTypeId: application.leaveTypeId,
+            year: application.primaryEntitlementYear,
+          },
+        });
+
+        if (primaryEntitlement) {
+          const primaryDaysToReturn = application.daysFromPrimaryYear || application.businessDaysRequested;
+          await tx.leaveEntitlement.update({
+            where: { id: primaryEntitlement.id },
+            data: {
+              usedDays: {
+                decrement: Number(primaryDaysToReturn),
+              },
+              updatedAt: new Date(),
+            },
+          });
+        }
+
+        // Return secondary year days if applicable
+        if (application.secondaryEntitlementYear && application.daysFromSecondaryYear) {
+          const secondaryEntitlement = await tx.leaveEntitlement.findFirst({
+            where: {
+              userId: application.userId,
+              leaveTypeId: application.leaveTypeId,
+              year: application.secondaryEntitlementYear,
+            },
+          });
+
+          if (secondaryEntitlement) {
+            await tx.leaveEntitlement.update({
+              where: { id: secondaryEntitlement.id },
+              data: {
+                usedDays: {
+                  decrement: Number(application.daysFromSecondaryYear),
+                },
+                updatedAt: new Date(),
+              },
+            });
+          }
+        }
+
+        // Revoke any delegations
+        await tx.resourceDelegation.updateMany({
+          where: {
+            relatedLeaveId: applicationId,
+            status: 'ACTIVE',
+          },
+          data: { status: 'REVOKED' },
+        });
+      }
+
+      return updated;
+    });
   }
 
   /**

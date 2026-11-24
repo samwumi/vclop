@@ -106,6 +106,7 @@ export interface CreateLeaveApplicationDto {
   endDayType?: DayType;
   reason: string;
   attachmentPath?: string;
+  relieverId?: string;
 }
 
 export interface CancelLeaveApplicationDto {

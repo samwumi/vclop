@@ -121,6 +121,39 @@ export class UsersService {
   }
 
   // ────────────────────────────────────────────────────────────────────────────
+  // GET USERS BY DEPARTMENT
+  // ────────────────────────────────────────────────────────────────────────────
+
+  async getUsersByDepartment(departmentId: string) {
+    const users = await this.prisma.user.findMany({
+      where: {
+        departmentId,
+        status: 'ACTIVE',
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        jobTitle: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [
+        { firstName: 'asc' },
+        { lastName: 'asc' },
+      ],
+    });
+
+    return users;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
   // CREATE
   // ────────────────────────────────────────────────────────────────────────────
 
