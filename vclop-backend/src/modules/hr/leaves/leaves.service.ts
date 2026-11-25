@@ -113,7 +113,7 @@ export class LeavesService {
   }
 
   /**
-   * Submit leave application (with concurrency protection)
+   * Submit leave application (NO balance checking - staff can apply for any number of days)
    */
   async submitLeaveApplication(applicationId: string, userId: string) {
     return await this.prisma.$transaction(
@@ -135,21 +135,8 @@ export class LeavesService {
           throw new BadRequestException('Application already submitted');
         }
 
-        // Recalculate balance within transaction
-        const balance = await this.leaveBalanceService.calculateLeaveBalance(
-          application.userId,
-          application.leaveTypeId,
-          application.primaryEntitlementYear,
-        );
-
-        // Validate sufficient balance
-        if (balance.daysAvailable < Number(application.businessDaysRequested)) {
-          throw new BadRequestException(
-            `Insufficient leave balance. Available: ${balance.daysAvailable}, Requested: ${application.businessDaysRequested}`,
-          );
-        }
-
-        // Update status (reserves entitlement implicitly)
+        // ✅ NO BALANCE CHECKING - Staff can apply for any number of days
+        // Update status directly
         const updated = await tx.leaveApplication.update({
           where: { id: applicationId },
           data: {
