@@ -185,6 +185,7 @@ export function UsersPage() {
         { key: 'employee',  label: 'Employee' },
         { key: 'contact',   label: 'Contact' },
         { key: 'branch',    label: 'Branch / Location' },
+        { key: 'department', label: 'Department' },
         { key: 'status',    label: 'Status',     width: '120px' },
         { key: 'lastLogin', label: 'Last Login', width: '150px' },
         { key: 'actions',   label: '',           width: '60px' },
@@ -210,6 +211,7 @@ export function UsersPage() {
                 <p className="text-xs text-gray-400">{user.phone ?? '—'}</p>
               </td>
               <td className="text-xs">{user.branch?.name ?? '—'}</td>
+              <td className="text-xs">{user.department?.name ?? <span className="text-red-600">Not Assigned</span>}</td>
               <td><UserStatusBadge status={user.status} /></td>
               <td className="text-xs text-gray-500">{formatDate(user.lastLoginAt)}</td>
               <td onClick={e => e.stopPropagation()} className="relative">
