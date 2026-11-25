@@ -98,8 +98,8 @@ export function LeaveApplicationPage() {
     // Clear previous error
     setErrorMessage(null);
     
-    if (!formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason) {
-      setErrorMessage('Please fill in all required fields');
+    if (!formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason || !formData.relieverId) {
+      setErrorMessage('Please fill in all required fields including reliever selection');
       return;
     }
 
@@ -329,14 +329,15 @@ export function LeaveApplicationPage() {
             {/* Reliever Selection */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700">
-                Select Reliever (Person covering your duties)
+                Select Reliever (Person covering your duties) <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.relieverId}
                 onChange={(e) => setFormData({ ...formData, relieverId: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                required
               >
-                <option value="">Select a colleague from your department (optional)</option>
+                <option value="">Select a colleague from your department</option>
                 {departmentUsers?.filter(u => u.id !== user?.id).map((colleague) => (
                   <option key={colleague.id} value={colleague.id}>
                     {colleague.firstName} {colleague.lastName} - {colleague.jobTitle || 'Staff'}
@@ -346,7 +347,8 @@ export function LeaveApplicationPage() {
               <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <Users className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-blue-700">
-                  Optional: Select a colleague to cover your responsibilities. If none available, HR will assign coverage.
+                  Select a colleague from your department who will cover your responsibilities while you're away. 
+                  They will be notified once your leave is approved.
                 </p>
               </div>
             </div>
