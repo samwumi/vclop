@@ -125,7 +125,12 @@ class LeavesService {
    * Create a new leave application (DRAFT)
    */
   async createApplication(data: CreateLeaveApplicationDto): Promise<LeaveApplication> {
-    const response = await api.post(`${this.baseUrl}/apply`, data);
+    // Convert empty string to null for relieverId
+    const payload = {
+      ...data,
+      relieverId: data.relieverId || null,
+    };
+    const response = await api.post(`${this.baseUrl}/apply`, payload);
     return response.data.data || response.data;
   }
 
