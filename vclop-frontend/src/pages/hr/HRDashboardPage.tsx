@@ -16,7 +16,7 @@ import { offboardingService } from '@/services/offboarding.service';
 import { staffLoansService } from '@/services/staff-loans.service';
 import { resourcesService } from '@/services/resources.service';
 import { employmentService } from '@/services/employment.service';
-import { useAuthStore } from '@/store/auth';
+import { useAuthStore } from '@/stores/auth.store';
 
 export function HRDashboardPage() {
   const navigate = useNavigate();
