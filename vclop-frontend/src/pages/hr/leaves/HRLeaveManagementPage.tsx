@@ -26,7 +26,8 @@ interface Entitlement {
 export function HRLeaveManagementPage() {
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  // Default to 2024 where entitlements exist, not current year
+  const [selectedYear, setSelectedYear] = useState(2024);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     allocatedDays: '',
@@ -139,7 +140,7 @@ export function HRLeaveManagementPage() {
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
             >
-              {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
+              {[2024, 2025, 2026, 2027].map((year) => (
                 <option key={year} value={year}>
                   {year}
                 </option>
