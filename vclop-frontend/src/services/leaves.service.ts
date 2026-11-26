@@ -210,7 +210,13 @@ class LeavesService {
    */
   async getAllPendingApprovals(): Promise<LeaveApproval[]> {
     const response = await api.get(`${this.baseUrl}/all-pending-approvals`);
-    const result = response.data.data || response.data || [];
+    console.log('[getAllPendingApprovals] Full response:', response);
+    console.log('[getAllPendingApprovals] response.data:', response.data);
+    console.log('[getAllPendingApprovals] response.data.data:', response.data.data);
+    
+    // Handle triple nesting: response.data.data.data
+    const result = response.data.data?.data || response.data.data || response.data || [];
+    console.log('[getAllPendingApprovals] Final result:', result);
     return Array.isArray(result) ? result : [];
   }
 
