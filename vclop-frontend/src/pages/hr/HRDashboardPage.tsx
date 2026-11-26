@@ -16,11 +16,11 @@ import { offboardingService } from '@/services/offboarding.service';
 import { staffLoansService } from '@/services/staff-loans.service';
 import { resourcesService } from '@/services/resources.service';
 import { employmentService } from '@/services/employment.service';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/store/auth';
 
 export function HRDashboardPage() {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission } = useAuthStore();
   const currentYear = new Date().getFullYear();
 
   // Check permissions
