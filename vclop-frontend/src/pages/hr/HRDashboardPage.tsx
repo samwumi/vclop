@@ -16,10 +16,19 @@ import { offboardingService } from '@/services/offboarding.service';
 import { staffLoansService } from '@/services/staff-loans.service';
 import { resourcesService } from '@/services/resources.service';
 import { employmentService } from '@/services/employment.service';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function HRDashboardPage() {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const currentYear = new Date().getFullYear();
+
+  // Check permissions
+  const canApproveLeaves = hasPermission('leaves:approve');
+  const canManageLeaves = hasPermission('leaves:manage');
+  const canManageLoans = hasPermission('staff_loans:manage');
+  const canManageEmployment = hasPermission('employment:manage');
+  const canViewAllEmployees = hasPermission('users:read');
 
   // Fetch data for all modules
   const { data: myLeaveBalances } = useQuery({
@@ -30,6 +39,7 @@ export function HRDashboardPage() {
   const { data: pendingLeaveApprovals } = useQuery({
     queryKey: ['pending-leave-approvals'],
     queryFn: () => leavesService.getPendingApprovals(),
+    enabled: canApproveLeaves, // Only fetch if user can approve
   });
 
   const { data: myLoans } = useQuery({
@@ -40,11 +50,13 @@ export function HRDashboardPage() {
   const { data: allLoans } = useQuery({
     queryKey: ['all-staff-loans'],
     queryFn: () => staffLoansService.getAllLoans({}),
+    enabled: canManageLoans, // Only fetch if user can manage loans
   });
 
   const { data: offboardingCases } = useQuery({
     queryKey: ['offboarding-cases'],
     queryFn: () => offboardingService.getOffboardingCases(),
+    enabled: canManageEmployment, // Only fetch if user can manage offboarding
   });
 
   const { data: myResources } = useQuery({
@@ -63,6 +75,7 @@ export function HRDashboardPage() {
   const { data: pendingSubmissions } = useQuery({
     queryKey: ['pending-submissions'],
     queryFn: () => employmentService.getPendingSubmissions(),
+    enabled: canManageEmployment, // Only fetch if user can manage employment
   });
 
   // Calculate stats
@@ -116,17 +129,19 @@ export function HRDashboardPage() {
         </div>
 
         {/* Offboarding */}
-        <div 
-          onClick={() => navigate('/hr/offboarding')}
-          className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg p-6 cursor-pointer hover:shadow-lg transition-shadow"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <LogOut className="w-8 h-8" />
-            <AlertCircle className="w-5 h-5 opacity-70" />
+        {canManageEmployment && (
+          <div 
+            onClick={() => navigate('/hr/offboarding')}
+            className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg p-6 cursor-pointer hover:shadow-lg transition-shadow"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <LogOut className="w-8 h-8" />
+              <AlertCircle className="w-5 h-5 opacity-70" />
+            </div>
+            <p className="text-3xl font-bold mb-1">{activeOffboarding}</p>
+            <p className="text-orange-100">Active Offboarding</p>
           </div>
-          <p className="text-3xl font-bold mb-1">{activeOffboarding}</p>
-          <p className="text-orange-100">Active Offboarding</p>
-        </div>
+        )}
 
         {/* Resources */}
         <div 
@@ -143,14 +158,19 @@ export function HRDashboardPage() {
       </div>
 
       {/* Pending Actions */}
-      {(pendingLeaveCount > 0 || allPendingLoans > 0 || pendingDelegations > 0 || pendingEmploymentSubmissions > 0) && (
+      {(
+        (canApproveLeaves && pendingLeaveCount > 0) || 
+        (canManageLoans && allPendingLoans > 0) || 
+        pendingDelegations > 0 || 
+        (canManageEmployment && pendingEmploymentSubmissions > 0)
+      ) && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-yellow-600" />
             Pending Actions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {pendingEmploymentSubmissions > 0 && (
+            {canManageEmployment && pendingEmploymentSubmissions > 0 && (
               <button
                 onClick={() => navigate('/hr/pending-submissions')}
                 className="p-4 bg-white rounded-lg hover:shadow-md transition-shadow text-left"
@@ -159,7 +179,7 @@ export function HRDashboardPage() {
                 <p className="text-sm text-gray-600">Employment Submissions</p>
               </button>
             )}
-            {pendingLeaveCount > 0 && (
+            {canApproveLeaves && pendingLeaveCount > 0 && (
               <button
                 onClick={() => navigate('/hr/leaves/approvals')}
                 className="p-4 bg-white rounded-lg hover:shadow-md transition-shadow text-left"
@@ -168,7 +188,7 @@ export function HRDashboardPage() {
                 <p className="text-sm text-gray-600">Leave Approvals Pending</p>
               </button>
             )}
-            {allPendingLoans > 0 && (
+            {canManageLoans && allPendingLoans > 0 && (
               <button
                 onClick={() => navigate('/hr/staff-loans/management')}
                 className="p-4 bg-white rounded-lg hover:shadow-md transition-shadow text-left"
@@ -219,13 +239,15 @@ export function HRDashboardPage() {
             >
               Apply for Leave
             </button>
-            <button
-              onClick={() => navigate('/hr/leaves/entitlements')}
-              className="btn-secondary btn-sm flex-1"
-              title="Manage leave entitlements (HR only)"
-            >
-              Manage
-            </button>
+            {canManageLeaves && (
+              <button
+                onClick={() => navigate('/hr/leaves/entitlements')}
+                className="btn-secondary btn-sm flex-1"
+                title="Manage leave entitlements (HR only)"
+              >
+                Manage
+              </button>
+            )}
           </div>
         </div>
 
@@ -242,10 +264,12 @@ export function HRDashboardPage() {
               <p className="text-gray-600">Active Loans</p>
               <p className="font-semibold text-green-600">{myActiveLoans}</p>
             </div>
-            <div className="text-sm">
-              <p className="text-gray-600">Pending Approval</p>
-              <p className="font-semibold text-yellow-600">{allPendingLoans}</p>
-            </div>
+            {canManageLoans && (
+              <div className="text-sm">
+                <p className="text-gray-600">Pending Approval</p>
+                <p className="font-semibold text-yellow-600">{allPendingLoans}</p>
+              </div>
+            )}
           </div>
           <button
             onClick={() => navigate('/hr/staff-loans/my-loans')}
@@ -256,30 +280,32 @@ export function HRDashboardPage() {
         </div>
 
         {/* Offboarding Module */}
-        <div className="bg-white border rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <LogOut className="w-6 h-6 text-orange-600" />
+        {canManageEmployment && (
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <LogOut className="w-6 h-6 text-orange-600" />
+              </div>
+              <h3 className="font-semibold">Offboarding</h3>
             </div>
-            <h3 className="font-semibold">Offboarding</h3>
+            <div className="space-y-2 mb-4">
+              <div className="text-sm">
+                <p className="text-gray-600">In Progress</p>
+                <p className="font-semibold text-orange-600">{activeOffboarding}</p>
+              </div>
+              <div className="text-sm">
+                <p className="text-gray-600">Completed</p>
+                <p className="font-semibold text-green-600">{completedOffboarding}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/hr/offboarding')}
+              className="btn-secondary btn-sm w-full"
+            >
+              View Cases
+            </button>
           </div>
-          <div className="space-y-2 mb-4">
-            <div className="text-sm">
-              <p className="text-gray-600">In Progress</p>
-              <p className="font-semibold text-orange-600">{activeOffboarding}</p>
-            </div>
-            <div className="text-sm">
-              <p className="text-gray-600">Completed</p>
-              <p className="font-semibold text-green-600">{completedOffboarding}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/hr/offboarding')}
-            className="btn-secondary btn-sm w-full"
-          >
-            View Cases
-          </button>
-        </div>
+        )}
 
         {/* Resources Module */}
         <div className="bg-white border rounded-lg p-6">
@@ -317,13 +343,15 @@ export function HRDashboardPage() {
           </div>
           <div className="space-y-2 mb-4">
             <div className="text-sm">
-              <p className="text-gray-600">Manage Staff</p>
-              <p className="font-semibold text-indigo-600">Employment Records</p>
+              <p className="text-gray-600">My Employment</p>
+              <p className="font-semibold text-indigo-600">View Details</p>
             </div>
-            <div className="text-sm">
-              <p className="text-gray-600">View</p>
-              <p className="font-semibold text-gray-700">Salary & Details</p>
-            </div>
+            {canViewAllEmployees && (
+              <div className="text-sm">
+                <p className="text-gray-600">Manage</p>
+                <p className="font-semibold text-gray-700">All Employees</p>
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <button
@@ -332,12 +360,14 @@ export function HRDashboardPage() {
             >
               My Employment
             </button>
-            <button
-              onClick={() => navigate('/hr/employees')}
-              className="btn-secondary btn-sm flex-1"
-            >
-              All Employees
-            </button>
+            {canViewAllEmployees && (
+              <button
+                onClick={() => navigate('/hr/employees')}
+                className="btn-secondary btn-sm flex-1"
+              >
+                All Employees
+              </button>
+            )}
           </div>
         </div>
       </div>
