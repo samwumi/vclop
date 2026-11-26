@@ -14,6 +14,9 @@ export function LeaveApprovalsPage() {
     queryFn: () => leavesService.getAllPendingApprovals(),
   });
 
+  console.log('[LeaveApprovalsPage] Raw approvals data:', approvals);
+  console.log('[LeaveApprovalsPage] Is loading:', isLoading);
+
   const approveMutation = useMutation({
     mutationFn: async () => {
       if (!selectedApproval || !decision) return;
