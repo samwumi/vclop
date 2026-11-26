@@ -100,7 +100,7 @@ export function LeaveDetailsPage() {
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Duration</p>
-            <p className="text-lg font-semibold">{application.businessDays} days</p>
+            <p className="text-lg font-semibold">{application.businessDaysRequested} days</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Start Date</p>
@@ -173,7 +173,7 @@ export function LeaveDetailsPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Days from Primary</span>
-              <span className="font-semibold">{application.daysFromPrimary}</span>
+              <span className="font-semibold">{application.daysFromPrimaryYear}</span>
             </div>
             {application.secondaryEntitlementYear && (
               <>
@@ -183,7 +183,7 @@ export function LeaveDetailsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Days from Secondary</span>
-                  <span className="font-semibold">{application.daysFromSecondary}</span>
+                  <span className="font-semibold">{application.daysFromSecondaryYear}</span>
                 </div>
               </>
             )}
