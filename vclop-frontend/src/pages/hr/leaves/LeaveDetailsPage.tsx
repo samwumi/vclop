@@ -203,12 +203,12 @@ export function LeaveDetailsPage() {
               <div key={approval.id} className="flex gap-4">
                 <div className="flex flex-col items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    approval.decision === 'APPROVED' ? 'bg-green-100 text-green-600' :
-                    approval.decision === 'REJECTED' ? 'bg-red-100 text-red-600' :
+                    approval.decision === 'APPROVE' ? 'bg-green-100 text-green-600' :
+                    approval.decision === 'REJECT' ? 'bg-red-100 text-red-600' :
                     'bg-gray-100 text-gray-400'
                   }`}>
-                    {approval.decision === 'APPROVED' ? <CheckCircle className="w-5 h-5" /> :
-                     approval.decision === 'REJECTED' ? <XCircle className="w-5 h-5" /> :
+                    {approval.decision === 'APPROVE' ? <CheckCircle className="w-5 h-5" /> :
+                     approval.decision === 'REJECT' ? <XCircle className="w-5 h-5" /> :
                      <Clock className="w-5 h-5" />}
                   </div>
                   {index < approvalHistory.length - 1 && (
@@ -225,7 +225,7 @@ export function LeaveDetailsPage() {
                       <p className="text-sm text-gray-500">Level {approval.level} Approver</p>
                     </div>
                     {approval.decision && (
-                      <Badge variant={approval.decision === 'APPROVED' ? 'green' : 'red'}>
+                      <Badge variant={approval.decision === 'APPROVE' ? 'green' : 'red'}>
                         {approval.decision}
                       </Badge>
                     )}
