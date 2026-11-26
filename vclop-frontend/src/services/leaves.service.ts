@@ -11,7 +11,7 @@ export type LeaveStatus =
 
 export type DayType = 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
 
-export type ApprovalDecision = 'APPROVED' | 'REJECTED';
+export type ApprovalDecision = 'APPROVE' | 'REJECT';
 
 export interface LeaveType {
   id: string;

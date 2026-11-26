@@ -214,9 +214,9 @@ export function LeaveApprovalsPage() {
                 </label>
                 <div className="flex gap-4">
                   <button
-                    onClick={() => setDecision('APPROVED')}
+                    onClick={() => setDecision('APPROVE')}
                     className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                      decision === 'APPROVED'
+                      decision === 'APPROVE'
                         ? 'border-green-500 bg-green-50 text-green-700'
                         : 'border-gray-300 hover:border-green-300'
                     }`}
@@ -225,9 +225,9 @@ export function LeaveApprovalsPage() {
                     <span className="font-medium">Approve</span>
                   </button>
                   <button
-                    onClick={() => setDecision('REJECTED')}
+                    onClick={() => setDecision('REJECT')}
                     className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                      decision === 'REJECTED'
+                      decision === 'REJECT'
                         ? 'border-red-500 bg-red-50 text-red-700'
                         : 'border-gray-300 hover:border-red-300'
                     }`}
