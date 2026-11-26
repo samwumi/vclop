@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, FileText, ShieldCheck, ShieldAlert, BookOpen,
   TrendingDown, BarChart2, Settings, GitBranch, Building2,
   Layers, Key, ScrollText, Package, GitMerge, Car, Target, HandCoins,
-  DollarSign, Briefcase, ArrowDownUp,
+  DollarSign, Briefcase, ArrowDownUp, Calendar, CheckCircle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -41,11 +41,19 @@ export const APP_ROUTES: RouteConfig[] = [
   { path: '/hr',                      label: 'HR Dashboard',   icon: Briefcase,   permission: 'dashboard:read', group: 'HR & Staff' },
   { path: '/hr/my-employment',        label: 'My Employment',  icon: Briefcase,   permission: 'dashboard:read', group: 'HR & Staff' },
   { path: '/hr/staff-loans/my-loans', label: 'My Loans',       icon: DollarSign,  permission: 'dashboard:read', group: 'HR & Staff' },
+  { path: '/hr/leaves/my-applications', label: 'My Leaves',    icon: Calendar,    permission: 'leaves:read',    group: 'HR & Staff' },
+  { path: '/hr/leaves/approvals',     label: 'Leave Approvals', icon: CheckCircle, permission: 'leaves:approve', group: 'HR & Staff' },
   
   // hidden staff loan sub-routes
   { path: '/hr/staff-loans/apply',      label: 'Apply for Loan',      icon: DollarSign, hidden: true },
   { path: '/hr/staff-loans/:loanId',    label: 'Loan Details',        icon: DollarSign, hidden: true },
   { path: '/hr/staff-loans/management', label: 'Staff Loans Admin',   icon: Briefcase,  permission: 'users:read', hidden: true },
+
+  // hidden leave sub-routes
+  { path: '/hr/leaves/apply',       label: 'Apply for Leave',   icon: Calendar, hidden: true },
+  { path: '/hr/leaves/:leaveId',    label: 'Leave Details',     icon: Calendar, hidden: true },
+  { path: '/hr/leaves/management',  label: 'Leaves Admin',      icon: Calendar, permission: 'users:read', hidden: true },
+  { path: '/hr/leaves/entitlements', label: 'Leave Entitlements', icon: Calendar, permission: 'leaves:manage', hidden: true },
 
   // hidden sub-routes — exist in router but not shown in sidebar
   { path: '/customers/new', label: 'New Customer', icon: Users,    hidden: true },

@@ -10,8 +10,8 @@ export function LeaveApprovalsPage() {
   const [comments, setComments] = useState('');
 
   const { data: approvals, isLoading } = useQuery({
-    queryKey: ['pending-leave-approvals'],
-    queryFn: () => leavesService.getPendingApprovals(),
+    queryKey: ['all-pending-leave-approvals'],
+    queryFn: () => leavesService.getAllPendingApprovals(),
   });
 
   const approveMutation = useMutation({

@@ -439,6 +439,46 @@ export class LeaveApprovalService {
   }
 
   /**
+   * Get ALL pending approvals (for admins/HR)
+   */
+  async getAllPendingApprovals() {
+    const approvals = await this.prisma.leaveApproval.findMany({
+      where: {
+        status: 'PENDING',
+      },
+      include: {
+        leaveApplication: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                employeeId: true,
+                department: true,
+                branch: true,
+              },
+            },
+            leaveType: true,
+          },
+        },
+        approver: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { requestedAt: 'asc' },
+    });
+
+    return approvals;
+  }
+
+  /**
    * Get approval history for an application
    */
   async getApprovalHistory(applicationId: string) {

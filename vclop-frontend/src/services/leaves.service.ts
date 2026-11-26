@@ -206,6 +206,15 @@ class LeavesService {
   }
 
   /**
+   * Get ALL pending approvals (for admins/HR)
+   */
+  async getAllPendingApprovals(): Promise<LeaveApproval[]> {
+    const response = await api.get(`${this.baseUrl}/all-pending-approvals`);
+    const result = response.data.data || response.data || [];
+    return Array.isArray(result) ? result : [];
+  }
+
+  /**
    * Process approval decision
    */
   async processApproval(

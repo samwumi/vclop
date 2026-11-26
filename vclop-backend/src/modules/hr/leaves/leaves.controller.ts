@@ -214,6 +214,22 @@ export class LeavesController {
   }
 
   /**
+   * Get ALL pending approvals (for admins/HR to see everything)
+   */
+  @Get('all-pending-approvals')
+  @RequirePermissions('leaves:approve')
+  @ApiOperation({ summary: 'Get all pending leave approvals (admin view)' })
+  @ApiResponse({ status: 200, description: 'All pending approvals retrieved successfully' })
+  async getAllPendingApprovals() {
+    const approvals = await this.leaveApprovalService.getAllPendingApprovals();
+
+    return {
+      success: true,
+      data: approvals,
+    };
+  }
+
+  /**
    * Process approval decision
    */
   @Post('approvals/:id/decide')
