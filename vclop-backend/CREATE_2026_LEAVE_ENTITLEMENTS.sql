@@ -22,10 +22,11 @@ INSERT INTO leave_entitlements (
   userId,
   leaveTypeId,
   year,
-  entitledDays,
+  allocatedDays,
   usedDays,
-  carriedForwardDays,
+  carryForwardDays,
   adjustmentDays,
+  createdById,
   createdAt,
   updatedAt
 )
@@ -34,10 +35,11 @@ SELECT
   u.id as userId,
   lt.id as leaveTypeId,
   2026 as year,
-  lt.defaultDaysPerYear as entitledDays,
+  lt.defaultDaysPerYear as allocatedDays,
   0 as usedDays,
-  0 as carriedForwardDays,
+  0 as carryForwardDays,
   0 as adjustmentDays,
+  (SELECT id FROM users WHERE email = 'samwumi91@gmail.com' LIMIT 1) as createdById,
   NOW() as createdAt,
   NOW() as updatedAt
 FROM users u
@@ -70,9 +72,9 @@ SELECT
 SELECT 
   CONCAT(u.firstName, ' ', u.lastName) as employee,
   lt.name as leave_type,
-  le.entitledDays,
+  le.allocatedDays,
   le.usedDays,
-  le.carriedForwardDays,
+  le.carryForwardDays,
   le.adjustmentDays
 FROM leave_entitlements le
 JOIN users u ON le.userId = u.id
@@ -88,14 +90,14 @@ JOIN leave_entitlements le2025 ON le2026.userId = le2025.userId
   AND le2026.leaveTypeId = le2025.leaveTypeId
   AND le2025.year = 2025
 JOIN leave_types lt ON le2026.leaveTypeId = lt.id
-SET le2026.carriedForwardDays = LEAST(
-  le2025.entitledDays + COALESCE(le2025.carriedForwardDays, 0) + COALESCE(le2025.adjustmentDays, 0) - le2025.usedDays,
+SET le2026.carryForwardDays = LEAST(
+  le2025.allocatedDays + COALESCE(le2025.carryForwardDays, 0) + COALESCE(le2025.adjustmentDays, 0) - le2025.usedDays,
   COALESCE(lt.maxCarryForwardDays, 999)
 ),
 le2026.updatedAt = NOW()
 WHERE le2026.year = 2026
   AND lt.carryForwardAllowed = 1
-  AND (le2025.entitledDays + COALESCE(le2025.carriedForwardDays, 0) + COALESCE(le2025.adjustmentDays, 0) - le2025.usedDays) > 0;
+  AND (le2025.allocatedDays + COALESCE(le2025.carryForwardDays, 0) + COALESCE(le2025.adjustmentDays, 0) - le2025.usedDays) > 0;
 
 -- Step 6: Final summary
 SELECT 
@@ -105,9 +107,9 @@ SELECT
   year,
   COUNT(*) as entitlements,
   COUNT(DISTINCT userId) as employees,
-  SUM(entitledDays) as total_entitled,
+  SUM(allocatedDays) as total_allocated,
   SUM(usedDays) as total_used,
-  SUM(carriedForwardDays) as total_carried_forward
+  SUM(carryForwardDays) as total_carried_forward
 FROM leave_entitlements
 WHERE year IN (2024, 2025, 2026)
 GROUP BY year
