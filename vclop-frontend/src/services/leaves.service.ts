@@ -43,13 +43,13 @@ export interface LeaveApplication {
   endDate: Date;
   startDayType: DayType;
   endDayType: DayType;
-  businessDays: number;
+  businessDaysRequested: number;
   reason: string;
   status: LeaveStatus;
   primaryEntitlementYear: number;
   secondaryEntitlementYear: number | null;
-  daysFromPrimary: number;
-  daysFromSecondary: number | null;
+  daysFromPrimaryYear: number;
+  daysFromSecondaryYear: number | null;
   submittedAt: Date | null;
   approvedAt: Date | null;
   rejectedAt: Date | null;

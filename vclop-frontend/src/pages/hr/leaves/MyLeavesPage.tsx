@@ -137,7 +137,7 @@ export function MyLeavesPage() {
                     <div className="text-gray-500">to {formatDate(app.endDate)}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="font-semibold">{app.businessDays}</span>
+                    <span className="font-semibold">{app.businessDaysRequested}</span>
                   </td>
                   <td className="px-6 py-4">
                     <Badge variant={status.variant}>{status.label}</Badge>
