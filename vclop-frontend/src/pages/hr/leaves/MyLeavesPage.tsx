@@ -28,18 +28,10 @@ export function MyLeavesPage() {
     queryFn: () => leavesService.getMyApplications(statusFilter || undefined),
   });
 
-  console.log('[MyLeavesPage] Applications data:', applications);
-  console.log('[MyLeavesPage] Is loading:', isLoading);
-  console.log('[MyLeavesPage] Is error:', isError);
-  if (error) console.error('[MyLeavesPage] Error:', error);
-
   const { data: balances } = useQuery({
     queryKey: ['my-leave-balances', currentYear],
     queryFn: () => leavesService.getMyBalance(currentYear),
   });
-
-  console.log('[MyLeavesPage] Balances data:', balances);
-  console.log('[MyLeavesPage] Balance array length:', Array.isArray(balances) ? balances.length : 'not array');
 
   const balanceArray = Array.isArray(balances) ? balances : [];
 
