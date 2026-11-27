@@ -36,12 +36,15 @@ export function MyLeavesPage() {
   const balanceArray = Array.isArray(balances) ? balances : [];
 
   const filteredApplications = applications?.filter(app => {
+    // Skip apps with missing data
+    if (!app.leaveType) return false;
+    
     if (!search) return true;
     const searchLower = search.toLowerCase();
     return (
       app.applicationNumber.toLowerCase().includes(searchLower) ||
-      app.leaveType.name.toLowerCase().includes(searchLower) ||
-      app.reason.toLowerCase().includes(searchLower)
+      app.leaveType?.name?.toLowerCase().includes(searchLower) ||
+      app.reason?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -130,7 +133,7 @@ export function MyLeavesPage() {
                     <span className="font-mono text-sm">{app.applicationNumber}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="font-medium">{app.leaveType.name}</span>
+                    <span className="font-medium">{app.leaveType?.name || 'N/A'}</span>
                   </td>
                   <td className="px-6 py-4 text-sm">
                     <div>{formatDate(app.startDate)}</div>

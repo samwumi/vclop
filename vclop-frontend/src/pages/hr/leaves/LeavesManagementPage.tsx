@@ -36,11 +36,14 @@ export function LeavesManagementPage() {
   const pendingCount = pendingApprovals?.length || 0;
 
   const filteredApplications = applications.filter(app => {
+    // Skip apps with missing data
+    if (!app.leaveType) return false;
+    
     if (!search) return true;
     const searchLower = search.toLowerCase();
     return (
-      app.applicationNumber.toLowerCase().includes(searchLower) ||
-      app.leaveType.name.toLowerCase().includes(searchLower) ||
+      app.applicationNumber?.toLowerCase().includes(searchLower) ||
+      app.leaveType?.name?.toLowerCase().includes(searchLower) ||
       (app.user && `${app.user.firstName} ${app.user.lastName}`.toLowerCase().includes(searchLower))
     );
   });
@@ -154,7 +157,7 @@ export function LeavesManagementPage() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="font-medium">{app.leaveType.name}</span>
+                    <span className="font-medium">{app.leaveType?.name || 'N/A'}</span>
                   </td>
                   <td className="px-6 py-4 text-sm">
                     <div>{formatDate(app.startDate)}</div>

@@ -96,7 +96,7 @@ export function LeaveDetailsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
           <div>
             <p className="text-xs text-gray-500 mb-1">Leave Type</p>
-            <p className="text-lg font-semibold">{application.leaveType.name}</p>
+            <p className="text-lg font-semibold">{application.leaveType?.name || 'N/A'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Duration</p>
