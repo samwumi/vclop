@@ -198,6 +198,13 @@ class LeavesService {
   }
 
   /**
+   * Delete draft leave application
+   */
+  async deleteApplication(applicationId: string): Promise<void> {
+    await api.delete(`${this.baseUrl}/${applicationId}`);
+  }
+
+  /**
    * Get my leave balance for a specific year
    */
   async getMyBalance(year: number, leaveTypeId?: string): Promise<LeaveBalanceWithType | LeaveBalanceWithType[]> {

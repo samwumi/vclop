@@ -317,6 +317,31 @@ export class LeavesService {
   }
 
   /**
+   * Delete draft leave application
+   */
+  async deleteApplication(applicationId: string, userId: string) {
+    const application = await this.prisma.leaveApplication.findUnique({
+      where: { id: applicationId },
+    });
+
+    if (!application) {
+      throw new NotFoundException('Leave application not found');
+    }
+
+    if (application.userId !== userId) {
+      throw new BadRequestException('Unauthorized to delete this application');
+    }
+
+    if (application.status !== 'DRAFT') {
+      throw new BadRequestException('Only draft applications can be deleted');
+    }
+
+    await this.prisma.leaveApplication.delete({
+      where: { id: applicationId },
+    });
+  }
+
+  /**
    * Generate unique application number
    */
   private async generateApplicationNumber(): Promise<string> {

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -294,6 +295,24 @@ export class LeavesController {
     return {
       success: true,
       data: application,
+    };
+  }
+
+  /**
+   * Delete draft leave application
+   */
+  @Delete(':id')
+  @RequirePermissions('leaves:create')
+  @ApiOperation({ summary: 'Delete draft leave application' })
+  @ApiResponse({ status: 200, description: 'Draft deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Cannot delete non-draft application' })
+  async deleteApplication(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user.id || req.user.userId;
+    await this.leavesService.deleteApplication(id, userId);
+
+    return {
+      success: true,
+      message: 'Draft deleted successfully',
     };
   }
 

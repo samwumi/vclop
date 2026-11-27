@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Calendar, Plus, Eye, XCircle } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Calendar, Plus, Eye, XCircle, Trash2 } from 'lucide-react';
 import { leavesService, type LeaveStatus } from '@/services/leaves.service';
 import { ModulePage } from '@/components/ui/ModulePage';
 import { Badge } from '@/components/ui/Badge';
@@ -19,6 +19,7 @@ const STATUS_CONFIG: Record<LeaveStatus, { label: string; variant: 'gray' | 'yel
 
 export function MyLeavesPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<LeaveStatus | ''>('');
   const [search, setSearch] = useState('');
   const currentYear = new Date().getFullYear();
@@ -32,6 +33,19 @@ export function MyLeavesPage() {
     queryKey: ['my-leave-balances', currentYear],
     queryFn: () => leavesService.getMyBalance(currentYear),
   });
+
+  const deleteDraftMutation = useMutation({
+    mutationFn: (applicationId: string) => leavesService.deleteApplication(applicationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-leave-applications'] });
+    },
+  });
+
+  const handleDeleteDraft = async (applicationId: string, applicationNumber: string) => {
+    if (confirm(`Are you sure you want to delete draft application ${applicationNumber}?`)) {
+      await deleteDraftMutation.mutateAsync(applicationId);
+    }
+  };
 
   const balanceArray = Array.isArray(balances) ? balances : [];
 
@@ -126,6 +140,7 @@ export function MyLeavesPage() {
             {filteredApplications?.map((app) => {
               const status = STATUS_CONFIG[app.status] || { label: 'Unknown', variant: 'gray' };
               const canCancel = ['PENDING_APPROVAL', 'APPROVED'].includes(app.status);
+              const isDraft = app.status === 'DRAFT';
 
               return (
                 <tr key={app.id} className="hover:bg-gray-50">
@@ -164,6 +179,16 @@ export function MyLeavesPage() {
                           title="Cancel Application"
                         >
                           <XCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      {isDraft && (
+                        <button
+                          onClick={() => handleDeleteDraft(app.id, app.applicationNumber)}
+                          className="btn-icon text-red-600 hover:bg-red-50"
+                          title="Delete Draft"
+                          disabled={deleteDraftMutation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
