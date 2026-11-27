@@ -180,7 +180,19 @@ class LeavesService {
    */
   async getApplicationById(applicationId: string): Promise<LeaveApplication> {
     const response = await api.get(`${this.baseUrl}/${applicationId}`);
-    return response.data.data || response.data;
+    console.log('[leavesService] getApplicationById raw response:', response);
+    console.log('[leavesService] getApplicationById response.data:', response.data);
+    
+    // Extract the actual data from nested structure
+    let result = response.data?.data?.data || response.data?.data || response.data;
+    
+    // If result is an object with 'data' property, extract it
+    if (result && typeof result === 'object' && 'data' in result) {
+      result = result.data;
+    }
+    
+    console.log('[leavesService] getApplicationById final result:', result);
+    return result;
   }
 
   /**
