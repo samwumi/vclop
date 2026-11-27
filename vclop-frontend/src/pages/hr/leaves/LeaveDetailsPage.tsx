@@ -105,12 +105,12 @@ export function LeaveDetailsPage() {
           <div>
             <p className="text-xs text-gray-500 mb-1">Start Date</p>
             <p className="text-lg font-semibold">{formatDate(application.startDate)}</p>
-            <p className="text-xs text-gray-500">{application.startDayType.replace('_', ' ')}</p>
+            <p className="text-xs text-gray-500">{application.startDayType?.replace('_', ' ') || 'Full Day'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">End Date</p>
             <p className="text-lg font-semibold">{formatDate(application.endDate)}</p>
-            <p className="text-xs text-gray-500">{application.endDayType.replace('_', ' ')}</p>
+            <p className="text-xs text-gray-500">{application.endDayType?.replace('_', ' ') || 'Full Day'}</p>
           </div>
         </div>
 
