@@ -166,7 +166,15 @@ class LeavesService {
     const response = await api.get(`${this.baseUrl}/my-applications`, { params });
     console.log('[leavesService] getMyApplications raw response:', response);
     console.log('[leavesService] getMyApplications response.data:', response.data);
-    const result = response.data.data || response.data || [];
+    
+    // Fix: Extract the actual data array from nested structure
+    let result = response.data?.data?.data || response.data?.data || response.data || [];
+    
+    // If result is an object with 'data' property, extract it
+    if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
+      result = result.data;
+    }
+    
     console.log('[leavesService] getMyApplications final result:', result);
     return Array.isArray(result) ? result : [];
   }
@@ -186,8 +194,22 @@ class LeavesService {
     const url = leaveTypeId 
       ? `${this.baseUrl}/my-balance/${year}/${leaveTypeId}`
       : `${this.baseUrl}/my-balance/${year}`;
+    console.log('[leavesService] getMyBalance called with year:', year, 'leaveTypeId:', leaveTypeId);
+    console.log('[leavesService] getMyBalance URL:', url);
     const response = await api.get(url);
-    return response.data.data || response.data;
+    console.log('[leavesService] getMyBalance raw response:', response);
+    console.log('[leavesService] getMyBalance response.data:', response.data);
+    
+    // Fix: Extract the actual data array from nested structure
+    let result = response.data?.data?.data || response.data?.data || response.data;
+    
+    // If result is an object with 'data' property, extract it
+    if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
+      result = result.data;
+    }
+    
+    console.log('[leavesService] getMyBalance final result:', result);
+    return result;
   }
 
   /**
