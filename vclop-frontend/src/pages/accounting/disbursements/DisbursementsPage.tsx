@@ -37,7 +37,6 @@ import {
   Schedule as PendingIcon,
   Block as CancelledIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import disbursementsService, { DisbursementTransaction } from '../../../services/disbursements.service';
 import { formatCurrency, formatDate } from '../../../utils/format';
 import PageHeader from '../../../components/PageHeader';
@@ -58,7 +57,6 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const DisbursementsPage: React.FC = () => {
-  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [pendingDisbursements, setPendingDisbursements] = useState<DisbursementTransaction[]>([]);
   const [failedDisbursements, setFailedDisbursements] = useState<DisbursementTransaction[]>([]);
@@ -250,7 +248,7 @@ const DisbursementsPage: React.FC = () => {
               <Select
                 value={entityTypeFilter}
                 label="Filter by Type"
-                onChange={(e) => setEntityTypeFilter(e.target.value)}
+                onChange={(e: React.ChangeEvent<{ value: unknown }>) => setEntityTypeFilter(e.target.value as string)}
               >
                 <MenuItem value="">All Types</MenuItem>
                 <MenuItem value="LOAN">Loan Disbursements</MenuItem>
@@ -281,7 +279,7 @@ const DisbursementsPage: React.FC = () => {
 
       <Card>
         <CardContent>
-          <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+          <Tabs value={tabValue} onChange={(_: React.SyntheticEvent, newValue: number) => setTabValue(newValue)}>
             <Tab
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
