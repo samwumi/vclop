@@ -159,6 +159,12 @@ model User {
   timezone                 String                   @default("Asia/Manila") @db.VarChar(50)
   locale                   String                   @default("en-PH") @db.VarChar(10)
   metadata                 String?                  @db.LongText
+  
+  // Bank details for disbursements (transport, expenses, salary)
+  bankAccountNumber        String?                  @db.VarChar(20)
+  bankCode                 String?                  @db.VarChar(10)
+  bankName                 String?                  @db.VarChar(100)
+  
   createdAt                DateTime                 @default(now())
   updatedAt                DateTime                 @updatedAt
   deletedAt                DateTime?
@@ -226,7 +232,10 @@ model User {
   exitInterviews               OffboardingCase[]            @relation("ExitInterviewer")
   offboardingsCompleted        OffboardingCase[]            @relation("OffboardingCompleter")
   approvalPoliciesCreated      ApprovalPolicy[]             @relation("PolicyCreator")
-
+  
+  // Disbursement relations
+  disbursementsInitiated       DisbursementTransaction[]    @relation("DisbursementInitiator")
+  
   @@unique([email, deletedAt])
   @@unique([username, deletedAt])
   @@unique([phone, deletedAt])
@@ -807,6 +816,11 @@ model LoanApplication {
   reviewNotes        String?               @db.VarChar(500)
   rejectionReason    String?               @db.VarChar(500)
   complianceFeedback String?               @db.Text // Detailed feedback from CO when returning to LO
+  
+  // Disbursement tracking
+  disbursementTransactionId String?            @db.VarChar(36)
+  disbursementStatus        String?            @db.VarChar(50) @default("NOT_INITIATED")
+  
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   deletedAt          DateTime?
@@ -1128,6 +1142,11 @@ model TransportRequest {
   paidById          String?                @db.VarChar(36)
   paidAt            DateTime?
   reason            String?                @db.VarChar(1000)
+  
+  // Disbursement tracking
+  disbursementTransactionId String?         @db.VarChar(36)
+  reimbursementStatus       String?         @db.VarChar(50) @default("NOT_INITIATED")
+  
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   customerCount     Int                    @default(1)
@@ -1303,6 +1322,7 @@ enum PermissionCategory {
   LOAN_MANAGEMENT
   VIRTUAL_ACCOUNT_MANAGEMENT
   RECOVERY
+  DISBURSEMENT_MANAGEMENT
 }
 
 enum FormEntityType {
@@ -2697,4 +2717,118 @@ enum ClearanceStatus {
   CLEARED_WITH_CONDITIONS
   NOT_APPLICABLE
   BLOCKED
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAYSTACK DISBURSEMENT SYSTEM (GENERIC FOR ALL TRANSFERS)
+// ═══════════════════════════════════════════════════════════════════════════
+
+model DisbursementTransaction {
+  id                     String    @id @default(uuid())
+  
+  // What is being paid (generic)
+  entityType             DisbursementEntityType
+  entityId               String
+  
+  // Who is receiving payment (generic)
+  recipientType          DisbursementRecipientType
+  recipientId            String
+  recipientName          String?   @db.VarChar(150)
+  
+  // Payment details
+  amount                 Decimal   @db.Decimal(14, 2)
+  currency               String    @default("NGN") @db.VarChar(3)
+  purpose                String?   @db.VarChar(500)
+  
+  // Bank details
+  accountNumber          String?   @db.VarChar(20)
+  accountName            String?   @db.VarChar(150)
+  bankCode               String?   @db.VarChar(10)
+  bankName               String?   @db.VarChar(100)
+  
+  // Paystack fields
+  paystackTransferCode   String?   @unique @db.VarChar(100)
+  paystackRecipientCode  String?   @db.VarChar(100)
+  paystackReference      String?   @unique @db.VarChar(100)
+  paystackStatus         String?   @db.VarChar(50) // pending, success, failed, reversed
+  
+  // Status tracking
+  status                 DisbursementStatus @default(PENDING)
+  initiatedById          String?
+  initiatedBy            User?     @relation("DisbursementInitiator", fields: [initiatedById], references: [id])
+  initiatedAt            DateTime  @default(now())
+  completedAt            DateTime?
+  failureReason          String?   @db.Text
+  retryCount             Int       @default(0)
+  lastRetryAt            DateTime?
+  
+  // Audit
+  metadata               Json?     // Store extra context
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  
+  @@index([entityType, entityId])
+  @@index([recipientType, recipientId])
+  @@index([status])
+  @@index([paystackReference])
+  @@index([initiatedAt])
+  @@map("disbursement_transactions")
+}
+
+model PaystackTransferRecipient {
+  id                     String    @id @default(uuid())
+  
+  // Who owns this recipient (generic)
+  ownerType              RecipientOwnerType
+  ownerId                String
+  
+  // Bank details
+  recipientCode          String    @unique @db.VarChar(100)
+  accountNumber          String    @db.VarChar(20)
+  accountName            String    @db.VarChar(150)
+  bankCode               String    @db.VarChar(10)
+  bankName               String?   @db.VarChar(100)
+  
+  // Status
+  isActive               Boolean   @default(true)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  
+  @@unique([ownerType, ownerId])
+  @@index([ownerType, ownerId])
+  @@index([recipientCode])
+  @@map("paystack_transfer_recipients")
+}
+
+enum DisbursementEntityType {
+  LOAN                   // Customer loan disbursement
+  TRANSPORT              // Transport reimbursement
+  EXPENSE                // General expense reimbursement
+  STAFF_LOAN             // Staff loan disbursement
+  SALARY                 // Salary payment
+  BONUS                  // Bonus payment
+  OTHER                  // Any other payment
+}
+
+enum DisbursementRecipientType {
+  CUSTOMER               // Customer receiving loan
+  EMPLOYEE               // Employee receiving transport/expense/salary
+  VENDOR                 // External vendor
+  OTHER                  // Any other recipient
+}
+
+enum RecipientOwnerType {
+  CUSTOMER
+  EMPLOYEE
+  VENDOR
+  OTHER
+}
+
+enum DisbursementStatus {
+  PENDING                // Created, not yet sent to Paystack
+  PROCESSING             // Sent to Paystack, awaiting confirmation
+  SUCCESS                // Transfer successful
+  FAILED                 // Transfer failed
+  REVERSED               // Transfer was reversed
+  CANCELLED              // Manually cancelled
 }

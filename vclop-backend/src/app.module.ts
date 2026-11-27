@@ -45,6 +45,7 @@ import { OfficerTargetsModule } from './modules/officer-targets/officer-targets.
 import { RecoveryModule } from './modules/recovery/recovery.module';
 import { HrModule } from './modules/hr/hr.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -133,6 +134,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module';
     RecoveryModule,
     HrModule,
     TransactionsModule,
+    PaymentsModule,
   ],
   providers: [
     // ── Global guards (applied to every route in declaration order) ──────

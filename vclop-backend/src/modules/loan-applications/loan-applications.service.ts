@@ -14,6 +14,8 @@ import { RecordRepaymentDto, ReviewDecision, ReviewLoanApplicationDto } from './
 import { WorkflowsService } from '../workflows/workflows.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { UsersService } from '../users/users.service';
+import { DisbursementService } from '../payments/disbursements/disbursement.service';
+import { DisbursementEntityType, DisbursementRecipientType } from '@prisma/client';
 
 const APPLICATION_INCLUDE = {
   customer: { select: { id: true, customerNumber: true, firstName: true, lastName: true, phone: true, status: true } },
@@ -39,6 +41,7 @@ export class LoanApplicationsService {
     private readonly events: EventEmitter2,
     private readonly workflowsService: WorkflowsService,
     private readonly usersService: UsersService,
+    private readonly disbursementService: DisbursementService,
   ) {}
 
   async findAll(query: QueryLoanApplicationsDto & PaginationDto, actorId?: string): Promise<PaginatedResult<unknown>> {
@@ -745,6 +748,41 @@ export class LoanApplicationsService {
     });
 
     this.emitAudit(AuditAction.UPDATE, actorId, applicationId, `Disbursed ${application.applicationNumber} as loan ${loanNumber} - workflow verified`);
+    
+    // ── Automatic Disbursement via Paystack ────────────────────────────────────
+    // Initiate automatic transfer to customer's bank account
+    // This runs asynchronously - if it fails, it can be retried manually from admin panel
+    try {
+      await this.disbursementService.initiateDisbursement({
+        entityType: DisbursementEntityType.LOAN,
+        entityId: application.id,
+        recipientType: DisbursementRecipientType.CUSTOMER,
+        recipientId: application.customerId,
+        amount: principal,
+        purpose: `Loan disbursement for ${application.applicationNumber} (${loanNumber})`,
+        initiatedById: actorId,
+        metadata: {
+          loanNumber,
+          loanId: loan.id,
+          applicationNumber: application.applicationNumber,
+        },
+      });
+      this.events.emit('disbursement.initiated', { 
+        loanId: loan.id, 
+        applicationId, 
+        customerId: application.customerId, 
+        amount: principal 
+      });
+    } catch (error) {
+      // Log error but don't block loan disbursement
+      // Admin can manually retry from disbursements panel
+      console.error(`Failed to initiate automatic disbursement for ${application.applicationNumber}:`, error);
+      this.events.emit('disbursement.failed', { 
+        loanId: loan.id, 
+        applicationId, 
+        error: error.message 
+      });
+    }
     
     // ── Virtual Account Creation (SYNCHRONOUS) ─────────────────────────────────
     // Emit event for virtual account creation - this is handled asynchronously
