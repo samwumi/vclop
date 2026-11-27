@@ -182,14 +182,11 @@ class LeavesService {
     const response = await api.get(`${this.baseUrl}/${applicationId}`);
     console.log('[leavesService] getApplicationById raw response:', response);
     console.log('[leavesService] getApplicationById response.data:', response.data);
+    console.log('[leavesService] getApplicationById response.data.data:', response.data.data);
     
-    // Extract the actual data from nested structure
-    let result = response.data?.data?.data || response.data?.data || response.data;
-    
-    // If result is an object with 'data' property, extract it
-    if (result && typeof result === 'object' && 'data' in result) {
-      result = result.data;
-    }
+    // The API returns: {success: true, data: {...actual leave object...}}
+    // So we need response.data.data directly
+    const result = response.data.data || response.data;
     
     console.log('[leavesService] getApplicationById final result:', result);
     return result;
