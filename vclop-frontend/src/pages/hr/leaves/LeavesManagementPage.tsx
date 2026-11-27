@@ -136,7 +136,7 @@ export function LeavesManagementPage() {
         rows={
           <>
             {filteredApplications.map((app) => {
-              const status = STATUS_CONFIG[app.status];
+              const status = STATUS_CONFIG[app.status] || { label: 'Unknown', variant: 'gray' };
 
               return (
                 <tr key={app.id} className="hover:bg-gray-50">

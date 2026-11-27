@@ -121,7 +121,7 @@ export function MyLeavesPage() {
         rows={
           <>
             {filteredApplications?.map((app) => {
-              const status = STATUS_CONFIG[app.status];
+              const status = STATUS_CONFIG[app.status] || { label: 'Unknown', variant: 'gray' };
               const canCancel = ['PENDING_APPROVAL', 'APPROVED'].includes(app.status);
 
               return (

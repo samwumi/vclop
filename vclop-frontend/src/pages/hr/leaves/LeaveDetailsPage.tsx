@@ -73,7 +73,7 @@ export function LeaveDetailsPage() {
     );
   }
 
-  const status = STATUS_CONFIG[application.status];
+  const status = STATUS_CONFIG[application.status] || { label: 'Unknown', variant: 'gray' };
   const canCancel = ['PENDING_APPROVAL', 'APPROVED'].includes(application.status);
 
   return (
