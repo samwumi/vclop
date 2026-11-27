@@ -45,19 +45,19 @@ SELECT
   '=== WHAT SHOULD SHOW ON MY LEAVES PAGE ===' as info;
 
 SELECT 
-  applicationNumber,
-  status,
+  la.applicationNumber,
+  la.status,
   lt.name as leave_type,
-  startDate,
-  endDate,
-  businessDaysRequested as days,
-  submittedAt,
+  la.startDate,
+  la.endDate,
+  la.businessDaysRequested as days,
+  la.submittedAt,
   CASE 
-    WHEN status = 'DRAFT' THEN 'Draft - Not submitted'
-    WHEN status = 'PENDING_APPROVAL' THEN 'Waiting for approval'
-    WHEN status = 'APPROVED' THEN 'Approved'
-    WHEN status = 'REJECTED' THEN 'Rejected'
-    ELSE status
+    WHEN la.status = 'DRAFT' THEN 'Draft - Not submitted'
+    WHEN la.status = 'PENDING_APPROVAL' THEN 'Waiting for approval'
+    WHEN la.status = 'APPROVED' THEN 'Approved'
+    WHEN la.status = 'REJECTED' THEN 'Rejected'
+    ELSE la.status
   END as display_status
 FROM leave_applications la
 JOIN users u ON la.userId = u.id
