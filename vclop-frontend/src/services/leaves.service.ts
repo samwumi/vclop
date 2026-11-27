@@ -184,9 +184,14 @@ class LeavesService {
     console.log('[leavesService] getApplicationById response.data:', response.data);
     console.log('[leavesService] getApplicationById response.data.data:', response.data.data);
     
-    // The API returns: {success: true, data: {...actual leave object...}}
-    // So we need response.data.data directly
-    const result = response.data.data || response.data;
+    // The backend double-wraps: response.data = {success, data: {success, data: {...actual...}}}
+    // Need to extract response.data.data.data
+    let result = response.data.data;
+    
+    // If result has 'data' property, unwrap it
+    if (result && typeof result === 'object' && 'data' in result) {
+      result = result.data;
+    }
     
     console.log('[leavesService] getApplicationById final result:', result);
     return result;
