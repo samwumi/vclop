@@ -293,6 +293,30 @@ export class LeavesService {
   }
 
   /**
+   * Get specific leave application by ID
+   */
+  async getApplicationById(applicationId: string) {
+    return await this.prisma.leaveApplication.findUnique({
+      where: { id: applicationId },
+      include: {
+        leaveType: true,
+        approvals: {
+          include: {
+            approver: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * Generate unique application number
    */
   private async generateApplicationNumber(): Promise<string> {

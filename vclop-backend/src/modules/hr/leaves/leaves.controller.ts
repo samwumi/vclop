@@ -284,7 +284,11 @@ export class LeavesController {
   @ApiResponse({ status: 200, description: 'Application retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Application not found' })
   async getApplication(@Param('id') id: string) {
-    const application = await this.leavesService.getMyApplications(id, undefined);
+    const application = await this.leavesService.getApplicationById(id);
+
+    if (!application) {
+      throw new NotFoundException('Leave application not found');
+    }
 
     return {
       success: true,
