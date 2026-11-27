@@ -218,7 +218,15 @@ class LeavesService {
    */
   async getPendingApprovals(): Promise<LeaveApproval[]> {
     const response = await api.get(`${this.baseUrl}/pending-approvals`);
-    const result = response.data.data || response.data || [];
+    
+    // Extract the actual data array from nested structure
+    let result = response.data?.data?.data || response.data?.data || response.data || [];
+    
+    // If result is an object with 'data' property, extract it
+    if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
+      result = result.data;
+    }
+    
     return Array.isArray(result) ? result : [];
   }
 
@@ -227,13 +235,15 @@ class LeavesService {
    */
   async getAllPendingApprovals(): Promise<LeaveApproval[]> {
     const response = await api.get(`${this.baseUrl}/all-pending-approvals`);
-    console.log('[getAllPendingApprovals] Full response:', response);
-    console.log('[getAllPendingApprovals] response.data:', response.data);
-    console.log('[getAllPendingApprovals] response.data.data:', response.data.data);
     
-    // Handle triple nesting: response.data.data.data
-    const result = response.data.data?.data || response.data.data || response.data || [];
-    console.log('[getAllPendingApprovals] Final result:', result);
+    // Extract the actual data array from nested structure
+    let result = response.data?.data?.data || response.data?.data || response.data || [];
+    
+    // If result is an object with 'data' property, extract it
+    if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
+      result = result.data;
+    }
+    
     return Array.isArray(result) ? result : [];
   }
 
