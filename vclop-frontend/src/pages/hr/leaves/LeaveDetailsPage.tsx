@@ -73,8 +73,12 @@ export function LeaveDetailsPage() {
     );
   }
 
-  const status = STATUS_CONFIG[application.status] || { label: 'Unknown', variant: 'gray' };
+  const status = STATUS_CONFIG[application.status] || { label: `Unknown (${application.status})`, variant: 'gray' };
   const canCancel = ['PENDING_APPROVAL', 'APPROVED'].includes(application.status);
+  
+  // Debug: log the actual status to help diagnose
+  console.log('[LeaveDetailsPage] Application status:', application.status);
+  console.log('[LeaveDetailsPage] Application data:', application);
 
   return (
     <div className="container mx-auto py-8 max-w-5xl">
@@ -141,7 +145,13 @@ export function LeaveDetailsPage() {
             </div>
             <div>
               <p className="text-gray-500">Submitted On</p>
-              <p className="font-medium">{application.submittedAt ? formatDate(application.submittedAt) : 'Not submitted'}</p>
+              <p className="font-medium">
+                {application.submittedAt 
+                  ? formatDate(application.submittedAt) 
+                  : application.createdAt 
+                    ? formatDate(application.createdAt)
+                    : 'Not submitted'}
+              </p>
             </div>
             {application.approvedAt && (
               <div>
