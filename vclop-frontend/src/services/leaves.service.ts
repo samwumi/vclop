@@ -162,8 +162,12 @@ class LeavesService {
    */
   async getMyApplications(status?: LeaveStatus): Promise<LeaveApplication[]> {
     const params = status ? { status } : {};
+    console.log('[leavesService] getMyApplications called with status:', status);
     const response = await api.get(`${this.baseUrl}/my-applications`, { params });
+    console.log('[leavesService] getMyApplications raw response:', response);
+    console.log('[leavesService] getMyApplications response.data:', response.data);
     const result = response.data.data || response.data || [];
+    console.log('[leavesService] getMyApplications final result:', result);
     return Array.isArray(result) ? result : [];
   }
 
