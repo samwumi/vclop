@@ -1,91 +1,45 @@
-import api from './api';
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export interface DisbursementTransaction {
   id: string;
-  entityType: 'LOAN' | 'TRANSPORT' | 'EXPENSE' | 'STAFF_LOAN' | 'SALARY' | 'BONUS' | 'OTHER';
+  entityType: string;
   entityId: string;
-  recipientType: 'CUSTOMER' | 'EMPLOYEE' | 'VENDOR' | 'OTHER';
+  recipientType: string;
   recipientId: string;
   recipientName: string | null;
   amount: number;
-  currency: string;
-  purpose: string | null;
-  accountNumber: string | null;
-  accountName: string | null;
-  bankCode: string | null;
-  bankName: string | null;
-  paystackTransferCode: string | null;
-  paystackRecipientCode: string | null;
-  paystackReference: string | null;
-  paystackStatus: string | null;
-  status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED' | 'REVERSED' | 'CANCELLED';
-  initiatedById: string | null;
-  initiatedBy?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
+  status: string;
   initiatedAt: string;
-  completedAt: string | null;
   failureReason: string | null;
-  retryCount: number;
-  lastRetryAt: string | null;
-  metadata: any;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface DisbursementsResponse {
-  success: boolean;
-  data: DisbursementTransaction[];
-}
-
-export interface DisbursementResponse {
-  success: boolean;
-  data: DisbursementTransaction;
 }
 
 class DisbursementsService {
-  /**
-   * Get all pending disbursements
-   */
-  async getPending(entityType?: string): Promise<DisbursementsResponse> {
+  async getPending(entityType?: string) {
     const params = entityType ? { entityType } : {};
-    const response = await api.get('/disbursements/pending', { params });
+    const response = await axios.get(`${API_BASE_URL}/disbursements/pending`, { params });
     return response.data;
   }
 
-  /**
-   * Get all failed disbursements
-   */
-  async getFailed(entityType?: string): Promise<DisbursementsResponse> {
+  async getFailed(entityType?: string) {
     const params = entityType ? { entityType } : {};
-    const response = await api.get('/disbursements/failed', { params });
+    const response = await axios.get(`${API_BASE_URL}/disbursements/failed`, { params });
     return response.data;
   }
 
-  /**
-   * Get specific disbursement details
-   */
-  async getOne(id: string): Promise<DisbursementResponse> {
-    const response = await api.get(`/disbursements/${id}`);
+  async getOne(id: string) {
+    const response = await axios.get(`${API_BASE_URL}/disbursements/${id}`);
     return response.data;
   }
 
-  /**
-   * Retry failed disbursement
-   */
-  async retry(id: string): Promise<DisbursementResponse> {
-    const response = await api.post(`/disbursements/${id}/retry`);
+  async retry(id: string) {
+    const response = await axios.post(`${API_BASE_URL}/disbursements/${id}/retry`);
     return response.data;
   }
 
-  /**
-   * Get disbursements for specific entity
-   */
-  async getForEntity(entityType: string, entityId: string): Promise<DisbursementsResponse> {
-    const response = await api.get(`/disbursements/entity/${entityType}/${entityId}`);
+  async getForEntity(entityType: string, entityId: string) {
+    const response = await axios.get(`${API_BASE_URL}/disbursements/entity/${entityType}/${entityId}`);
     return response.data;
   }
 }
