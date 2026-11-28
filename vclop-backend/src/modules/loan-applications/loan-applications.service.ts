@@ -780,7 +780,7 @@ export class LoanApplicationsService {
       this.events.emit('disbursement.failed', { 
         loanId: loan.id, 
         applicationId, 
-        error: error.message 
+        error: (error as any).message 
       });
     }
     

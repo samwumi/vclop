@@ -158,7 +158,7 @@ export class DisbursementService {
         where: { id: disbursementId },
         data: {
           status: DisbursementStatus.FAILED,
-          failureReason: error.message || 'Unknown error',
+          failureReason: (error as any).message || 'Unknown error',
           retryCount: { increment: 1 },
           lastRetryAt: new Date(),
         },

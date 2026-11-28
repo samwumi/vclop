@@ -157,7 +157,7 @@ export class PaystackService {
 
       return response.data.data;
     } catch (error) {
-      if (error.response?.status === 422) {
+      if ((error as any).response?.status === 422) {
         throw new HttpException(
           'Invalid account number or bank code',
           HttpStatus.BAD_REQUEST,
@@ -189,7 +189,7 @@ export class PaystackService {
     } catch (error) {
       this.logger.error('Failed to create recipient', error);
       throw new HttpException(
-        error.response?.data?.message || 'Failed to create transfer recipient',
+        (error as any).response?.data?.message || 'Failed to create transfer recipient',
         HttpStatus.BAD_GATEWAY,
       );
     }
@@ -217,7 +217,7 @@ export class PaystackService {
     } catch (error) {
       this.logger.error('Failed to initiate transfer', error);
       throw new HttpException(
-        error.response?.data?.message || 'Failed to initiate transfer',
+        (error as any).response?.data?.message || 'Failed to initiate transfer',
         HttpStatus.BAD_GATEWAY,
       );
     }
